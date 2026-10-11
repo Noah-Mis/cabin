@@ -18,7 +18,7 @@
 Writes tests/results/achievements.md and tests/results/achievements/.
 Run:  python tests/achievements.py
 """
-import io, json, re, sys
+import io, json, os, re, sys
 from pathlib import Path
 import numpy as np
 from PIL import Image
@@ -817,7 +817,8 @@ def main():
         check_reward_rendering(browser, base)
         check_sign_art(browser, base)
         edges(browser, base)
-        everything_on(browser, base)
+        if not os.environ.get('CI'):   # screenshots for eyeballing only; skipped on GitHub Actions
+            everything_on(browser, base)
         browser.close()
     stop()
     (RESULTS / 'achievements.md').write_text('# Achievement checks\n' + '\n'.join(report) + '\n', encoding='utf-8')
