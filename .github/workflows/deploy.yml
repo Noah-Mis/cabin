@@ -19,13 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npm ci
-      - run: npx eslint site/js
-      - run: node tests/check-assets.mjs      # every file in the manifests exists
-      - run: npx playwright install --with-deps chromium
-      - run: npx playwright test              # load the site, compare to reference frames
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.10' }
+      - run: pip install playwright numpy pillow
+      - run: python -m playwright install --with-deps chrome   # harness.py launches channel='chrome'
+      - run: python tests/reference.py      # regenerated art matches the shipped files
+      - run: python tests/compare.py        # site pixels vs compose(), every tick
+      - run: python tests/behaviour.py      # layout, commands, terminal, scheduler, folder
+      - run: python tests/achievements.py
+      - run: python tests/sound.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: tests/results
 
   deploy:
     needs: test
@@ -37,6 +44,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/upload-pages-artifact@v3
-        with: { path: site }
+        with: { path: . }                   # the site is the repo root, no build step
       - id: deployment
         uses: actions/deploy-pages@v4
