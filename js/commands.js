@@ -16,7 +16,7 @@
 // So `reset` doesn't count (it would wipe the very progress it completes);
 // `sound` doesn't (muting shouldn't be a chore); `theme` doesn't (it only
 // appears once the achievement is earned); `badges` no longer does (the board
-// by the window replaced it). The rule only asks that every listed command
+// by the window replaced it). The hidden sill commands (`ls`, `rm`, `touch`) don't. The rule only asks that every listed command
 // was used, so retiring a command never sets anyone back: an old mark for it
 // is simply ignored. everyDayCommands() below computes the list.
 //
@@ -24,6 +24,7 @@
 
 import { track, isUnlocked, listAchievements, debugSetStat, debugUnlock } from './achievements.js';
 import { setMuted, isMuted, soundState, outputLevelDb, soundLog } from './sound.js';
+import { sillItems, putAway, findSillItem, putOnSill, takeOffSill } from './sill.js';
 
 export const commands = {
   help: {
@@ -67,6 +68,48 @@ export const commands = {
       app.print(app.events.folder()
         ? 'you take out the folder. click it to open it.'
         : 'the folder is already on the sill. click it to open it.');
+    },
+  },
+  // The sill (js/sill.js): what is on it, taking things off, putting them back.
+  // Hidden, for visitors who think to try them; not part of Power User.
+  ls: {
+    usage: 'ls',
+    about: 'list what is on the sill',
+    hidden: true,
+    everyCommand: false,
+    run(args, app) {
+      const items = sillItems();
+      app.print(items.length ? items.join('  ') : 'the sill is empty.');
+      const away = putAway();
+      if (away.length) app.print(`put away: ${away.join('  ')}`);
+    },
+  },
+  rm: {
+    usage: 'rm <item>',
+    about: 'take something off the sill',
+    hidden: true,
+    everyCommand: false,
+    run([word], app) {
+      if (!word) return app.print(`usage: ${commands.rm.usage}`);
+      const name = findSillItem(word);
+      const result = name ? takeOffSill(name) : 'absent';
+      if (result === 'absent') return app.print(`rm: cannot remove '${word}': not on the sill`);
+      if (result === 'busy') return app.print(`rm: cannot remove '${name}': it's in use`);
+      app.print(`you take the ${name} off the sill.`);
+    },
+  },
+  touch: {
+    usage: 'touch <item>',
+    about: 'put something of yours on the sill',
+    hidden: true,
+    everyCommand: false,
+    run([word], app) {
+      if (!word) return app.print(`usage: ${commands.touch.usage}`);
+      const name = findSillItem(word);
+      const result = name ? putOnSill(name) : 'missing';
+      if (result === 'missing') return app.print(`touch: cannot touch '${word}': you don't have one`);
+      if (result === 'already') return app.print(`the ${name} is already on the sill.`);
+      app.print(`you put the ${name} on the sill.`);
     },
   },
   // Retired: the achievement board on the window's right-hand log replaced

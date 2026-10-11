@@ -453,7 +453,7 @@ def earn_each(browser, base):
     @flow('power_user')
     def _(v):
         before = v.page.evaluate("getComputedStyle(document.getElementById('terminal')).backgroundColor")
-        for line in ('help', 'time day', 'weather clear', 'clear', 'badges'):   # `badges` is retired: no longer counts
+        for line in ('help', 'time day', 'weather clear', 'clear', 'badges', 'ls', 'rm mug', 'touch mug'):   # hidden ones don't count
             v.cmd(line)
         almost = v.unlocked('power_user')
         theme_before = v.cmd('theme green')
@@ -462,7 +462,7 @@ def earn_each(browser, base):
         bg = v.page.evaluate("getComputedStyle(document.getElementById('terminal')).backgroundColor")
         want = ACH['terminal_theme_green']['background']
         want_rgb = 'rgb(%d, %d, %d)' % tuple(int(want[i:i + 2], 16) for i in (1, 3, 5))
-        return (f'help, clear and the retired `badges`: not yet ({not almost}); `theme` unknown before ({theme_before[0][:25]}...); '
+        return (f'help, clear, and the hidden `badges`, `ls`, `rm`, `touch`: not yet ({not almost}); `theme` unknown before ({theme_before[0][:25]}...); '
                 f'after `whoami`: `theme green` -> {after[-1]!r}, terminal background {bg} (JSON {want})',
                 not almost and 'no such command' in theme_before[0] and bg == want_rgb and before != bg)
 

@@ -2,12 +2,13 @@
 
 ## Layout and crispness
 
-- PASS: desktop_1920x1080: scale 6 (filling needs 6), whole-number=True, fills the screen=True, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 6x6 block=True
-- PASS: laptop_1366x768: scale 5 (filling needs 5), whole-number=True, fills the screen=True, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 5x5 block=True
-- PASS: hidpi_1440x900_dpr2: scale 10 (filling needs 10), whole-number=True, fills the screen=True, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 10x10 block=True
-- PASS: odd_1000x700_dpr1.25: scale 4 (filling needs 5), whole-number=True, fills the screen=False, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 4x4 block=True
-- PASS: phone_390x844_dpr3: scale 4 (filling needs 15), whole-number=True, fills the screen=False, window, sill and board fully visible above the prompt=True, prompt 34 px tall=True, every visible pixel a clean 4x4 block=True
-- PASS: phone_landscape_844x390_dpr3: scale 8 (filling needs 8), whole-number=True, fills the screen=True, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 8x8 block=True
+- PASS: desktop_1920x1080: scale 6 (filling needs 6), whole-number=True, fills the screen=True, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 6x6 block=True
+- PASS: fullscreen_1920x1200: scale 6 (filling needs 7), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 6x6 block=True
+- PASS: laptop_1366x768: scale 4 (filling needs 5), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 4x4 block=True
+- PASS: hidpi_1440x900_dpr2: scale 9 (filling needs 10), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 9x9 block=True
+- PASS: odd_1000x700_dpr1.25: scale 4 (filling needs 5), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 4x4 block=True
+- PASS: phone_390x844_dpr3: scale 3 (filling needs 15), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 34 px tall=True, every visible pixel a clean 3x3 block=True
+- PASS: phone_landscape_844x390_dpr3: scale 8 (filling needs 8), whole-number=True, fills the screen=True, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 8x8 block=True
 
 ## Commands (typed into the terminal, test mode, compared with a page that did not run them)
 
@@ -27,7 +28,7 @@
 - PASS: input has focus on load, so typing works straight away
 - PASS: clicking the scene keeps focus in the input
 - PASS: no bubble before anything is typed (test mode has no greeting)
-- PASS: `help` shows one bubble listing help, clear, whoami and not bird, wind, sasquatch, cig, time, weather, reset, badges
+- PASS: `help` shows one bubble listing help, clear, whoami and not bird, wind, sasquatch, cig, time, weather, reset, badges, ls, rm, touch
 - PASS: unknown command replaces the help bubble with one hint line: ['no such command "dance". type "help" to see what you can do.']
 - PASS: there is only ever one bubble
 - PASS: a new command replaces the bubble: ['it starts to snow.']
@@ -38,7 +39,7 @@
 - PASS: 60 rapid commands: still one bubble holding only the last reply, scene kept running, no errors
 - PASS: after the last `time day` the scene is day
 - PASS: up/down recall: 'help', 'time day', back to ''
-- PASS: `time auto` returns to the clock (local hour 12 -> day)
+- PASS: `time auto` returns to the clock (local hour 18 -> afternoon)
 - PASS: the `time auto` reply is showing
 - PASS: `clear` removes the bubble
 
@@ -90,9 +91,9 @@
 - PASS: 1280x752: clicking inside the pop-up keeps focus there (not the terminal input)
 - PASS: 1280x752: closes on the X (True), Escape (True) and a click outside (True); the folder on the sill closes again too (True)
 - PASS: 1280x752: no console problems ([])
-- PASS: 1440x900_dpr2: pop-up drawn at a whole-number scale (10 device px per art px), art pixel-exact against popup_folder.png + active tab: True
+- PASS: 1440x900_dpr2: pop-up drawn at a whole-number scale (9 device px per art px), art pixel-exact against popup_folder.png + active tab: True
 - PASS: 1440x900_dpr2: every string in folder_content.json appears exactly as written (left side: 10 strings; tabs: about, resume, projects, contact); missing: none
-- PASS: 1440x900_dpr2: the long resume tab scrolls inside the page (785 px of content in 625 px)
+- PASS: 1440x900_dpr2: the long resume tab scrolls inside the page (728 px of content in 563 px)
 - PASS: 1440x900_dpr2: the resume link downloads a real PDF (download attribute, HTTP 200, starts '%PDF-')
 - PASS: 1440x900_dpr2: clicking inside the pop-up keeps focus there (not the terminal input)
 - PASS: 1440x900_dpr2: closes on the X (True), Escape (True) and a click outside (True); the folder on the sill closes again too (True)
@@ -116,15 +117,22 @@
 - PASS: night: the pack can be clicked again for another cigarette
 - PASS: night: no console problems ([])
 
+## The sill: ls, rm, touch (test mode)
+
+- PASS: `ls` at the start: ['mug', 'put away: folder']; `rm mug`: ['you take the mug off the sill.'], then `ls`: ['the sill is empty.', 'put away: mug  folder']; the cup is gone (412 px, all inside the cup: True) and clicking there sips nothing (0); `touch mug`: ['you put the mug on the sill.'], again: ['the mug is already on the sill.']; afterwards the scene matches a page that never moved it (0 px differ)
+- PASS: mid-sip `rm mug`: ["rm: cannot remove 'mug': it's in use"]; `whoami` then `rm folder` while it slides in: ["rm: cannot remove 'folder': it's in use"]; `ls`: ['mug  folder']; once it rests, `rm folder`: ['you take the folder off the sill.'] (the scene then matches a page without it: 0 px differ); `touch folder`: ['you put the folder on the sill.'], and it slides back in
+- PASS: before Woodsman: `touch trophy` ["touch: cannot touch 'trophy': you don't have one"], `rm trophy` ["rm: cannot remove 'trophy': not on the sill"] (as for `rm sofa`: ["rm: cannot remove 'sofa': not on the sill"]); earning everything: `ls` ['mug  folder  trophy  ashtray']; after `rm` of both: ['mug  folder', 'put away: trophy  ashtray']; after `reset yes`: ['mug  folder']
+- PASS: trophy and ashtray put away: the scene matches a visitor without them (0 px differ, board aside); the pack before `cig`: ["touch: cannot touch 'pack': you don't have one"]; after: `ls` ['mug  pack', 'put away: folder']; `rm cigarettes`: ['you take the pack off the sill.'] (then 0 px differ from a page without it); `touch cig`: ['you put the pack on the sill.'], and it slides back in (0 px differ from a page that only ran `cig`)
+
 ## Scheduler (real clock, config.js served with short timers)
 
-- PASS: bird fired by itself 22 times in 10 s (8 actually started)
-- PASS: farbird fired by itself 22 times in 10 s (3 actually started)
-- PASS: wind fired by itself 21 times in 10 s (21 actually started)
-- PASS: sasquatch fired by itself 5 times in 10 s (2 actually started)
-  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 5
+- PASS: bird fired by itself 21 times in 10 s (8 actually started)
+- PASS: farbird fired by itself 20 times in 10 s (3 actually started)
+- PASS: wind fired by itself 23 times in 10 s (23 actually started)
+- PASS: sasquatch fired by itself 12 times in 10 s (3 actually started)
+  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 12
 - PASS: no console problems on the live (non-test) page: []
-- PASS: front trees: 50 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.1-14.8 s (config [7, 15])
+- PASS: front trees: 49 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.0-14.8 s (config [7, 15])
 - PASS: sasquatch timer over 20,000 seeded rolls: fired 30.6% of the time (config 30%), waits between 181 s and 600 s (config 180-600 s)
 
 ## Console

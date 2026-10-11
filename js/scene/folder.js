@@ -5,6 +5,8 @@
 // Reward (case_closed): the gold-seal folder everywhere: sliding onto the
 // sill, at rest, opening, and closing (its own closing sheet; the plain folder plays its opening
 // backwards).
+// A sill item (js/sill.js): `whoami` or `touch folder` brings it, `rm folder`
+// puts it away (closing the pop-up if it is open).
 // Exports: createFolder(assets) -> scene element with events.folder and pointer
 
 import { config } from '../config.js';
@@ -12,6 +14,7 @@ import { createSprite } from '../sprite.js';
 import { createOutline } from '../outline.js';
 import { folderContents } from '../folder-contents.js';
 import { isUnlocked } from '../achievements.js';
+import { addSillItem, markOnSill } from '../sill.js';
 
 export function createFolder(assets) {
   const opened = placedSprite(assets, 'folder_opened');   // both folders open to the same page
@@ -50,6 +53,7 @@ export function createFolder(assets) {
   function takeOut() {
     if (state !== 'away') return false;
     enter('placing');
+    markOnSill('folder');
     return true;
   }
 
@@ -58,6 +62,17 @@ export function createFolder(assets) {
     enter('closing');
     folderContents.close();
   }
+
+  addSillItem('folder', {
+    available: () => true,
+    put: takeOut,
+    take() {
+      if (state === 'open') folderContents.close();
+      enter('away');
+      hovered = false;
+    },
+    busy: () => ['placing', 'opening', 'closing'].includes(state),
+  });
 
   // The still sprite (and its outline) for states the visitor can click.
   const resting = () => ({ closed: [current().closed, outlines.closed], open: [opened, outlines.open] })[state] ?? null;

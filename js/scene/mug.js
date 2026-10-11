@@ -5,12 +5,14 @@
 // hidden. The sip is drawn above everything else, so it is a separate
 // element, `overlay`, which layers.js puts at the very top.
 // Reward (caffeinated): the enamel camp mug, with its own sip.
+// A sill item (js/sill.js): there from the start; `rm mug` / `touch mug`.
 // Exports: createMug(assets) -> scene element with pointer and overlay
 
 import { config } from '../config.js';
 import { createSprite } from '../sprite.js';
 import { createOutline } from '../outline.js';
 import { isUnlocked, track } from '../achievements.js';
+import { addSillItem, isOnSill, markOnSill } from '../sill.js';
 
 export function createMug(assets) {
   const animation = assets.animation('mug');
@@ -26,7 +28,15 @@ export function createMug(assets) {
   let sip = null;   // { sprite, elapsedMs } while the visitor drinks
 
   const kind = () => (isUnlocked('caffeinated') ? 'camp' : 'plain');
-  const isOn = (px, py) => !sip && outline.covers(px - left, py - top);
+  const isOn = (px, py) => isOnSill('mug') && !sip && outline.covers(px - left, py - top);
+
+  addSillItem('mug', {
+    available: () => true,
+    put: () => markOnSill('mug'),
+    take: () => { hovered = false; },
+    busy: () => sip !== null,
+  }, ['cup', 'coffee']);
+  markOnSill('mug');
 
   return {
     update(dtMs) {
@@ -36,7 +46,7 @@ export function createMug(assets) {
       if (sip.elapsedMs >= sip.sprite.durationMs) sip = null;
     },
     draw(ctx, time) {
-      if (sip) return;   // in the visitor's hand
+      if (sip || !isOnSill('mug')) return;   // in the visitor's hand, or put away
       if (hovered) ctx.drawImage(outline.image, left - 1, top - 1);
       const cup = cups[kind()];
       cup.draw(ctx, time, cup.frameAt(elapsedMs), x, y);
