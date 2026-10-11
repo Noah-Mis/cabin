@@ -14,18 +14,28 @@
    reset then earn again; storage disabled; hand-edited and older saved data;
    the tab hidden not counting as time on the page.
 4. Screenshots of the scene with every reward on, by day and by night.
+5. The deer's visit (anim/achievements/deer_brief.md): the pond bank for
+   everyone; the tree cover invisible on its own; a whole visit by day and
+   night, measuring how far right and down the deer reaches and that each act
+   starts and ends hidden; each stage against deer_route_check.png; rain, a
+   click and night falling mid-visit; never alongside the sasquatch.
+6. The achievement board: idle, hovered and night pixel-exact against
+   anim/board's mockups; each unlock lights its own pin (with a sparkle);
+   the pop-up's art against its mockup; nothing earned, partway, unlocking
+   while open, everything earned; arrow keys, X, Escape, click outside;
+   keyboard only from the terminal; touch on a phone; `badges` retired.
 
 Writes tests/results/achievements.md and tests/results/achievements/.
 Run:  python tests/achievements.py
 """
-import io, json, os, re, sys
+import base64, io, json, os, re, sys
 from pathlib import Path
 import numpy as np
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).parent))
-from harness import ROOT, RESULTS, serve_site, open_browser, watch_page, canvas_pixels
+from harness import ROOT, RESULTS, BOARD, serve_site, open_browser, watch_page, canvas_pixels, add_board, add_pond_bank
 
 ANIM = ROOT / 'anim'
 ACH_DIR = ANIM / 'achievements'
@@ -131,6 +141,13 @@ class Visit:
         self.page.screenshot(path=str(OUT / f'{name}.png'))
 
 
+BOARD_DIR = ANIM / 'board'
+BOARD_LAYOUT = json.loads((BOARD_DIR / 'board_layout.json').read_text())
+BX, BY = BOARD['canvas_x'], BOARD['canvas_y']
+BOARD_BOX = (slice(BY - 1, BY + BOARD['h'] + 1), slice(BX - 1, BX + BOARD['w'] + 1))   # with its outline
+ORDER = [a['id'] for a in ACH['achievements']]
+
+
 def diff(a, b):
     return np.any(a != b, axis=2)
 
@@ -167,11 +184,13 @@ def reference(time, layers):
          'sill': lambda: sill.append((im, pos))}[group]()
     mask = Image.open(ANIM / 'scene' / 'sky_mask.png').convert('RGBA').split()[3]
     c.alpha_composite(Image.composite(sky, Image.new('RGBA', (320, 180), (0, 0, 0, 0)), mask))
+    add_pond_bank(c, time)   # scenery, under the creatures
     for im, pos in front:
         c.alpha_composite(im, pos)
     c.alpha_composite(Image.open(ANIM / 'scene' / f'near_forest_{time}.png').convert('RGBA'))
     window = 'cabin_window_night.png' if time == 'night' else 'cabin_window.png'   # manifest "window" entry
     c.alpha_composite(Image.open(ANIM / 'scene' / window).convert('RGBA'))
+    add_board(c, time)   # empty: unlocks also light pins there, which check_board() covers
     for im, pos in sill:
         c.alpha_composite(im, pos)
     return np.asarray(c)
@@ -184,6 +203,7 @@ def compare_reward(label, time, site_with, site_without, layer, note='', base=()
     ref_with = reference(time, [*base, layer])
     ref_without = reference(time, [*base, *([replaces] if replaces else [])])
     behind_agree = ~diff(site_without, ref_without)
+    behind_agree[BOARD_BOX] = False   # the unlock also lights a pin on the board; check_board() covers that
     site_d = diff(site_with, site_without) & behind_agree
     ref_d = diff(ref_with, ref_without) & behind_agree
     covered = int((diff(ref_with, ref_without) & ~behind_agree).sum())
@@ -274,15 +294,7 @@ def check_reward_rendering(browser, base):
         f = (tick - start) * 100 // SPRITES[sheet]['ms_per_frame']
         compare_reward(label, time, w, wo, ('front', sheet, f, spots[spot]['x'], spots[spot]['y'], False),
                        'behind the near forest')
-    # Deer grazing (night) and walking in (day), behind the near forest.
-    walk_ms = (148 - 128) / config_number('walkSpeedPxPerSec') * 1000
-    w, wo = pair(browser, base, 'night', [(0, 'debug unlock cabin_fever')], 48, [(4, 'debug event deer outdirection=1')])
-    graze_frame = int(((48 - 4) * 100 - walk_ms) // SPRITES['deer_graze']['ms_per_frame'])
-    compare_reward('deer_graze', 'night', w, wo, ('front', 'deer_graze', graze_frame, 148, 123, False), 'behind the near forest')
-    w, wo = pair(browser, base, 'day', [(0, 'debug unlock cabin_fever')], 24, [(12, 'debug event deer')])
-    x = 128 + int(config_number('walkSpeedPxPerSec') * 1.2)
-    compare_reward('deer_walk', 'day', w, wo, ('front', 'deer_walk', (1200 // SPRITES['deer_walk']['ms_per_frame']) % 4, x, 123, False),
-                   'behind the near forest')
+    # The deer has its own section: check_deer().
     # Golden birds, on the frame they appear (no trail yet).
     w, wo = pair(browser, base, 'day', [(0, 'debug unlock bird_watcher')], 12, [(12, 'debug event bird x=128 y=56 direction=1')])
     compare_reward('bird_flap_shiny', 'day', w, wo, ('front', 'bird_flap_shiny', 0, 128, 56, False))
@@ -441,17 +453,17 @@ def earn_each(browser, base):
     @flow('power_user')
     def _(v):
         before = v.page.evaluate("getComputedStyle(document.getElementById('terminal')).backgroundColor")
-        for line in ('help', 'time day', 'weather clear', 'clear', 'whoami'):
+        for line in ('help', 'time day', 'weather clear', 'clear', 'badges'):   # `badges` is retired: no longer counts
             v.cmd(line)
         almost = v.unlocked('power_user')
         theme_before = v.cmd('theme green')
-        v.cmd('badges')
+        v.cmd('whoami')
         after = v.cmd('theme green')
         bg = v.page.evaluate("getComputedStyle(document.getElementById('terminal')).backgroundColor")
         want = ACH['terminal_theme_green']['background']
         want_rgb = 'rgb(%d, %d, %d)' % tuple(int(want[i:i + 2], 16) for i in (1, 3, 5))
-        return (f'5 of 6 commands: not yet ({not almost}); `theme` unknown before ({theme_before[0][:25]}...); '
-                f'after `badges`: `theme green` -> {after[-1]!r}, terminal background {bg} (JSON {want})',
+        return (f'help, clear and the retired `badges`: not yet ({not almost}); `theme` unknown before ({theme_before[0][:25]}...); '
+                f'after `whoami`: `theme green` -> {after[-1]!r}, terminal background {bg} (JSON {want})',
                 not almost and 'no such command' in theme_before[0] and bg == want_rgb and before != bg)
 
     @flow('woodsman')
@@ -779,7 +791,7 @@ def everything_on(browser, base):
         else:
             v.cmd('debug event aurora')
         v.to(v.tick + 32)
-        v.cmd('debug event deer outdirection=1')      # grazing by the time of the shot
+        v.cmd('debug event deer start=pool')         # at the pool, walking in, by the time of the shot
         v.to(v.tick + 32)                              # aurora and rainbow fully faded in
         # Timed so each is on screen together, as in the preview: the sasquatch
         # (or yeti) waving, a golden bird, and at night a shooting star.
@@ -806,6 +818,484 @@ def everything_on(browser, base):
     side.save(OUT / 'preview_vs_site.png')
 
 
+DEER_ALONE = """(which) => {
+  const deer = cabin.layers.find((l) => l.events && l.events.deer);
+  const c = document.createElement('canvas'); c.width = 320; c.height = 180;
+  const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+  (which === 'far' ? deer.far : deer).draw(ctx, cabin.app.timeOfDay.current());
+  return c.toDataURL().split(',')[1];
+}"""
+DEER_STAGE = "cabin.layers.find((l) => l.events && l.events.deer).stage()"
+ACT_ONE = ('clifftopOut', 'clifftopPause', 'clifftopBack')
+ACT_TWO = ('approach', 'pause', 'drink', 'leave')
+
+
+def deer_alone(v, which):
+    """One deer layer drawn alone on a blank canvas: exactly the pixels the deer covers."""
+    data = v.page.evaluate(DEER_ALONE, which)
+    return np.asarray(Image.open(io.BytesIO(base64.b64decode(data))).convert('RGBA'))
+
+
+def box_of(mask):
+    if not mask.any():
+        return None
+    xs, ys = np.nonzero(mask.any(0))[0], np.nonzero(mask.any(1))[0]
+    return int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())
+
+
+def check_deer(browser, base):
+    report.append('\n## Deer (Cabin Fever)\n')
+    deer_info = SPRITES['deer_walk']['placement']
+    forbidden = deer_info['forbidden_x'][0]
+    cover_info = SPRITES['far_trees_cover']
+    cx, cy = cover_info['placement']['x'], cover_info['placement']['y']
+    cover_box = (slice(cy, cy + cover_info['frame_h']), slice(cx, cx + cover_info['frame_w']))
+    bank_info = SPRITES['pond_bank']
+    bx, by = bank_info['placement']['x'], bank_info['placement']['y']
+    bank_box = (slice(by, by + bank_info['frame_h']), slice(bx, bx + bank_info['frame_w']))
+
+    # The bank: scenery for everyone, at every time of day, steady while the waterfall runs.
+    bad = []
+    for time in ('morning', 'day', 'afternoon', 'night'):
+        v = Visit(browser, base, f'{TEST}&time={time}')
+        frames = [v.frame(t)[bank_box] for t in range(0, 24)]
+        bank = np.asarray(Image.open(ACH_DIR / f'pond_bank_{time}.png').convert('RGBA'))
+        near = np.asarray(Image.open(ANIM / 'scene' / f'near_forest_{time}.png').convert('RGBA'))[bank_box][..., 3] > 0
+        tops = np.asarray(Image.open(ANIM / next(f for f in MAIN['animations']['treetops']['files'] if f.endswith(f'_{time}.png'))).convert('RGBA'))
+        tops_any = np.zeros(near.shape, bool)
+        for i in range(MAIN['animations']['treetops']['frames']):
+            tops_any |= tops[:, i * 320:(i + 1) * 320][bank_box][..., 3] > 0
+        open_bank = (bank[..., 3] == 255) & ~near & ~tops_any   # bank pixels nothing is drawn over
+        shown = all(np.array_equal(f[open_bank][:, :3], bank[open_bank][:, :3]) for f in frames)
+        # Its own pixels hold still (the water may show through its gaps, and the treetops sway over it).
+        solid = (bank[..., 3] == 255) & ~tops_any
+        steady = all(np.array_equal(f[solid], frames[0][solid]) for f in frames)
+        if not (shown and steady and not v.unlocked('cabin_fever') and not v.problems):
+            bad.append(time)
+        v.close()
+    check(not bad, f'the pond bank is drawn for a visitor without Cabin Fever at all four times of day, '
+                   f'and stays put while the waterfall runs ({bad or "all four"})')
+
+    # The tree cover is invisible on its own: drawing it with no deer changes nothing.
+    changed = []
+    for time in ('morning', 'day', 'afternoon', 'night'):
+        v = Visit(browser, base, f'{TEST}&time={time}')
+        before = v.frame(5)
+        v.page.evaluate(f"""async () => {{
+            const img = new Image(); img.src = 'anim/achievements/far_trees_cover_{time}.png'; await img.decode();
+            const far = cabin.layers.find((l) => l.events && l.events.deer).far;
+            cabin.layers.splice(cabin.layers.indexOf(far) + 1, 0, {{ draw: (ctx) => ctx.drawImage(img, {cx}, {cy}) }});
+        }}""")
+        after = v.frame(5)
+        changed.append(int(np.any(after != before, axis=2).sum()))
+        v.close()
+    check(not any(changed), f'with no visit, drawing the far-trees cover changes nothing on screen ({changed} px at morning, day, afternoon, night)')
+
+    # Not before it is earned, and not in rain or snow.
+    v = Visit(browser, base, f'{TEST}&time=day')
+    v.cmd('reset yes')
+    early = v.page.evaluate('cabin.app.events.deer()')
+    v.cmd('debug unlock cabin_fever')
+    v.cmd('weather rain')
+    in_rain = v.page.evaluate('cabin.app.events.deer()')
+    check(early is False and in_rain is False and v.page.evaluate(DEER_STAGE) == 'hidden',
+          f'no deer before Cabin Fever ({early}) or in rain ({in_rain})')
+    v.close()
+
+    # A whole visit, by day and by night, beside the same scene without one.
+    for time in ('day', 'night'):
+        v, plain = Visit(browser, base, f'{TEST}&time={time}'), Visit(browser, base, f'{TEST}&time={time}')
+        for page in (v, plain):
+            page.cmd('debug unlock cabin_fever')
+            page.cmd('clear')
+            page.to(1)
+        v.page.evaluate('cabin.app.events.deer()')
+        rows = []
+        for tick in range(2, 1500):
+            v.to(tick)
+            plain.to(tick)
+            stage = v.page.evaluate(DEER_STAGE)
+            frame = v.frame()
+            visible = np.any(frame[..., :3] != plain.frame()[..., :3], axis=2)
+            near, far = deer_alone(v, 'near')[..., 3] > 0, deer_alone(v, 'far')[..., 3] > 0
+            far_deer = far.copy()
+            far_deer[cover_box] = False
+            rows.append((tick, stage, int(visible.sum()), box_of(near), box_of(far_deer), near.any() and far_deer.any(), frame))
+            if stage == 'hidden':
+                break
+        order = [s for i, (_, s, *_) in enumerate(rows) if i == 0 or rows[i - 1][1] != s]
+        near_boxes = [r[3] for r in rows if r[3]]
+        max_x, max_y = max(b[2] for b in near_boxes), max(b[3] for b in near_boxes)
+        far_x = max((r[4][2] for r in rows if r[4]), default=None)
+        ends = {}
+        for name, act in (('act one', ACT_ONE), ('act two', ACT_TWO)):
+            ticks = [r for r in rows if r[1] in act]
+            ends[name] = (ticks[0][2], ticks[-1][2])
+        both = sum(r[5] for r in rows)
+        # One picture per stage, the middle of each, 4x, for the record.
+        stages = []
+        for r in rows:
+            if not stages or stages[-1][0] != r[1]:
+                stages.append([r[1], []])
+            stages[-1][1].append(r[6])
+        strip = np.concatenate([frames[len(frames) // 2][80:136, 96:176] for name, frames in stages if name != 'hidden'], axis=1)
+        Image.fromarray(strip).resize((strip.shape[1] * 4, strip.shape[0] * 4), Image.NEAREST).save(OUT / f'deer_stages_{time}.png')
+        hidden_ends = all(n == 0 for pair_ in ends.values() for n in pair_)
+        check(order == ['clifftopOut', 'clifftopPause', 'clifftopBack', 'intermission', 'approach', 'pause', 'approach',
+                        'drink', 'leave', 'hidden']
+              and max_x < forbidden and max_y == deer_info['feet_y'] and far_x is not None and far_x < forbidden
+              and hidden_ends and both == 0 and not v.problems,
+              f'{time}: one visit, {len(rows) / 10:.1f} s: {" -> ".join(order)}; the deer at the pool covers at most '
+              f'x {max_x} and y {max_y} (water and bank from y {by}; nothing from x {forbidden}); on the clifftop at most x {far_x}; '
+              f'visible px on the first and last frame of each act: {ends}; both deer drawn at once on {both} frames')
+        v.close()
+        plain.close()
+
+    # Against deer_route_check.png: what each stage adds to the scene, there and here.
+    ref = np.asarray(Image.open(ACH_DIR / 'deer_route_check.png').convert('RGB'))
+    tile = lambda i: ref[(i // 4) * 368:(i // 4 + 1) * 368, (i % 4) * 640:(i % 4 + 1) * 640][::8, ::8]
+    crop = (slice(88, 134), slice(104, 184))
+    # The reference has no treetops; on the site they sway over the near deer now and then.
+    tt = MAIN['animations']['treetops']
+    tops = np.asarray(Image.open(ANIM / next(f for f in tt['files'] if f.endswith('_day.png'))).convert('RGBA'))
+    swaying = np.zeros((180, 320), bool)
+    for i in range(tt['frames']):
+        swaying |= tops[:, i * 320:(i + 1) * 320][..., 3] > 0
+    swaying = swaying[crop]
+    path = dict((x, y) for x, y in SPRITES['deer_far']['placement']['path'])
+    poses = [(0, 'far', 'deer_far', 0, 138, False), (1, 'far', 'deer_far', 1, 149, False), (2, 'far', 'deer_far', 1, 133, True),
+             (4, 'near', 'deer_walk', 0, 128, False), (5, 'near', 'deer_graze', 0, 144, False), (6, 'near', 'deer_graze', 2, 144, False)]
+
+    def drawn(layer, sheet, frame, x, mirrored):
+        info = SPRITES[sheet]
+        im = Image.open(ACH_DIR / f'{sheet}_day.png').convert('RGBA').crop((frame * info['frame_w'], 0, (frame + 1) * info['frame_w'], info['frame_h']))
+        ax, ay = info['anchor']
+        if mirrored:
+            im, ax = im.transpose(Image.FLIP_LEFT_RIGHT), info['frame_w'] - 1 - ax
+        c = Image.new('RGBA', (320, 180))
+        c.alpha_composite(im, (x - ax, (path[x] if layer == 'far' else deer_info['feet_y']) - ay))
+        if layer == 'far':
+            c.alpha_composite(Image.open(ACH_DIR / 'far_trees_cover_day.png').convert('RGBA'), (cx, cy))
+        return np.asarray(c)
+
+    v, plain = Visit(browser, base, f'{TEST}&time=day'), Visit(browser, base, f'{TEST}&time=day')
+    for page in (v, plain):
+        page.cmd('debug unlock cabin_fever')
+        page.cmd('clear')
+        page.to(1)
+    v.page.evaluate('cabin.app.events.deer()')
+    expected = {p[0]: drawn(*p[1:]) for p in poses}
+    seen = {}
+    for tick in range(2, 1500):
+        v.to(tick)
+        plain.to(tick)
+        if v.page.evaluate(DEER_STAGE) == 'hidden':
+            break
+        layers = {'far': deer_alone(v, 'far'), 'near': deer_alone(v, 'near')}
+        for i, layer, *_ in poses:
+            if i not in seen and np.array_equal(layers[layer], expected[i]):
+                site_vis = np.any(v.frame()[crop][..., :3] != plain.frame()[crop][..., :3], axis=2)
+                seen[i] = (site_vis, v.frame()[crop][..., :3])
+    # Tile 1 stands the deer at x 149, which puts its nose on x 152, so the walk
+    # stops a step sooner. Tile 4 shows walk frame 0 at x 128: with the start
+    # moved from x 100 to 97 (an ear showed at 100), that frame lands there
+    # only when the random pause on the way in falls just right.
+    unreachable = {1, 4}
+    results, ok = [], True
+    for i, *_ in poses:
+        if i not in seen:
+            results.append(f'tile {i}: never happens')
+            ok &= i in unreachable
+            continue
+        site_vis, site = seen[i]
+        ref_vis = np.any(tile(i) != tile(3), axis=2)
+        site_vis, ref_vis = site_vis & ~swaying, ref_vis & ~swaying
+        moved, recoloured = int((site_vis != ref_vis).sum()), int(np.any(site[ref_vis] != tile(i)[ref_vis], axis=1).sum())
+        ok &= moved == 0 and recoloured == 0
+        results.append(f'tile {i}: {int(ref_vis.sum())} px, {moved} misplaced, {recoloured} recoloured')
+    v.close()
+    plain.close()
+    check(ok, f'stages against deer_route_check.png, deer pixels only: {"; ".join(results)} '
+              f'(tile 1 has it at x 149, past x {forbidden - 1}, so here it stops one step sooner; '
+              f'tile 4\'s exact pose happens only on some visits since the start moved from x 100 to 97)')
+
+    # Rain mid-visit ends it after the current act; clicking startles it home; the time of day can change.
+    v = Visit(browser, base, f'{TEST}&time=day')
+    v.cmd('debug unlock cabin_fever')
+    v.page.evaluate('cabin.app.events.deer()')
+    v.to(10)
+    v.cmd('weather rain')
+    stages = []
+    while v.page.evaluate(DEER_STAGE) != 'hidden' and v.tick < 400:
+        v.to(v.tick + 1)
+        stages.append(v.page.evaluate(DEER_STAGE))
+    rain_ends_act = 'intermission' not in stages and 'approach' not in stages
+    v.cmd('weather clear')
+    v.page.evaluate("cabin.app.events.deer({ start: 'pool' })")
+    v.to(v.tick + 60)
+    v.cmd('weather snow')
+    act_two = []
+    while v.page.evaluate(DEER_STAGE) != 'hidden' and v.tick < 1200:
+        v.to(v.tick + 1)
+        act_two.append(v.page.evaluate(DEER_STAGE))
+    finishes = 'drink' in act_two and act_two[-1] == 'hidden'
+    v.cmd('weather clear')
+    v.page.evaluate('cabin.app.events.deer()')
+    v.to(v.tick + 40)
+    day_far = deer_alone(v, 'far')
+    v.cmd('time night')
+    v.to(v.tick + 1)
+    night_far = deer_alone(v, 'far')
+    swaps = v.page.evaluate(DEER_STAGE).startswith('clifftop') and not np.array_equal(day_far, night_far)
+    v.cmd('time day')
+    v.to(v.tick + 30)   # the night palette has faded back out; still on the clifftop
+    far_deer = deer_alone(v, 'far')[..., 3] > 0
+    far_deer[cover_box] = False
+    target = box_of(far_deer)
+    stage_before = v.page.evaluate(DEER_STAGE)
+    if target:
+        v.click((target[0] + target[2]) // 2, (target[1] + target[3]) // 2)
+    startled = []
+    while v.page.evaluate(DEER_STAGE) != 'hidden' and v.tick < 2000:
+        v.to(v.tick + 1)
+        startled.append(v.page.evaluate(DEER_STAGE))
+    check(rain_ends_act and finishes and swaps and stage_before.startswith('clifftop')
+          and set(startled) <= {'clifftopBack', 'hidden'} and not v.problems,
+          f'rain during act one: it finishes the act and the visit ends there ({rain_ends_act}); snow during act two: it '
+          f'finishes drinking and leaves ({finishes}); night falling mid-visit swaps its colours without restarting ({swaps}); '
+          f'clicked on the clifftop ({stage_before}), it turns back into the trees and the visit ends ({len(startled)} ticks, '
+          f'stages {sorted(set(startled))})')
+    v.close()
+
+    # It shares the forest with the sasquatch: the scheduler never starts one while the other is out.
+    v = Visit(browser, base, f'{TEST}&time=day')
+    fired = v.page.evaluate("""async () => {
+        const { createScheduler } = await import('./js/scheduler.js');
+        const { config } = await import('./js/config.js');
+        const timings = { deer: config.events.deer, sasquatch: config.events.sasquatch };
+        const out = {};
+        for (const busy of ['deer', 'sasquatch']) {
+            const fired = { deer: 0, sasquatch: 0 };
+            const events = { deer: () => { fired.deer += 1; }, sasquatch: () => { fired.sasquatch += 1; } };
+            const s = createScheduler(timings, events, Math.random, { [busy]: () => true });
+            for (let i = 0; i < 6000; i++) s.update(1000);   // 100 minutes
+            out[busy] = fired;
+        }
+        return out;
+    }""")
+    check(fired['deer']['sasquatch'] == 0 and fired['deer']['deer'] > 0
+          and fired['sasquatch']['deer'] == 0 and fired['sasquatch']['sasquatch'] > 0,
+          f'sasquatch and deer never overlap: over 100 minutes with a deer out the whole time, the sasquatch came '
+          f'{fired["deer"]["sasquatch"]} times; with the sasquatch out, the deer came {fired["sasquatch"]["deer"]} times')
+    v.close()
+
+
+def check_board(browser, base):
+    report.append('\n## Achievement board\n')
+    art = lambda name: np.asarray(Image.open(BOARD_DIR / name).convert('RGBA'))
+    mock = art('board_mockup_scene.png')
+    panel = lambda i: mock[:, i * 960:(i + 1) * 960][::3, ::3][BOARD_BOX]   # idle, hovered, night at 3x
+    holes = np.zeros((BOARD['h'] + 2, BOARD['w'] + 2), bool)   # the mockup has some pins in; compare the rest
+    spots = {}                                                 # id -> (image, x, y) on the board
+    pins = [i for i in ORDER if i != BOARD['star']['for']]
+    for i, (x, y) in zip(pins, BOARD['pin']['positions']):
+        spots[i] = (art(BOARD['pin']['file']), x, y)
+    spots[BOARD['star']['for']] = (art(BOARD['star']['file']), *BOARD['star']['position'])
+    for im, x, y in spots.values():
+        holes[y + 1:y + 1 + im.shape[0], x + 1:x + 1 + im.shape[1]] = True
+    near = lambda a, b: int(np.any(a[..., :3] != b[..., :3], axis=2)[~holes].sum())
+    centre = (BX + BOARD['w'] // 2, BY + BOARD['h'] // 2)
+
+    # In the scene: idle and hovered by day, and at night, against the mockup.
+    v = Visit(browser, base, f'{TEST}&time=day')
+    idle = v.frame(1)[BOARD_BOX]
+    v.page.mouse.move(*v.screen(*centre))
+    hovered = v.frame(2)[BOARD_BOX]
+    cursor = v.page.evaluate("getComputedStyle(document.getElementById('scene')).cursor")
+    v.shot('board_hovered')
+    v.page.mouse.move(2, 2)
+    after = v.frame(3)[BOARD_BOX]
+    outline = np.any(hovered[..., :3] != idle[..., :3], axis=2)
+    supplied = art(BOARD['outline_file'])[..., 3] > 0
+    check(near(idle, panel(0)) == 0 and near(hovered, panel(1)) == 0 and cursor == 'pointer'
+          and np.array_equal(outline, supplied) and np.all(hovered[outline][:, :3] == 0)
+          and np.array_equal(after, idle) and not v.problems,
+          f'board by day matches the mockup idle ({near(idle, panel(0))} px off) and hovered ({near(hovered, panel(1))} px off); '
+          f'the hover outline is black, the same pixels as {BOARD["outline_file"]} ({int((outline != supplied).sum())} off), '
+          f'the board under it does not move, the cursor is a {cursor}, and it goes cleanly ({int(np.any(after != idle, axis=2).sum())} px left)')
+    v.close()
+    v = Visit(browser, base, f'{TEST}&time=night')
+    night = v.frame(1)[BOARD_BOX]
+    v.shot('board_night')
+    check(near(night, panel(2)) == 0 and not v.problems, f'board at night matches the mockup ({near(night, panel(2))} px off)')
+    v.close()
+
+    # Each unlock lights its own spot, with a sparkle; reset empties the board without a reload.
+    v = Visit(browser, base, f'{TEST}&time=day')
+    v.cmd('reset yes')
+    prev, wrong, sparkled, earned = v.frame(1)[BOARD_BOX], [], 0, set()
+    for id_ in ORDER:
+        v.cmd(f'debug unlock {id_}')
+        sparkle = v.frame(v.tick + 2)[BOARD_BOX]
+        now = v.frame(v.tick + 10)[BOARD_BOX]
+        new = set(v.stats()['unlocked']) - earned   # the twelfth also earns Woodsman
+        earned |= new
+        expect = np.zeros(holes.shape, bool)
+        for i in new:
+            im, x, y = spots[i]
+            h, w = im.shape[:2]
+            solid = im[..., 3] == 255
+            if not np.array_equal(now[y + 1:y + 1 + h, x + 1:x + 1 + w][solid][:, :3], im[solid][:, :3]):
+                wrong.append(i)
+            expect[y + 1:y + 1 + h, x + 1:x + 1 + w] = im[..., 3] > 0
+        if (np.any(now[..., :3] != prev[..., :3], axis=2) & ~expect).any():
+            wrong.append(f'{id_} (changed more than its spot)')
+        sparkled += bool(np.any(sparkle[..., :3] != now[..., :3]))
+        prev = now
+    v.shot('board_all')
+    v.cmd('reset yes')
+    empty = v.frame(v.tick + 1)[BOARD_BOX]
+    check(not wrong and sparkled == len(ORDER) - 1 and near(empty, idle) == 0 and np.array_equal(empty[holes], idle[holes]),
+          f'each of the {len(ORDER)} achievements lights its own pin or the star, and nothing else ({wrong or "all in place"}); '
+          f'each new pin sparkles ({sparkled} sparkles for {len(ORDER) - 1} unlocks, Woodsman arriving with the twelfth); '
+          f'`reset` empties the board at once')
+    v.close()
+
+    # The pop-up against the mockup: six earned, the second selected, words hidden.
+    def open_board(v):
+        v.page.mouse.click(*v.screen(*centre))
+        v.page.wait_for_selector('.ab-backdrop.is-visible')
+        v.page.wait_for_timeout(250)
+
+    note = lambda v: v.page.evaluate("document.querySelector('.ab-note').innerText.replace(/\\n+/g, ' | ')")
+    chosen = lambda v: v.page.evaluate("[...document.querySelectorAll('.ab-slot')].findIndex(b => b.getAttribute('aria-selected') === 'true')")
+    bar = lambda v: v.page.evaluate("document.querySelector('.ab-progress').textContent + ', fill ' + document.querySelector('.ab-fill').style.width")
+    shown = lambda v: v.page.evaluate("!document.querySelector('.ab-backdrop').hidden")
+    pp = BOARD_LAYOUT['popup']
+    v = Visit(browser, base, f'{TEST}&time=day')
+    for i in (0, 1, 3, 5, 6, 8):
+        v.cmd(f'debug unlock {ORDER[i]}')
+    v.cmd('clear')
+    v.to(12)
+    open_board(v)
+    latest = chosen(v)
+    v.page.click('.ab-slot >> nth=1')
+    v.page.mouse.move(2, 2)
+    v.shot('board_popup_some')
+    v.page.add_style_tag(content='.ab-region, .ab-close, .ab-slot { visibility: hidden !important; }')
+    r = v.page.evaluate("(() => { const r = document.querySelector('.ab-art').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+    s = round(r[2] / pp['w'])
+    shot = v.page.screenshot(clip={'x': r[0], 'y': r[1], 'width': r[2], 'height': r[3]})
+    site = np.asarray(Image.open(io.BytesIO(shot)).convert('RGBA'))[::s, ::s][:pp['h'], :pp['w']]
+    want = art('board_mockup_popup.png')
+    m = want.shape[1] // 320
+    want = want[::m, ::m][pp['canvas_y']:pp['canvas_y'] + pp['h'], pp['canvas_x']:pp['canvas_x'] + pp['w']]
+    words = np.zeros(site.shape[:2], bool)
+    for k in ('detail_name', 'detail_description', 'detail_reward', 'progress_text'):
+        g = pp['regions'][k]
+        words[g['y']:g['y'] + g['h'], g['x']:g['x'] + g['w']] = True
+    # The mockup's progress fill has a two-pixel light line; the brief asks for one.
+    g = pp['regions']['progress_bar']
+    light_row2 = np.zeros_like(words)
+    light_row2[g['y'] + 1, g['x']:g['x'] + g['w']] = True
+    off = np.any(site[..., :3] != want[..., :3], axis=2) & ~words
+    check(int((off & ~light_row2).sum()) == 0 and latest == 8 and not v.problems,
+          f'pop-up art at {s}x matches the mockup with the same six earned and the second selected: slots, badges, '
+          f'selection frame, big badge and progress fill line up ({int((off & ~light_row2).sum())} px off, words not compared; '
+          f'{int((off & light_row2).sum())} px are the mockup\'s second light row on the fill, which the brief makes one pixel); '
+          f'it opened on the latest earned (slot {latest})')
+    v.close()
+
+    # States: nothing earned, partway, unlocking while open, everything earned.
+    v = Visit(browser, base, f'{TEST}&time=day')
+    v.cmd('reset yes')
+    v.cmd('clear')
+    open_board(v)
+    v.shot('board_popup_none')
+    nothing = (chosen(v), note(v), bar(v))
+    v.page.keyboard.press('Escape')
+    v.page.wait_for_timeout(300)
+    v.cmd('debug set birdclicks 17')
+    open_board(v)
+    v.page.click('.ab-slot >> nth=1')
+    partway = note(v)
+    v.cmd('debug set birdclicks 50')
+    live = (chosen(v), note(v), bar(v), v.frame(v.tick + 10)[BOARD_BOX])
+    _, x, y = spots['bird_watcher']
+    pin_lit = not np.array_equal(live[3][y + 1:y + 3, x + 1:x + 3], idle[y + 1:y + 3, x + 1:x + 3])
+    check(nothing == (0, '??? | HOW | Not yet discovered. | REWARD | ???', '0 of 13 earned, fill 0px')
+          and partway == '??? | HOW | Click 50 birds | 17 / 50 | REWARD | ???'
+          and live[0] == 1 and live[1].startswith('Bird Watcher | HOW | Click 50 birds | REWARD | All birds')
+          and live[2] == '1 of 13 earned, fill 10px' and pin_lit,
+          f'nothing earned: slot {nothing[0]}, "{nothing[1]}", {nothing[2]}; 17 of 50 birds: "{partway}"; '
+          f'the 50th while open: slot {live[0]}, "{live[1][:40]}...", {live[2]}, pin lit {pin_lit} (no reopening)')
+    v.page.keyboard.press('Escape')
+    v.page.wait_for_timeout(300)
+    v.cmd('debug unlock all')
+    v.cmd('clear')
+    open_board(v)
+    v.shot('board_popup_all')
+    check(chosen(v) == 12 and bar(v) == '13 of 13 earned, fill 141px', f'everything earned: opens on Woodsman (slot {chosen(v)}), {bar(v)}')
+
+    # Arrow keys, then the three ways to close.
+    keys = []
+    for key in ('ArrowLeft', 'ArrowUp', 'ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowDown', 'Home', 'End'):
+        v.page.keyboard.press(key)
+        keys.append(chosen(v))
+    v.page.click('.ab-close')
+    v.page.wait_for_timeout(300)
+    by_x = not shown(v)
+    open_board(v)
+    v.page.mouse.click(5, 5)
+    v.page.wait_for_timeout(300)
+    by_outside = not shown(v)
+    check(keys == [11, 7, 2, 3, 8, 12, 0, 12] and by_x and by_outside and not v.problems,
+          f'arrow keys from Woodsman (left, up, up, right, down, down, Home, End): slots {keys}; '
+          f'the X closes it ({by_x}), so does a click outside ({by_outside})')
+    v.close()
+
+    # Keyboard only on the live page, and the retired `badges` command.
+    v = Visit(browser, base, '?debug')
+    v.page.wait_for_timeout(300)
+    start = v.page.evaluate('document.activeElement.id')
+    v.page.keyboard.press('Tab')
+    target = v.page.evaluate('document.activeElement.textContent')
+    v.page.keyboard.press('Enter')
+    v.page.wait_for_selector('.ab-backdrop.is-visible')
+    v.page.wait_for_timeout(250)
+    v.page.keyboard.press('Escape')
+    v.page.wait_for_timeout(300)
+    v.page.keyboard.type('badges')
+    typed_into = v.page.evaluate('document.activeElement.id')
+    v.page.keyboard.press('Enter')
+    reply = v.page.eval_on_selector_all('#bubble:not([hidden]) .line', 'e => e.map(x => x.textContent)')
+    help_lines = v.cmd('help')
+    check(start == 'input' and target == 'Achievements' and not shown(v) and typed_into == 'input'
+          and reply == ['your achievements are on the board by the window now. click it to see them.']
+          and not any(line.startswith('badges') for line in help_lines) and not v.problems,
+          f'keyboard only: Tab from the terminal reaches "{target}", Enter opens the board, Escape closes it, '
+          f'and typing goes back to the {typed_into}; `badges` now says {reply}; `help` no longer lists it')
+    v.close()
+
+    # Touch, on a phone: the plain panel.
+    phone = browser.new_context(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True, device_scale_factor=3)
+    v = Visit(browser, base, '?debug', context=phone)
+    v.page.wait_for_timeout(300)
+    v.page.touchscreen.tap(*v.screen(*centre))
+    v.page.wait_for_selector('.ab-backdrop.is-visible')
+    v.page.wait_for_timeout(250)
+    plain = v.page.evaluate("document.querySelector('.ab').classList.contains('is-plain')")
+    v.page.locator('.ab-slot').nth(3).tap()
+    tapped = chosen(v)
+    v.page.screenshot(path=str(OUT / 'board_popup_phone.png'), full_page=True)
+    v.page.locator('.ab-close').tap()
+    v.page.wait_for_timeout(300)
+    check(plain and tapped == 3 and not shown(v) and not v.problems,
+          f'phone, by touch: a tap on the board opens it as the plain panel ({plain}), a tap selects a slot ({tapped}), '
+          f'close closes it')
+    v.close()
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for old in OUT.glob('*.png'):
@@ -817,6 +1307,8 @@ def main():
         check_reward_rendering(browser, base)
         check_sign_art(browser, base)
         edges(browser, base)
+        check_deer(browser, base)
+        check_board(browser, base)
         if not os.environ.get('CI'):   # screenshots for eyeballing only; skipped on GitHub Actions
             everything_on(browser, base)
         browser.close()

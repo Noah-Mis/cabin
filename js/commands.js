@@ -13,9 +13,12 @@
 // THE "USE EVERY COMMAND" RULE (the power_user achievement): it needs every
 // command `help` lists from the start, which is every entry that is not
 // hidden, has no `available` test, and isn't marked everyCommand: false.
-// So `badges` counts; `reset` doesn't (it would wipe the very progress it
-// completes); `sound` doesn't (muting shouldn't be a chore); `theme` doesn't (it only appears once the achievement is
-// earned). everyDayCommands() below computes the list.
+// So `reset` doesn't count (it would wipe the very progress it completes);
+// `sound` doesn't (muting shouldn't be a chore); `theme` doesn't (it only
+// appears once the achievement is earned); `badges` no longer does (the board
+// by the window replaced it). The rule only asks that every listed command
+// was used, so retiring a command never sets anyone back: an old mark for it
+// is simply ignored. everyDayCommands() below computes the list.
 //
 // Exports: commands, runCommand(line, app), everyDayCommands()
 
@@ -66,14 +69,14 @@ export const commands = {
         : 'the folder is already on the sill. click it to open it.');
     },
   },
+  // Retired: the achievement board on the window's right-hand log replaced
+  // it. Old habits and old screenshots still send people here.
   badges: {
     usage: 'badges',
-    about: 'your achievements',
-    run(args, app) {
-      const all = listAchievements();
-      app.print(`${all.filter((a) => a.unlocked).length} of ${all.length} earned:`);
-      for (const { definition, unlocked, count } of all) app.print(describeBadge(definition, unlocked, count));
-    },
+    about: 'where your achievements went',
+    hidden: true,
+    everyCommand: false,
+    run(args, app) { app.print('your achievements are on the board by the window now. click it to see them.'); },
   },
   reset: {
     usage: 'reset',
@@ -174,12 +177,4 @@ export function everyDayCommands() {
 
 function isListed(command, app) {
   return !command.hidden && (!command.available || command.available(app));
-}
-
-// Earned: name, what it is, and what it changed. Not earned: "???", or the
-// name and a count once there is some progress. Rewards stay secret.
-function describeBadge(definition, unlocked, count) {
-  if (unlocked) return `★ ${definition.name}: ${definition.desc}. ${definition.reward}.`;
-  if (count && count.value > 0) return `· ${definition.name} ${count.value}/${count.goal}`;
-  return '· ???';
 }

@@ -3975,7 +3975,7 @@
   "ticks": [
    {
     "tick": 0,
-    "differing_pixels": 542,
+    "differing_pixels": 543,
     "max_channel_delta": 1
    },
    {
@@ -3995,7 +3995,7 @@
    },
    {
     "tick": 4,
-    "differing_pixels": 543,
+    "differing_pixels": 545,
     "max_channel_delta": 1
    },
    {
@@ -4010,7 +4010,7 @@
    },
    {
     "tick": 7,
-    "differing_pixels": 543,
+    "differing_pixels": 545,
     "max_channel_delta": 1
    },
    {
@@ -4045,7 +4045,7 @@
    },
    {
     "tick": 14,
-    "differing_pixels": 545,
+    "differing_pixels": 546,
     "max_channel_delta": 1
    },
    {
@@ -4060,7 +4060,7 @@
    },
    {
     "tick": 17,
-    "differing_pixels": 538,
+    "differing_pixels": 539,
     "max_channel_delta": 1
    },
    {
@@ -4095,7 +4095,7 @@
    },
    {
     "tick": 24,
-    "differing_pixels": 538,
+    "differing_pixels": 539,
     "max_channel_delta": 1
    },
    {
@@ -4110,7 +4110,7 @@
    },
    {
     "tick": 27,
-    "differing_pixels": 534,
+    "differing_pixels": 535,
     "max_channel_delta": 1
    },
    {
@@ -4130,7 +4130,7 @@
    },
    {
     "tick": 31,
-    "differing_pixels": 540,
+    "differing_pixels": 542,
     "max_channel_delta": 1
    },
    {
@@ -4145,7 +4145,7 @@
    },
    {
     "tick": 34,
-    "differing_pixels": 537,
+    "differing_pixels": 539,
     "max_channel_delta": 1
    },
    {
@@ -4160,7 +4160,7 @@
    },
    {
     "tick": 37,
-    "differing_pixels": 537,
+    "differing_pixels": 538,
     "max_channel_delta": 1
    },
    {
@@ -4180,7 +4180,7 @@
    },
    {
     "tick": 41,
-    "differing_pixels": 536,
+    "differing_pixels": 538,
     "max_channel_delta": 1
    },
    {
@@ -4195,7 +4195,7 @@
    },
    {
     "tick": 44,
-    "differing_pixels": 541,
+    "differing_pixels": 543,
     "max_channel_delta": 1
    },
    {
@@ -4223,7 +4223,7 @@
   "ticks": [
    {
     "tick": 0,
-    "differing_pixels": 572,
+    "differing_pixels": 570,
     "max_channel_delta": 1
    },
    {
@@ -4243,7 +4243,7 @@
    },
    {
     "tick": 4,
-    "differing_pixels": 570,
+    "differing_pixels": 569,
     "max_channel_delta": 1
    },
    {
@@ -4258,7 +4258,7 @@
    },
    {
     "tick": 7,
-    "differing_pixels": 570,
+    "differing_pixels": 569,
     "max_channel_delta": 1
    },
    {
@@ -4293,7 +4293,7 @@
    },
    {
     "tick": 14,
-    "differing_pixels": 574,
+    "differing_pixels": 572,
     "max_channel_delta": 1
    },
    {
@@ -4308,7 +4308,7 @@
    },
    {
     "tick": 17,
-    "differing_pixels": 576,
+    "differing_pixels": 574,
     "max_channel_delta": 1
    },
    {
@@ -4343,7 +4343,7 @@
    },
    {
     "tick": 24,
-    "differing_pixels": 578,
+    "differing_pixels": 576,
     "max_channel_delta": 1
    },
    {
@@ -4358,7 +4358,7 @@
    },
    {
     "tick": 27,
-    "differing_pixels": 580,
+    "differing_pixels": 578,
     "max_channel_delta": 1
    },
    {
@@ -4378,7 +4378,7 @@
    },
    {
     "tick": 31,
-    "differing_pixels": 579,
+    "differing_pixels": 578,
     "max_channel_delta": 1
    },
    {
@@ -4393,7 +4393,7 @@
    },
    {
     "tick": 34,
-    "differing_pixels": 578,
+    "differing_pixels": 577,
     "max_channel_delta": 1
    },
    {
@@ -4408,7 +4408,7 @@
    },
    {
     "tick": 37,
-    "differing_pixels": 581,
+    "differing_pixels": 579,
     "max_channel_delta": 1
    },
    {
@@ -4428,7 +4428,7 @@
    },
    {
     "tick": 41,
-    "differing_pixels": 582,
+    "differing_pixels": 581,
     "max_channel_delta": 1
    },
    {
@@ -4443,7 +4443,7 @@
    },
    {
     "tick": 44,
-    "differing_pixels": 577,
+    "differing_pixels": 576,
     "max_channel_delta": 1
    },
    {
@@ -4471,7 +4471,7 @@
   "ticks": [
    {
     "tick": 0,
-    "differing_pixels": 800,
+    "differing_pixels": 799,
     "max_channel_delta": 1
    },
    {
@@ -4541,7 +4541,7 @@
    },
    {
     "tick": 14,
-    "differing_pixels": 799,
+    "differing_pixels": 798,
     "max_channel_delta": 1
    },
    {
@@ -4556,7 +4556,7 @@
    },
    {
     "tick": 17,
-    "differing_pixels": 799,
+    "differing_pixels": 798,
     "max_channel_delta": 1
    },
    {
@@ -4591,7 +4591,7 @@
    },
    {
     "tick": 24,
-    "differing_pixels": 794,
+    "differing_pixels": 793,
     "max_channel_delta": 1
    },
    {
@@ -4606,7 +4606,7 @@
    },
    {
     "tick": 27,
-    "differing_pixels": 798,
+    "differing_pixels": 797,
     "max_channel_delta": 1
    },
    {
@@ -4656,7 +4656,7 @@
    },
    {
     "tick": 37,
-    "differing_pixels": 797,
+    "differing_pixels": 796,
     "max_channel_delta": 1
    },
    {
@@ -4719,7 +4719,7 @@
   "ticks": [
    {
     "tick": 0,
-    "differing_pixels": 687,
+    "differing_pixels": 685,
     "max_channel_delta": 1
    },
    {
@@ -4739,7 +4739,7 @@
    },
    {
     "tick": 4,
-    "differing_pixels": 692,
+    "differing_pixels": 690,
     "max_channel_delta": 1
    },
    {
@@ -4754,7 +4754,7 @@
    },
    {
     "tick": 7,
-    "differing_pixels": 693,
+    "differing_pixels": 692,
     "max_channel_delta": 1
    },
    {
@@ -4789,7 +4789,7 @@
    },
    {
     "tick": 14,
-    "differing_pixels": 690,
+    "differing_pixels": 689,
     "max_channel_delta": 1
    },
    {
@@ -4804,7 +4804,7 @@
    },
    {
     "tick": 17,
-    "differing_pixels": 687,
+    "differing_pixels": 685,
     "max_channel_delta": 1
    },
    {
@@ -4839,7 +4839,7 @@
    },
    {
     "tick": 24,
-    "differing_pixels": 688,
+    "differing_pixels": 687,
     "max_channel_delta": 1
    },
    {
@@ -4854,7 +4854,7 @@
    },
    {
     "tick": 27,
-    "differing_pixels": 684,
+    "differing_pixels": 682,
     "max_channel_delta": 1
    },
    {
@@ -4874,7 +4874,7 @@
    },
    {
     "tick": 31,
-    "differing_pixels": 683,
+    "differing_pixels": 681,
     "max_channel_delta": 1
    },
    {
@@ -4889,7 +4889,7 @@
    },
    {
     "tick": 34,
-    "differing_pixels": 683,
+    "differing_pixels": 682,
     "max_channel_delta": 1
    },
    {
@@ -4904,7 +4904,7 @@
    },
    {
     "tick": 37,
-    "differing_pixels": 685,
+    "differing_pixels": 683,
     "max_channel_delta": 1
    },
    {
@@ -4924,7 +4924,7 @@
    },
    {
     "tick": 41,
-    "differing_pixels": 681,
+    "differing_pixels": 679,
     "max_channel_delta": 1
    },
    {
@@ -4939,7 +4939,7 @@
    },
    {
     "tick": 44,
-    "differing_pixels": 680,
+    "differing_pixels": 679,
     "max_channel_delta": 1
    },
    {

@@ -1,0 +1,251 @@
+{
+  "note": "Native pixels. Board numbers are on the 320x180 canvas; pop-up regions are relative to the top-left of popup_board.png.",
+  "board": {
+    "files": [
+      "achievement_board.png",
+      "achievement_board_night.png"
+    ],
+    "w": 18,
+    "h": 31,
+    "canvas_x": 288,
+    "canvas_y": 48,
+    "outline_file": "achievement_board_outline.png",
+    "outline_offset": [
+      -1,
+      -1
+    ],
+    "pin": {
+      "file": "board_pin_lit.png",
+      "positions": [
+        [
+          5,
+          15
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          5,
+          18
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          11,
+          18
+        ],
+        [
+          5,
+          21
+        ],
+        [
+          8,
+          21
+        ],
+        [
+          11,
+          21
+        ],
+        [
+          5,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          11,
+          24
+        ]
+      ],
+      "order": "achievements 0-11 in achievements.json order"
+    },
+    "star": {
+      "file": "board_star_lit.png",
+      "position": [
+        7,
+        10
+      ],
+      "for": "woodsman"
+    }
+  },
+  "popup": {
+    "file": "popup_board.png",
+    "w": 288,
+    "h": 164,
+    "canvas_x": 16,
+    "canvas_y": 8,
+    "slots": [
+      {
+        "x": 15,
+        "y": 34,
+        "w": 26,
+        "h": 26,
+        "badge_x": 20,
+        "badge_y": 39
+      },
+      {
+        "x": 44,
+        "y": 34,
+        "w": 26,
+        "h": 26,
+        "badge_x": 49,
+        "badge_y": 39
+      },
+      {
+        "x": 73,
+        "y": 34,
+        "w": 26,
+        "h": 26,
+        "badge_x": 78,
+        "badge_y": 39
+      },
+      {
+        "x": 102,
+        "y": 34,
+        "w": 26,
+        "h": 26,
+        "badge_x": 107,
+        "badge_y": 39
+      },
+      {
+        "x": 131,
+        "y": 34,
+        "w": 26,
+        "h": 26,
+        "badge_x": 136,
+        "badge_y": 39
+      },
+      {
+        "x": 15,
+        "y": 67,
+        "w": 26,
+        "h": 26,
+        "badge_x": 20,
+        "badge_y": 72
+      },
+      {
+        "x": 44,
+        "y": 67,
+        "w": 26,
+        "h": 26,
+        "badge_x": 49,
+        "badge_y": 72
+      },
+      {
+        "x": 73,
+        "y": 67,
+        "w": 26,
+        "h": 26,
+        "badge_x": 78,
+        "badge_y": 72
+      },
+      {
+        "x": 102,
+        "y": 67,
+        "w": 26,
+        "h": 26,
+        "badge_x": 107,
+        "badge_y": 72
+      },
+      {
+        "x": 131,
+        "y": 67,
+        "w": 26,
+        "h": 26,
+        "badge_x": 136,
+        "badge_y": 72
+      },
+      {
+        "x": 44,
+        "y": 100,
+        "w": 26,
+        "h": 26,
+        "badge_x": 49,
+        "badge_y": 105
+      },
+      {
+        "x": 73,
+        "y": 100,
+        "w": 26,
+        "h": 26,
+        "badge_x": 78,
+        "badge_y": 105
+      },
+      {
+        "x": 102,
+        "y": 100,
+        "w": 26,
+        "h": 26,
+        "badge_x": 107,
+        "badge_y": 105
+      }
+    ],
+    "selected_file": "board_slot_selected.png",
+    "selected_offset": [
+      -2,
+      -2
+    ],
+    "regions": {
+      "close": {
+        "x": 264,
+        "y": 11,
+        "w": 11,
+        "h": 11
+      },
+      "progress_bar": {
+        "x": 16,
+        "y": 139,
+        "w": 141,
+        "h": 8
+      },
+      "progress_text": {
+        "x": 15,
+        "y": 150,
+        "w": 143,
+        "h": 8
+      },
+      "detail_badge_2x": {
+        "x": 178,
+        "y": 40,
+        "w": 32,
+        "h": 32
+      },
+      "detail_name": {
+        "x": 214,
+        "y": 40,
+        "w": 57,
+        "h": 32
+      },
+      "detail_description": {
+        "x": 178,
+        "y": 82,
+        "w": 92,
+        "h": 27
+      },
+      "detail_reward": {
+        "x": 178,
+        "y": 116,
+        "w": 92,
+        "h": 31
+      }
+    },
+    "colors": {
+      "ink": "#60544C",
+      "ink_dark": "#54341A",
+      "heading": "#B03A30",
+      "progress_fill": "#ECBA36",
+      "progress_fill_light": "#FFEC8C",
+      "text_on_felt": "#E6DCC0",
+      "backdrop": "rgba(20,12,6,0.6)"
+    }
+  }
+}

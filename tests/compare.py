@@ -27,7 +27,7 @@ from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).parent))
 from reference import load_reference
-from harness import RESULTS, serve_site, open_browser, watch_page, canvas_pixels
+from harness import RESULTS, serve_site, open_browser, watch_page, canvas_pixels, add_board, add_pond_bank
 
 TICKS = range(48)
 # Rounding allowed per channel when blending semi-transparent pixels (see main).
@@ -51,7 +51,7 @@ def use_window_for(ns, manifest, t):
     ns['WIN'] = Image.open(Path(__file__).parent.parent / 'anim' / (night if t == 'night' else day)).convert('RGBA')
 
 
-def manifest_compose(ns, manifest, t, k, weather):
+def manifest_compose(ns, manifest, t, k, weather, unlocked):
     """compose() with manifest timing and without the demo characters."""
     use_window_for(ns, manifest, t)
     W, H, fr = ns['W'], ns['H'], ns['fr']
@@ -82,6 +82,7 @@ def manifest_compose(ns, manifest, t, k, weather):
             for tx in range(0, W, 64):
                 c.alpha_composite(tile, (tx, ty))
     c.alpha_composite(ns['WIN'])
+    add_board(c, t, unlocked)   # hung on the log after the window, before the sill items (which never overlap it)
     mug = ns['SHEETS']['mug_night' if t == 'night' else 'mug']
     c.alpha_composite(fr(mug, ns['MW'], frame('mug')), (ns['MUG_AT'][0] - ns['MCX'], ns['MUG_AT'][1] - 40))
     return c
@@ -120,11 +121,15 @@ def run_pass(page, base, ns, manifest, label, query_for, expected_for):
         wind = label == 'A' and weather is None and t in ('day', 'afternoon')
         page.goto(base + 'index.html?' + query_for(t, weather, wind))
         page.wait_for_function('window.cabin && window.cabin.test')
+        # Each case is a first visit (cleared below), but the visit itself can
+        # earn an achievement (night: Night Owl); the board shows its pin.
+        unlocked = page.evaluate('cabin.app.progressStats().unlocked')
+        page.evaluate('localStorage.clear()')   # so earlier cases earn nothing here (and nothing sparkles)
         per_tick = []
         for k in TICKS:
             page.evaluate(f'cabin.test.advanceTo({k})')
             site = canvas_pixels(page)
-            ref = np.asarray(expected_for(t, k, weather, wind).convert('RGBA'))
+            ref = np.asarray(expected_for(t, k, weather, wind, unlocked).convert('RGBA'))
             n, max_delta, differing = diff_stats(site, ref, waterfall_rect(manifest) if label == 'A' else None)
             per_tick.append({'tick': k, 'differing_pixels': n, 'max_channel_delta': max_delta})
             if max_delta > TOLERANCE:
@@ -165,6 +170,13 @@ def main():
         for old in (RESULTS / sub).glob('*.png'):
             old.unlink()
     ns = load_reference()
+    # The pond bank is scenery now, drawn right after the waterfall. compose()
+    # draws the waterfall, the demo sasquatch (never as low as the bank) and
+    # then the near forest, so the bank goes in under the near forest.
+    for t in ns['TIMES']:
+        under = add_pond_bank(Image.new('RGBA', (ns['W'], ns['H'])), t)
+        under.alpha_composite(ns['NEAR'][t])
+        ns['NEAR'][t] = under
     manifest = json.loads((Path(__file__).parent.parent / 'anim' / 'manifest.json').read_text())
     base, stop = serve_site()
     with sync_playwright() as p:
@@ -176,9 +188,10 @@ def main():
             return lambda t, w, wind: f'test&time={t}&weather={w or "clear"}' + extra + ('&wind=1' if wind else '')
 
         rows = run_pass(page, base, ns, manifest, 'A', query('&timing=reference&demo=reference'),
-                        lambda t, k, w, wind: (use_window_for(ns, manifest, t), ns['compose'](t, k, weather=w, wind=wind))[1])
+                        lambda t, k, w, wind, unlocked: (use_window_for(ns, manifest, t),
+                                                         add_board(ns['compose'](t, k, weather=w, wind=wind).convert('RGBA'), t, unlocked))[1])
         rows += run_pass(page, base, ns, manifest, 'B', query(''),
-                         lambda t, k, w, wind: manifest_compose(ns, manifest, t, k, w))
+                         lambda t, k, w, wind, unlocked: manifest_compose(ns, manifest, t, k, w, unlocked))
         browser.close()
     stop()
     write_report(rows, problems)

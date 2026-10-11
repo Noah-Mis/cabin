@@ -27,14 +27,14 @@
 Writes tests/results/behaviour.md and tests/results/screens/.
 Run:  python tests/behaviour.py
 """
-import io, re, sys
+import io, math, re, sys
 from pathlib import Path
 import numpy as np
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).parent))
-from harness import ROOT, RESULTS, serve_site, open_browser, watch_page, canvas_pixels
+from harness import ROOT, RESULTS, BOARD, serve_site, open_browser, watch_page, canvas_pixels
 
 SCREENS = RESULTS / 'screens'
 report, failures = [], []
@@ -125,6 +125,10 @@ def check_layout(browser, base, problems):
         kx0 = g['c'][0] + 40 * scale / dpr; kx1 = g['c'][0] + 280 * scale / dpr
         ky0 = g['c'][1] + 24 * scale / dpr; ky1 = g['c'][1] + 150 * scale / dpr
         window_visible = kx0 >= -0.01 and kx1 <= g['vw'] + 0.01 and ky0 >= -0.01 and ky1 <= g['t'][1] + 0.01
+        # The achievement board on the right-hand log (and its hover outline) too.
+        bx0 = g['c'][0] + (BOARD['canvas_x'] - 1) * scale / dpr; bx1 = g['c'][0] + (BOARD['canvas_x'] + BOARD['w'] + 1) * scale / dpr
+        by1 = g['c'][1] + (BOARD['canvas_y'] + BOARD['h'] + 1) * scale / dpr
+        board_visible = bx0 >= -0.01 and bx1 <= g['vw'] + 0.01 and by1 <= g['t'][1] + 0.01
         one_line = g['t'][3] <= 40   # the prompt is a single line
         page.screenshot(path=str(SCREENS / f'layout_{name}.png'))
         # Crispness: everything visible above the prompt must be exactly the
@@ -136,11 +140,14 @@ def check_layout(browser, base, problems):
         # Stop a row short of the prompt: its fractional top edge may snap up a pixel.
         vx1 = min(full.shape[1], x0 + big.shape[1]); vy1 = min(int(g['t'][1] * dpr) - 1, y0 + big.shape[0])
         crisp = np.array_equal(full[vy0:vy1, vx0:vx1], big[vy0 - y0:vy1 - y0, vx0 - x0:vx1 - x0])
-        # A tall phone cannot be filled without cutting into the window.
-        expect_fill = not name.startswith('phone_390')
-        check(whole and window_visible and one_line and crisp and fills == expect_fill and not pp,
-              f'{name}: scale {scale}, whole-number={whole}, fills the screen={fills}, '
-              f'window and sill fully visible above the prompt={window_visible}, '
+        # The scene fills the screen unless that would cut into the window, sill
+        # or board: then the largest whole scale that keeps them in view wins
+        # (a tall phone; some sizes since the board, like 1000x700 at 1.25x).
+        cover = math.ceil(max(g['vw'] * dpr / 320, g['vh'] * dpr / 180) - 1e-9)
+        expect_fill = scale >= cover
+        check(whole and window_visible and board_visible and one_line and crisp and fills == expect_fill and not pp,
+              f'{name}: scale {scale} (filling needs {cover}), whole-number={whole}, fills the screen={fills}, '
+              f'window, sill and board fully visible above the prompt={window_visible and board_visible}, '
               f'prompt {g["t"][3]:.0f} px tall={one_line}, every visible pixel a clean {scale}x{scale} block={crisp}'
               + (f', console: {pp}' if pp else ''))
         problems.extend(pp)
@@ -206,8 +213,8 @@ def check_terminal(browser, base, problems):
     type_command(page, 'help')
     help_lines = len(output_lines(page))
     out = '\n'.join(output_lines(page))
-    names = ['help', 'clear', 'whoami', 'badges']
-    gone = ['bird', 'wind', 'sasquatch', 'cig', 'time', 'weather', 'reset']   # removed, or hidden from help
+    names = ['help', 'clear', 'whoami']
+    gone = ['bird', 'wind', 'sasquatch', 'cig', 'time', 'weather', 'reset', 'badges']   # removed, or hidden from help
     check(all(re.search(rf'^{n}\b', out, re.M) for n in names)
           and not any(re.search(rf'^{n}\b', out, re.M) for n in gone),
           f'`help` shows one bubble listing {", ".join(names)} and not {", ".join(gone)}')
@@ -683,7 +690,9 @@ def check_cigarette(browser, base, problems):
         over_frame = np.any(during != plain_mid, axis=2)
         outside_opening = over_frame.copy(); outside_opening[24:131, 40:280] = False
         page.mouse.click(cx, cy)      # ignored while smoking
-        end_tick = click_tick + int(smoke_ms // 100) + 2
+        # A few ticks after the end: finishing earns Smoke Break, and its new pin
+        # on the achievement board sparkles for about half a second.
+        end_tick = click_tick + int(smoke_ms // 100) + 8
         after = frame(page, end_tick)
         page.mouse.move(5, 5)
         after = frame(page, end_tick)
@@ -714,8 +723,8 @@ def check_cigarette(browser, base, problems):
 def check_scheduler(browser, base, problems):
     report.append('\n## Scheduler (real clock, config.js served with short timers)\n')
     source = (ROOT / 'js' / 'config.js').read_text()
-    fast = re.sub(r'(\w+):\s*\{ minWaitSec: \d+,\s*maxWaitSec: \d+,\s*chance: ([\d.]+) \}',
-                  r'\1: { minWaitSec: 0.3, maxWaitSec: 0.6, chance: \2 }', source)
+    fast = re.sub(r'(\w+):\s*\{ minWaitSec: \d+,\s*maxWaitSec: \d+,\s*chance: ([\d.]+)(, [^}]*)? \}',   # keeps skipWhile
+                  r'\1: { minWaitSec: 0.3, maxWaitSec: 0.6, chance: \2\3 }', source)
     assert fast != source
     ctx = browser.new_context(viewport={'width': 1280, 'height': 800})
     ctx.route('**/js/config.js', lambda route: route.fulfill(body=fast, content_type='text/javascript'))

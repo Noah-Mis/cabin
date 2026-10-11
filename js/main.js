@@ -16,9 +16,11 @@ import { runCommand, everyDayCommands } from './commands.js';
 import { createProgress } from './progress.js';
 import { startAchievements, track, resetAchievements, listAchievements, isUnlocked } from './achievements.js';
 import { createUnlockSign } from './unlock-sign.js';
+import { createBoardPopup } from './board-popup.js';
+import { loadBoardArt } from './scene/board.js';
 import { startSound, soundLog, soundState, outputLevelDb } from './sound.js';
 import { trackPointer } from './pointer.js';
-import { buildLayers, collectEvents } from './scene/layers.js';
+import { buildLayers, collectEvents, collectRunning } from './scene/layers.js';
 import { readTestOptions, startTestMode, useReferenceTiming, useTestSettings } from './testmode.js';
 
 async function boot() {
@@ -40,7 +42,7 @@ async function boot() {
   );
   terminal.focus();
 
-  const assets = await loadAssets(config);
+  const [assets, boardArt] = await Promise.all([loadAssets(config), loadBoardArt()]);
   if (assets.failures.length) {
     console.error('could not load:', assets.failures.join(', '));
     terminal.print(`some pictures failed to load: ${assets.failures.join(', ')}`, 'error');
@@ -50,10 +52,14 @@ async function boot() {
   else assets.slowDown(config.animationSlowdown);
   if (testOptions) useTestSettings(config);
 
-  // The window opening down to the bottom of the sill must always be in view.
+  // The window opening down to the bottom of the sill, and the achievement
+  // board on the log beside it (with its hover outline), must always be in view.
   const { window_opening: opening, sill_band: sill } = assets.manifest;
+  const { board } = boardArt.layout;
+  const left = Math.min(opening.x, board.canvas_x - 1);
+  const right = Math.max(opening.x + opening.w, board.canvas_x + board.w + 1);
   const display = fitCanvasToStage(canvas, document.getElementById('stage'), {
-    keepVisible: { x: opening.x, y: opening.y, w: opening.w, h: sill.y1 + 1 - opening.y },
+    keepVisible: { x: left, y: opening.y, w: right - left, h: sill.y1 + 1 - opening.y },
     bottomInset: () => document.getElementById('terminal').offsetHeight,
   });
 
@@ -62,6 +68,11 @@ async function boot() {
   const achievementData = assets.packManifest(config.achievements.artDir);
   const progress = createProgress({ storageKey: config.achievements.storageKey, version: config.achievements.storageVersion });
   const sign = createUnlockSign(canvas, { manifest: achievementData, openingY: opening.y });
+  const boardPopup = createBoardPopup(canvas, {
+    bottomInset: () => document.getElementById('terminal').offsetHeight,
+    layout: boardArt.layout,
+    badges: achievementData.badges,
+  });
   startAchievements({
     definitions: achievementData.achievements,
     progress,
@@ -71,12 +82,13 @@ async function boot() {
         sign.show(definition);
         terminal.print(`achievement unlocked: ${definition.name}. ${definition.reward}.`);
       }
+      if (boardPopup.isShown()) boardPopup.refresh(earned.at(-1).id);   // the board's pins update themselves
     },
   });
 
   const weather = createWeather(config);
   const timeOfDay = createTimeOfDay(config, testOptions?.time);
-  const layers = buildLayers(assets, { weather, timeOfDay });
+  const layers = buildLayers(assets, { weather, timeOfDay, board: { ...boardArt, popup: boardPopup } });
   const events = collectEvents(layers);
   const renderer = createRenderer(canvas, layers);
 
@@ -87,6 +99,7 @@ async function boot() {
   function resetProgress() {
     resetAchievements();
     sign.clear();
+    boardPopup.refresh();
     terminal.setTheme(null);
     track('timesSeen', timeOfDay.current());
     if (weather.get() !== config.defaultWeather) track('weatherSeen', weather.get());
@@ -120,7 +133,7 @@ async function boot() {
   }
 
   startSound(config.sound);   // test mode stays silent
-  const scheduler = createScheduler(config.events, events);
+  const scheduler = createScheduler(config.events, events, Math.random, collectRunning(layers));
   window.cabin.scheduler = scheduler;
   terminal.print(config.terminal.greeting);
 

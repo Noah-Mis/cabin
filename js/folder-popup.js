@@ -3,14 +3,14 @@
 // canvas, with real HTML text laid over its blank regions (so it can be
 // selected, read by screen readers, and edited in the content file).
 // Positions and sizes come from the layout file, words from the content file.
-// When the folder would be too small to read, the same content is shown in a
-// plain single-column panel instead.
+// The backdrop, scaling, plain fallback and closing are js/popup-frame.js.
 // Exports: createFolderPopup(canvas, { bottomInset })
 //            -> { show(onRequestClose), hide() }
 //   onRequestClose() is called on the X, Escape, or a click outside; the
 //   caller decides when to actually hide().
 
 import { config } from './config.js';
+import { createPopupFrame } from './popup-frame.js';
 import { renderSections, renderLink } from './folder-sections.js';
 import { track } from './achievements.js';
 
@@ -18,84 +18,31 @@ const settings = config.folderPopup;
 
 export function createFolderPopup(canvas, { bottomInset }) {
   const ready = Promise.all([loadJson(settings.layoutFile), loadJson(settings.contentFile)])
-    .then(([layout, content]) => build(layout, content));
-  let requestClose = () => {};
-  let shown = false;
-
-  function build(layout, content) {
-    const parts = buildDom(layout, content, () => requestClose());
-    document.body.append(parts.backdrop);
-    window.addEventListener('resize', () => { if (shown) place(parts, layout); });
-    document.addEventListener('keydown', (event) => {
-      if (shown && event.key === 'Escape') requestClose();
+    .then(([layout, content]) => {
+      const frame = createPopupFrame(canvas, {
+        bottomInset, className: 'fp', w: layout.popup.w, h: layout.popup.h, label: content.card.name,
+        backdrop: layout.colors.backdrop, fadeMs: settings.fadeMs, minCssPxPerArtPx: settings.minCssPxPerArtPx,
+      });
+      return { frame, ...fillFrame(frame, layout, content) };
     });
-    return parts;
-  }
 
   async function show(onRequestClose) {
-    requestClose = onRequestClose;
-    const parts = await ready;
-    shown = true;
-    parts.selectTab(settings.firstTab);
-    parts.backdrop.hidden = false;
-    place(parts, parts.layout);
-    requestAnimationFrame(() => parts.backdrop.classList.add('is-visible'));
-    parts.popup.focus({ preventScroll: true });
+    const { frame, selectTab } = await ready;
+    selectTab(settings.firstTab);
+    frame.show(onRequestClose);
   }
 
   async function hide() {
-    const parts = await ready;
-    shown = false;
-    parts.backdrop.classList.remove('is-visible');
-    setTimeout(() => { if (!shown) parts.backdrop.hidden = true; }, settings.fadeMs);
-  }
-
-  // Same whole-number scale as the canvas (device pixels per art pixel),
-  // shrunk if needed to fit above the prompt line, and centred there.
-  function place(parts, layout) {
-    const dpr = window.devicePixelRatio || 1;
-    const { w, h } = layout.popup;
-    const canvasScale = Math.round(canvas.getBoundingClientRect().width * dpr / canvas.width);
-    const availW = window.innerWidth * dpr;
-    const availH = (window.innerHeight - bottomInset()) * dpr;
-    const scale = Math.min(canvasScale, Math.floor(availW / w), Math.floor(availH / h));
-    const cssPerArtPx = scale / dpr;
-    const plain = scale < 1 || cssPerArtPx < settings.minCssPxPerArtPx;
-
-    parts.popup.classList.toggle('is-plain', plain);
-    parts.backdrop.style.setProperty('--prompt-h', `${bottomInset()}px`);
-    if (plain) {
-      parts.popup.style.transform = '';
-      return;
-    }
-    const left = Math.floor((availW - w * scale) / 2);
-    const top = Math.floor((availH - h * scale) / 2);
-    // Transforms, not left/top, so the art lands exactly on device pixels.
-    parts.popup.style.transform = `translate(${left / dpr}px, ${top / dpr}px)`;
-    parts.popup.style.setProperty('--u', `${cssPerArtPx}px`);
-    parts.art.style.transform = `scale(${cssPerArtPx})`;
+    (await ready).frame.hide();
   }
 
   return { show, hide };
 }
 
-function buildDom(layout, content, onClose) {
+function fillFrame({ backdrop, popup, art, requestClose: onClose }, layout, content) {
   const dir = settings.artDir;
-  const backdrop = el('div', 'fp-backdrop');
-  backdrop.hidden = true;
-  backdrop.dataset.keepFocus = '';   // the terminal leaves focus alone in here
   setColours(backdrop, layout.colors);
-  backdrop.addEventListener('click', (event) => { if (event.target === backdrop) onClose(); });
 
-  const popup = el('div', 'fp');
-  popup.setAttribute('role', 'dialog');
-  popup.setAttribute('aria-modal', 'true');
-  popup.setAttribute('aria-label', content.card.name);
-  popup.tabIndex = -1;
-  popup.style.setProperty('--w', layout.popup.w);
-  popup.style.setProperty('--h', layout.popup.h);
-
-  const art = el('div', 'fp-art');
   const folderImage = image(dir + layout.popup.file, layout.popup);
   const activeTab = image('', layout.tabs[0]);
   art.append(folderImage, activeTab);
@@ -141,9 +88,8 @@ function buildDom(layout, content, onClose) {
     track('tabsSeen', name);
   }
 
-  popup.append(art, close, photo, card, sticky, stamp, tabList, page);
-  backdrop.append(popup);
-  return { backdrop, popup, art, page, selectTab, layout };
+  popup.append(close, photo, card, sticky, stamp, tabList, page);
+  return { selectTab };
 }
 
 function buildCard({ header, name, lines }) {
@@ -186,7 +132,6 @@ function setColours(node, colors) {
   for (const [name, value] of Object.entries(colors)) node.style.setProperty(`--fp-${name.replace('_', '-')}`, value);
   node.style.setProperty('--fp-link', settings.linkColour);
   node.style.setProperty('--fp-meta', settings.metaColour);
-  node.style.setProperty('--fp-fade', `${settings.fadeMs}ms`);
 }
 
 function el(tag, className, text) {
