@@ -1,0 +1,211 @@
+{
+  "card": {
+    "header": "PROFILE",
+    "name": "Noah A. Misukonis",
+    "lines": [
+      "B.S. Computer Science",
+      "Missouri S&T, Rolla MO",
+      "Expected May 2028 · GPA 3.52"
+    ]
+  },
+  "stamp": "CLASS OF 2028",
+  "sticky": {
+    "title": "find me:",
+    "links": [
+      {
+        "label": "misukonisn@gmail.com",
+        "href": "mailto:misukonisn@gmail.com"
+      },
+      {
+        "label": "linkedin.com/in/noah-misukonis",
+        "href": "https://www.linkedin.com/in/noah-misukonis/"
+      },
+      {
+        "label": "[ resume.pdf ]",
+        "href": "Noah_Misukonis_2026_Resume.pdf"
+      }
+    ]
+  },
+  "tabs": {
+    "about": [
+      {
+        "heading": "About",
+        "text": [
+          "Computer Science student with hands-on software engineering experience building cloud infrastructure, CI/CD pipelines, and enterprise integrations at State Farm.",
+          "I combine strong technical fundamentals with leadership across technical and athletic teams."
+        ]
+      },
+      {
+        "heading": "Outside the terminal",
+        "items": [
+          {
+            "title": "Varsity Track and Field, Pole Vault",
+            "meta": "Aug 2024 – Present",
+            "points": [
+              "NCAA Division II pole vaulter for Missouri S&T"
+            ]
+          },
+          {
+            "title": "Intercollegiate Knights, service organization",
+            "meta": "Aug 2024 – Present",
+            "points": []
+          },
+          {
+            "title": "Hasselman Alumni House Assistant",
+            "meta": "Jan 2025 – Present",
+            "points": [
+              "Welcome and assist alumni guests at weekly on-campus events"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Honors & awards",
+        "bullets": [
+          "2026 GLVC Conference Pole Vault Champion",
+          "2024 State Farm Scholar Athlete of the Year",
+          "2024 Illinois State Scholar",
+          "Seal of Biliteracy in French"
+        ]
+      }
+    ],
+    "resume": [
+      {
+        "heading": "Education",
+        "items": [
+          {
+            "title": "Missouri University of Science & Technology",
+            "meta": "Expected May 2028",
+            "points": [
+              "B.S. Computer Science · GPA 3.52/4.0",
+              "Coursework: Algorithms, Database Systems, Operating Systems, Data Structures, Discrete Mathematics"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Experience",
+        "items": [
+          {
+            "title": "Software Engineering Intern, State Farm",
+            "meta": "May – Aug 2026 · Bloomington, IL",
+            "points": [
+              "Engineered and maintained internal applications on AWS (ROSA, ECR, ECS) with Docker and GitLab CI/CD, streamlining build and deployment workflows",
+              "Built and scaled integrations across Slack, Jira, and Confluence, and led the migration of Slack integrations from test to production",
+              "Independently architected and shipped two company-wide Slack applications",
+              "Designed and deployed a company-wide outage notification system, cutting mean-time-to-detect by 14 minutes"
+            ]
+          },
+          {
+            "title": "House Manager, Lambda Chi Alpha",
+            "meta": "Dec 2025 – Dec 2026 · Rolla, MO",
+            "points": [
+              "Oversaw the fraternity house, keeping it clean and well-maintained",
+              "Planned and led house-wide improvement projects with fraternity leadership and members"
+            ]
+          },
+          {
+            "title": "iGEM Design Team Lead",
+            "meta": "Jan 2025 – May 2026 · Rolla, MO",
+            "points": [
+              "International Genetically Engineered Machine team; see Projects"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Skills",
+        "tags": [
+          "C++",
+          "Python",
+          "Go",
+          "AWS (ROSA, ECR, ECS)",
+          "Docker",
+          "Kubernetes/OpenShift",
+          "GitLab CI/CD",
+          "Slack API Integrations",
+          "Jira & Confluence",
+          "Management",
+          "Problem Solving"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "heading": "At State Farm",
+        "items": [
+          {
+            "title": "TESA",
+            "meta": "Slack application",
+            "points": [
+              "AI-powered knowledge management connector, independently architected and shipped company-wide"
+            ]
+          },
+          {
+            "title": "Jake Bot",
+            "meta": "Slack application",
+            "points": [
+              "General-purpose knowledge and information assistant used across the organization"
+            ]
+          },
+          {
+            "title": "Service outage notifications",
+            "meta": "Company-wide system",
+            "points": [
+              "Real-time alerts that cut mean-time-to-detect by 14 minutes; shaped with cross-functional teams from concept through launch"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "With iGEM",
+        "items": [
+          {
+            "title": "Virtual cell biology lab",
+            "meta": "Simulation",
+            "points": [
+              "Simulates chemical reaction kinetics, cell growth and decay, and ion uptake, so the team can run experiments without physical reagents"
+            ]
+          },
+          {
+            "title": "Cadmium-uptake E. coli",
+            "meta": "Team lead",
+            "points": [
+              "Led a team engineering nonpathogenic E. coli to take up cadmium from water supplies; inspected and coded nucleic acids to create a fusion protein"
+            ]
+          }
+        ]
+      }
+    ],
+    "contact": [
+      {
+        "heading": "Get in touch",
+        "links": [
+          {
+            "label": "Email",
+            "value": "misukonisn@gmail.com",
+            "href": "mailto:misukonisn@gmail.com"
+          },
+          {
+            "label": "LinkedIn",
+            "value": "linkedin.com/in/noah-misukonis",
+            "href": "https://www.linkedin.com/in/noah-misukonis/"
+          }
+        ]
+      },
+      {
+        "heading": "Resume",
+        "text": [
+          "The full one-page resume is available as a PDF."
+        ],
+        "links": [
+          {
+            "label": "Download",
+            "value": "Noah_Misukonis_2026_Resume.pdf",
+            "href": "Noah_Misukonis_2026_Resume.pdf"
+          }
+        ]
+      }
+    ]
+  }
+}

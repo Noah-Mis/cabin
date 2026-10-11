@@ -1,0 +1,430 @@
+{
+  "canvas": [
+    320,
+    180
+  ],
+  "window_opening": {
+    "x": 40,
+    "y": 24,
+    "w": 240,
+    "h": 107
+  },
+  "sill_band": {
+    "x0": 42,
+    "x1": 277,
+    "y0": 132,
+    "y1": 149
+  },
+  "draw_order": [
+    "bg_<time>",
+    "stars / clouds / far birds (clipped by sky_mask)",
+    "waterfall",
+    "sasquatch",
+    "near_forest_<time>",
+    "treetops",
+    "bird",
+    "rain or snow",
+    "wind",
+    "cabin_window",
+    "mug"
+  ],
+  "animations": {
+    "waterfall": {
+      "files": [
+        "waterfall/waterfall_morning.png",
+        "waterfall/waterfall_day.png",
+        "waterfall/waterfall_afternoon.png",
+        "waterfall/waterfall_night.png"
+      ],
+      "frame_w": 31,
+      "frame_h": 47,
+      "frames": 8,
+      "ms_per_frame": 110,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 146,
+        "y": 94
+      },
+      "note": "Always-on patch drawn over the background, before the near forest. Classic 16-bit style: a straight fall with scrolling streaks, a dark outline, chunky foam and two-tone ripples. Every pixel is fully opaque. It fully covers the waterfall baked into the background."
+    },
+    "stars": {
+      "files": [
+        "stars/stars_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 4,
+      "ms_per_frame": 450,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "Night only. Full-canvas overlay holding just the pixels that change on the stars already painted into bg_night."
+    },
+    "cloud_a": {
+      "files": [
+        "clouds/cloud_a_morning.png",
+        "clouds/cloud_a_day.png",
+        "clouds/cloud_a_afternoon.png",
+        "clouds/cloud_a_night.png"
+      ],
+      "frame_w": 56,
+      "frame_h": 18,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "region": "sky, y 26-70",
+        "clip": "sky_mask.png"
+      },
+      "note": "Static shape. Slide it sideways slowly in code (about 2-6 px per second)."
+    },
+    "cloud_b": {
+      "files": [
+        "clouds/cloud_b_morning.png",
+        "clouds/cloud_b_day.png",
+        "clouds/cloud_b_afternoon.png",
+        "clouds/cloud_b_night.png"
+      ],
+      "frame_w": 40,
+      "frame_h": 14,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "region": "sky, y 26-70",
+        "clip": "sky_mask.png"
+      },
+      "note": "Static shape. Slide it sideways slowly in code (about 2-6 px per second)."
+    },
+    "cloud_c": {
+      "files": [
+        "clouds/cloud_c_morning.png",
+        "clouds/cloud_c_day.png",
+        "clouds/cloud_c_afternoon.png",
+        "clouds/cloud_c_night.png"
+      ],
+      "frame_w": 28,
+      "frame_h": 10,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "region": "sky, y 26-70",
+        "clip": "sky_mask.png"
+      },
+      "note": "Static shape. Slide it sideways slowly in code (about 2-6 px per second)."
+    },
+    "cloud_d": {
+      "files": [
+        "clouds/cloud_d_morning.png",
+        "clouds/cloud_d_day.png",
+        "clouds/cloud_d_afternoon.png",
+        "clouds/cloud_d_night.png"
+      ],
+      "frame_w": 20,
+      "frame_h": 8,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "region": "sky, y 26-70",
+        "clip": "sky_mask.png"
+      },
+      "note": "Static shape. Slide it sideways slowly in code (about 2-6 px per second)."
+    },
+    "rain": {
+      "files": [
+        "rain/rain_morning.png",
+        "rain/rain_day.png",
+        "rain/rain_afternoon.png",
+        "rain/rain_night.png"
+      ],
+      "frame_w": 64,
+      "frame_h": 64,
+      "frames": 4,
+      "ms_per_frame": 70,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "tile": "repeat over the whole canvas"
+      },
+      "note": "Seamless tile in x and y. Partly transparent streaks falling down and to the left."
+    },
+    "snow": {
+      "files": [
+        "snow/snow_morning.png",
+        "snow/snow_day.png",
+        "snow/snow_afternoon.png",
+        "snow/snow_night.png"
+      ],
+      "frame_w": 64,
+      "frame_h": 64,
+      "frames": 8,
+      "ms_per_frame": 200,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "tile": "repeat over the whole canvas"
+      },
+      "note": "Seamless tile in x and y. Small flakes fall slowly, larger ones twice as fast, all wobbling sideways."
+    },
+    "treetops": {
+      "files": [
+        "treetops/treetops_morning.png",
+        "treetops/treetops_day.png",
+        "treetops/treetops_afternoon.png",
+        "treetops/treetops_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 4,
+      "ms_per_frame": 250,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "Full-canvas overlay of changed pixels only; frame 0 is empty (trees at rest). Tips lean 1 px right in a wave. Draw after near_forest."
+    },
+    "bird_flap": {
+      "files": [
+        "birds/bird_flap_morning.png",
+        "birds/bird_flap_day.png",
+        "birds/bird_flap_afternoon.png",
+        "birds/bird_flap_night.png"
+      ],
+      "frame_w": 16,
+      "frame_h": 12,
+      "frames": 4,
+      "ms_per_frame": 100,
+      "loop": true,
+      "anchor": [
+        8,
+        6
+      ],
+      "placement": {
+        "region": "anywhere in the opening; move 4-6 px per frame"
+      },
+      "note": "Faces right; mirror for leftward flight. Wings up, level, down, level."
+    },
+    "bird_far": {
+      "files": [
+        "birds/bird_far_morning.png",
+        "birds/bird_far_day.png",
+        "birds/bird_far_afternoon.png",
+        "birds/bird_far_night.png"
+      ],
+      "frame_w": 8,
+      "frame_h": 6,
+      "frames": 2,
+      "ms_per_frame": 180,
+      "loop": true,
+      "anchor": [
+        3,
+        3
+      ],
+      "placement": {
+        "region": "sky",
+        "clip": "sky_mask.png"
+      },
+      "note": "Tiny distant bird silhouette."
+    },
+    "sasquatch_run": {
+      "files": [
+        "sasquatch/sasquatch_run_morning.png",
+        "sasquatch/sasquatch_run_day.png",
+        "sasquatch/sasquatch_run_afternoon.png",
+        "sasquatch/sasquatch_run_night.png"
+      ],
+      "frame_w": 16,
+      "frame_h": 14,
+      "frames": 8,
+      "ms_per_frame": 90,
+      "loop": true,
+      "anchor": [
+        7,
+        12
+      ],
+      "placement": {
+        "path": "optional; feet on y=123, only visible in the gap around x 135-185",
+        "behind": "near_forest_<time>.png"
+      },
+      "note": "Small run cycle, faces right. Kept as an extra; the peek below is the main sasquatch event."
+    },
+    "sasquatch_peek": {
+      "files": [
+        "sasquatch/sasquatch_peek_morning.png",
+        "sasquatch/sasquatch_peek_day.png",
+        "sasquatch/sasquatch_peek_afternoon.png",
+        "sasquatch/sasquatch_peek_night.png"
+      ],
+      "frame_w": 12,
+      "frame_h": 16,
+      "frames": 14,
+      "ms_per_frame": 160,
+      "loop": false,
+      "anchor": [
+        5,
+        15
+      ],
+      "placement": {
+        "spots": [
+          {
+            "x": 72,
+            "y": 107
+          },
+          {
+            "x": 105,
+            "y": 117
+          },
+          {
+            "x": 131,
+            "y": 122
+          },
+          {
+            "x": 183,
+            "y": 124
+          },
+          {
+            "x": 214,
+            "y": 119
+          },
+          {
+            "x": 246,
+            "y": 107
+          }
+        ],
+        "behind": "near_forest_<time>.png"
+      },
+      "note": "Plays once. Put the anchor (bottom-centre of the frame) on one of the spots, each a gap between two front treetops, and draw before the near forest. He rises, looks left and right, blinks, and sinks back. Eyes glow at night."
+    },
+    "mug": {
+      "files": [
+        "mug/mug.png",
+        "mug/mug_night.png"
+      ],
+      "frame_w": 32,
+      "frame_h": 44,
+      "frames": 6,
+      "ms_per_frame": 150,
+      "loop": true,
+      "anchor": [
+        13,
+        40
+      ],
+      "placement": {
+        "x": 218,
+        "y": 146,
+        "region": "sill band"
+      },
+      "note": "Anchor is the bottom-centre of the base. Sits a quarter of the way in from the right edge of the sill. Only the steam moves."
+    },
+    "wind_gust": {
+      "files": [
+        "wind/wind_gust.png",
+        "wind/wind_gust_morning.png",
+        "wind/wind_gust_night.png"
+      ],
+      "frame_w": 64,
+      "frame_h": 24,
+      "frames": 14,
+      "ms_per_frame": 80,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "region": "sky and treeline; slide right 4-5 px per frame while playing"
+      },
+      "note": "Plays once. Plain file is white for day and afternoon; tinted versions for morning and night."
+    },
+    "wind_streak": {
+      "files": [
+        "wind/wind_streak.png",
+        "wind/wind_streak_morning.png",
+        "wind/wind_streak_night.png"
+      ],
+      "frame_w": 64,
+      "frame_h": 24,
+      "frames": 10,
+      "ms_per_frame": 80,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "region": "sky and treeline; slide right 4-5 px per frame while playing"
+      },
+      "note": "Plays once. Plain file is white for day and afternoon; tinted versions for morning and night."
+    },
+    "mug_sip": {
+      "files": [
+        "mug/mug_sip.png",
+        "mug/mug_sip_night.png"
+      ],
+      "frame_w": 144,
+      "frame_h": 90,
+      "frames": 17,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 120,
+        "y": 90
+      },
+      "note": "Plays once when the mug is clicked. Hide the static mug and its steam while it plays, then show them again. The mug lifts, comes toward the viewer, tips at the bottom edge of the screen, and returns. Draw above everything else."
+    }
+  },
+  "masks": {
+    "sky_mask.png": "opaque where the background is sky; use as a clip for clouds, stars, sun, far birds",
+    "near_forest_<time>.png": "the front forest only; draw it after the sasquatch so he comes out from behind it"
+  },
+  "window": {
+    "files": [
+      "scene/cabin_window.png",
+      "scene/cabin_window_night.png"
+    ],
+    "note": "Use the night file with bg_night and cross-fade between the two like every other time-of-day asset. Morning, day and afternoon share cabin_window.png."
+  }
+}

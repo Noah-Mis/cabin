@@ -1,0 +1,92 @@
+{
+  "canvas": [
+    320,
+    180
+  ],
+  "note": "Sheets are single rows of equal frames. Position each so its anchor point lands on the placement x,y; sheets with anchor [0,0] are placed by their top-left corner.",
+  "animations": {
+    "folder": {
+      "files": [
+        "folder.png",
+        "folder_night.png"
+      ],
+      "frame_w": 52,
+      "frame_h": 22,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        23,
+        20
+      ],
+      "placement": {
+        "x": 160,
+        "y": 149,
+        "region": "sill band"
+      },
+      "note": "Static sill item: a thick brown-tan folder full of papers, lying flat and closed. Anchor is the bottom-centre of the near edge."
+    },
+    "folder_place": {
+      "files": [
+        "folder_place.png",
+        "folder_place_night.png"
+      ],
+      "frame_w": 66,
+      "frame_h": 70,
+      "frames": 10,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 130,
+        "y": 110
+      },
+      "note": "The folder slides up onto the sill and lands with barely a bounce. The folder is part of these frames; show the static folder once it ends."
+    },
+    "folder_open": {
+      "files": [
+        "folder_open.png",
+        "folder_open_night.png"
+      ],
+      "frame_w": 52,
+      "frame_h": 40,
+      "frames": 9,
+      "ms_per_frame": 110,
+      "loop": false,
+      "anchor": [
+        23,
+        38
+      ],
+      "placement": {
+        "x": 160,
+        "y": 149,
+        "region": "sill band"
+      },
+      "note": "The front cover swings up on its far edge, overshoots slightly and settles propped open, revealing the top page. Replaces the static folder while it plays; frame 0 matches the closed folder. Play backwards to close."
+    },
+    "folder_opened": {
+      "files": [
+        "folder_opened.png",
+        "folder_opened_night.png"
+      ],
+      "frame_w": 52,
+      "frame_h": 40,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        23,
+        38
+      ],
+      "placement": {
+        "x": 160,
+        "y": 149,
+        "region": "sill band"
+      },
+      "note": "Static open folder: the last frame of folder_open, to show after it finishes."
+    }
+  }
+}

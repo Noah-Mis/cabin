@@ -1,0 +1,182 @@
+// config.js — every tunable in one place: timings, chances, speeds, paths.
+// Positions and sprite sizes are NOT here; they come from anim/manifest.json.
+// Exports: config (a plain object).
+
+export const config = {
+  // Where the art lives: each pack is a folder with its own manifest. The
+  // first is the scene; the files below are in its folder.
+  assetPacks: [
+    { dir: 'anim/', manifest: 'manifest.json' },
+    { dir: 'anim/smoke/', manifest: 'smoke_manifest.json' },
+    { dir: 'anim/folder/', manifest: 'folder_manifest.json' },
+    { dir: 'anim/achievements/', manifest: 'achievements.json' },
+  ],
+  // "<time>" is replaced by morning/day/afternoon/night. (The window frame's
+  // files are listed in the manifest's "window" entry.)
+  files: {
+    background: 'scene/bg_<time>.png',
+    nearForest: 'scene/near_forest_<time>.png',
+    skyMask: 'scene/sky_mask.png',
+  },
+
+  times: ['morning', 'day', 'afternoon', 'night'],
+
+  // Local hour (0-23) at which each time of day begins, for "time auto".
+  timeOfDayStartHour: { morning: 5, day: 10, afternoon: 16, night: 20 },
+  clockCheckIntervalSec: 30,
+  crossFadeMs: 1500,
+
+  // Every sprite sheet's ms_per_frame is multiplied by this: 1 plays at the
+  // manifest's speed, 1.2 makes every animation 20% slower.
+  animationSlowdown: 1.2,
+
+  // The front trees sway once, then rest for a random time in this range.
+  treetops: {
+    restBetweenSwaysSec: [7, 15],
+  },
+
+  weathers: ['clear', 'rain', 'snow'],
+  defaultWeather: 'clear',
+
+  // ── Occasional events ────────────────────────────────────────────────
+  // Each event waits a random time between minWaitSec and maxWaitSec, then
+  // fires with probability `chance` (0-1), then waits again.
+  events: {
+    bird:      { minWaitSec: 20,  maxWaitSec: 60,  chance: 1.0 },
+    farbird:   { minWaitSec: 30,  maxWaitSec: 90,  chance: 1.0 },
+    wind:      { minWaitSec: 40,  maxWaitSec: 120, chance: 1.0 },
+    sasquatch: { minWaitSec: 180, maxWaitSec: 600, chance: 0.3 },
+    // Achievement rewards: these only do anything once earned (and, for
+    // shooting stars, at night).
+    shootingstar: { minWaitSec: 30, maxWaitSec: 90, chance: 1.0 },
+    deer:      { minWaitSec: 120, maxWaitSec: 300, chance: 1.0 },
+  },
+
+  // ── Moving things ────────────────────────────────────────────────────
+  bird: {
+    speedPxPerSec: 50,          // manifest suggests 4-6 px per 100 ms frame
+    flightHeightPx: [40, 80],   // range of y (anchor) values in the sky
+    bobAmplitudePx: 4,
+    bobRadPerSec: 3,
+    maxAtOnce: 4,
+  },
+  farBird: {
+    speedPxPerSec: 15,
+    flightHeightPx: [32, 56],
+    maxAtOnce: 3,
+  },
+  wind: {
+    speedPxPerSec: 55,          // manifest: 4-5 px per 80 ms frame
+    heightPx: [40, 110],        // top of the 64x24 frame; sky and treeline
+    maxAtOnce: 4,
+  },
+  // Clouds drift right and wrap around the window opening.
+  // Start positions are the same as the reference previews use.
+  clouds: [
+    { sprite: 'cloud_a', x: 52,  y: 30, speedPxPerSec: 5 },
+    { sprite: 'cloud_c', x: 196, y: 40, speedPxPerSec: 3 },
+    { sprite: 'cloud_b', x: 128, y: 60, speedPxPerSec: 4 },
+    { sprite: 'cloud_d', x: 236, y: 70, speedPxPerSec: 2.5 },
+  ],
+
+  // Clickable sill items (the folder, the cigarette pack) get this outline on hover.
+  hoverOutlineColour: '#000000',
+
+  // The pop-up that opens from the folder. Positions, sizes and most colours
+  // are in the layout file; every word is in the content file.
+  folderPopup: {
+    artDir: 'anim/folder/popup/',
+    layoutFile: 'anim/folder/popup/popup_layout.json',
+    contentFile: 'content/folder_content.json',
+    firstTab: 'about',
+    // Colours the mockups use that the layout file doesn't list.
+    linkColour: '#3C5A96',
+    metaColour: '#8C7E74',
+    // Below this many CSS pixels per art pixel the folder's text would be
+    // cramped, so a plain single-column panel is shown instead.
+    minCssPxPerArtPx: 3,
+    fadeMs: 200,
+  },
+
+  // ── Achievements ─────────────────────────────────────────────────────
+  // What they are, their goals and every sprite position are in
+  // anim/achievements/achievements.json; these are the tunables.
+  achievements: {
+    artDir: 'anim/achievements/',   // the pack above; its manifest is achievements.json
+    storageKey: 'cabin-window.progress',
+    storageVersion: 1,            // bump to start everyone fresh after a format change
+    clickPaddingPx: 3,            // creatures are small and moving: forgiving hit boxes
+    starClickRadiusPx: 4,
+    yetiChance: 0.2,              // share of sasquatch appearances that are the yeti
+    auroraChancePerNight: 1 / 3,
+    auroraFadeMs: 6000,           // the art asks for a slow fade, never a cut
+    rainbowFadeMs: 2500,
+    rainbowShowSec: 20,
+    birdSparkleEveryMs: 300,      // the golden bird's trail
+    birdSparkleBehindPx: 7,       // how far behind the bird's anchor it drops them
+    trophySparkleEverySec: [3, 9],
+    deer: {
+      walkSpeedPxPerSec: 6,
+      fadeMs: 500,                // the near trees never fully hide it, so fade in and out
+    },
+    sign: {
+      showMs: 4000,
+      slideMs: 450,
+      marginTopPx: 4,             // art pixels below the top of the window opening
+      textColour: '#F4E3C3',
+    },
+  },
+
+  // ── Sound ────────────────────────────────────────────────────────────
+  // Ambience, not a soundtrack: everything sits well below full volume.
+  // Volumes are in dB (0 = the file as recorded; -6 is about half as loud).
+  sound: {
+    dir: 'sounds/',
+    masterVolumeDb: 0,            // turn everything up or down together
+    loopLookaheadSec: 4,
+    endFadeSec: 0.25,             // when a one-shot is cut short
+    sounds: {
+      waterfall: {
+        file: 'waterfall.mp3',
+        volumeDb: -17,
+        // The recording swells about 5 dB over 3-10 s; loop that part with a
+        // cross-fade and cancel the swell, so the level stays steady.
+        loop: { startSec: 3, crossfadeSec: 1.5, levelCorrectionDb: -5 },
+        // Heard from far across the valley (see createDistance in sound.js).
+        distance: { lowpassHz: 1800, highpassHz: 200, stereoWidth: 0.4, reverbMix: 0.35, reverbSec: 2.5 },
+      },
+      bird: {
+        file: 'bird_flap.wav',
+        volumeDb: -8,
+        panPerSide: 0.6,          // heard from the side the bird flies in on
+      },
+      wind: {
+        file: 'wind.wav',
+        volumeDb: -14,            // a soft gust, just above the distant waterfall
+        startAtSec: 0.5,          // the file opens with half a second of silence
+        stopAtSec: 5.5,           // and ends with two silent seconds
+        sweepPan: 0.4,            // moves left to right with the gust
+      },
+    },
+  },
+
+  // ── Page ─────────────────────────────────────────────────────────────
+  terminal: {
+    maxHistory: 50,
+    greeting: 'cabin terminal. type "help" to see what you can do.',
+  },
+  maxFrameDtMs: 250,   // after a hidden tab, don't fast-forward everything at once
+
+  // ── Test mode only (?test) ───────────────────────────────────────────
+  test: {
+    tickMs: 100,   // anim.py's compose() works in 100 ms ticks
+    // compose() advances some sheets at different speeds than the manifest
+    // says. With ?timing=reference these override ms_per_frame so frames
+    // line up with compose() tick for tick.
+    referenceMsPerFrame: {
+      stars: 400, treetops: 300, mug: 200, rain: 100, snow: 200,
+      bird_far: 200, wind_gust: 100, wind_streak: 100,
+      sasquatch_peek: 157.142857,   // compose() plays 14 frames over 22 ticks
+    },
+  },
+};

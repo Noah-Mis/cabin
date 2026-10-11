@@ -1,0 +1,735 @@
+{
+ "canvas": [
+  320,
+  180
+ ],
+ "badges": {
+  "file": "badges.png",
+  "frame_w": 16,
+  "frame_h": 16,
+  "locked_frame": 13
+ },
+ "sign": {
+  "file": "achievement_sign.png",
+  "w": 132,
+  "h": 24,
+  "badge_slot": {
+   "x": 5,
+   "y": 4
+  },
+  "text_area": {
+   "x": 27,
+   "y": 4,
+   "w": 100,
+   "h": 16
+  }
+ },
+ "terminal_theme_green": {
+  "background": "#0C140E",
+  "text": "#5AF082",
+  "dim": "#2E8A4A",
+  "cursor": "#B6FFC8"
+ },
+ "star_click_targets": [
+  [
+   77,
+   24
+  ],
+  [
+   142,
+   25
+  ],
+  [
+   275,
+   25
+  ],
+  [
+   269,
+   27
+  ],
+  [
+   247,
+   28
+  ],
+  [
+   90,
+   30
+  ],
+  [
+   90,
+   32
+  ],
+  [
+   231,
+   33
+  ],
+  [
+   106,
+   36
+  ],
+  [
+   129,
+   36
+  ],
+  [
+   54,
+   37
+  ],
+  [
+   113,
+   37
+  ],
+  [
+   243,
+   47
+  ],
+  [
+   135,
+   48
+  ],
+  [
+   224,
+   50
+  ],
+  [
+   258,
+   50
+  ],
+  [
+   252,
+   51
+  ],
+  [
+   56,
+   53
+  ],
+  [
+   130,
+   55
+  ],
+  [
+   189,
+   55
+  ],
+  [
+   189,
+   56
+  ],
+  [
+   246,
+   58
+  ],
+  [
+   72,
+   59
+  ],
+  [
+   75,
+   59
+  ],
+  [
+   259,
+   59
+  ],
+  [
+   245,
+   61
+  ],
+  [
+   121,
+   62
+  ],
+  [
+   251,
+   62
+  ],
+  [
+   74,
+   64
+  ],
+  [
+   51,
+   74
+  ]
+ ],
+ "achievements": [
+  {
+   "id": "first_sighting",
+   "name": "Something in the Trees",
+   "desc": "Spot the sasquatch",
+   "stat": "sasquatchClicks",
+   "goal": 1,
+   "reward": "He waves on every later visit",
+   "assets": [
+    "sasquatch_wave"
+   ],
+   "badge_frame": 0
+  },
+  {
+   "id": "bird_watcher",
+   "name": "Bird Watcher",
+   "desc": "Click 50 birds",
+   "stat": "birdClicks",
+   "goal": 50,
+   "reward": "All birds turn shiny gold and leave sparkles",
+   "assets": [
+    "bird_flap_shiny",
+    "bird_far_shiny",
+    "sparkle"
+   ],
+   "badge_frame": 1
+  },
+  {
+   "id": "cryptid_hunter",
+   "name": "Cryptid Hunter",
+   "desc": "Spot the sasquatch 10 times",
+   "stat": "sasquatchClicks",
+   "goal": 10,
+   "reward": "A rare white yeti sometimes peeks instead",
+   "assets": [
+    "yeti_peek",
+    "yeti_wave"
+   ],
+   "badge_frame": 2
+  },
+  {
+   "id": "caffeinated",
+   "name": "Caffeinated",
+   "desc": "Take 25 sips of coffee",
+   "stat": "mugClicks",
+   "goal": 25,
+   "reward": "The cup becomes an enamel camp mug",
+   "assets": [
+    "mug_camp"
+   ],
+   "badge_frame": 3
+  },
+  {
+   "id": "smoke_break",
+   "name": "Smoke Break",
+   "desc": "Finish a whole cigarette",
+   "stat": "smokesFinished",
+   "goal": 1,
+   "reward": "An ashtray appears on the sill",
+   "assets": [
+    "ashtray"
+   ],
+   "badge_frame": 4
+  },
+  {
+   "id": "case_closed",
+   "name": "Case Closed",
+   "desc": "Read every tab in the folder",
+   "stat": "tabsSeen",
+   "goal": 4,
+   "reward": "The folder gets a gold REVIEWED seal",
+   "assets": [
+    "folder_reviewed",
+    "folder_reviewed_place",
+    "folder_reviewed_open",
+    "folder_reviewed_close"
+   ],
+   "badge_frame": 5
+  },
+  {
+   "id": "night_owl",
+   "name": "Night Owl",
+   "desc": "Visit at night",
+   "stat": "timesSeen",
+   "goal": "night",
+   "reward": "Shooting stars cross the night sky",
+   "assets": [
+    "shooting_star"
+   ],
+   "badge_frame": 6
+  },
+  {
+   "id": "around_the_clock",
+   "name": "Around the Clock",
+   "desc": "See morning, day, afternoon and night",
+   "stat": "timesSeen",
+   "goal": 4,
+   "reward": "Northern lights appear on some nights",
+   "assets": [
+    "aurora"
+   ],
+   "badge_frame": 7
+  },
+  {
+   "id": "storm_chaser",
+   "name": "Storm Chaser",
+   "desc": "See both rain and snow",
+   "stat": "weatherSeen",
+   "goal": 2,
+   "reward": "A rainbow shows over the falls after rain",
+   "assets": [
+    "rainbow"
+   ],
+   "badge_frame": 8
+  },
+  {
+   "id": "stargazer",
+   "name": "Stargazer",
+   "desc": "Click 10 stars",
+   "stat": "starClicks",
+   "goal": 10,
+   "reward": "A sasquatch constellation appears",
+   "assets": [
+    "constellation_sasquatch"
+   ],
+   "badge_frame": 9
+  },
+  {
+   "id": "power_user",
+   "name": "Power User",
+   "desc": "Use every terminal command",
+   "stat": "commandsUsed",
+   "goal": "all",
+   "reward": "A green-screen terminal theme",
+   "assets": [],
+   "badge_frame": 10
+  },
+  {
+   "id": "cabin_fever",
+   "name": "Cabin Fever",
+   "desc": "Stay for 10 minutes",
+   "stat": "secondsOpen",
+   "goal": 600,
+   "reward": "A deer visits the water now and then",
+   "assets": [
+    "deer_walk",
+    "deer_graze"
+   ],
+   "badge_frame": 11
+  },
+  {
+   "id": "woodsman",
+   "name": "Woodsman",
+   "desc": "Earn every other achievement",
+   "stat": "unlocked",
+   "goal": 12,
+   "reward": "A gold trophy on the sill",
+   "assets": [
+    "trophy",
+    "sparkle"
+   ],
+   "badge_frame": 12
+  }
+ ],
+ "animations": {
+  "sasquatch_wave": {
+   "files": [
+    "sasquatch_wave_morning.png",
+    "sasquatch_wave_day.png",
+    "sasquatch_wave_afternoon.png",
+    "sasquatch_wave_night.png"
+   ],
+   "frame_w": 14,
+   "frame_h": 16,
+   "frames": 14,
+   "ms_per_frame": 160,
+   "loop": false,
+   "anchor": [
+    5,
+    15
+   ],
+   "placement": "same spots as sasquatch_peek",
+   "note": "Reward 1. Replaces sasquatch_peek after the first click: he rises, waves twice, blinks and sinks."
+  },
+  "yeti_peek": {
+   "files": [
+    "yeti_peek_morning.png",
+    "yeti_peek_day.png",
+    "yeti_peek_afternoon.png",
+    "yeti_peek_night.png"
+   ],
+   "frame_w": 12,
+   "frame_h": 16,
+   "frames": 14,
+   "ms_per_frame": 160,
+   "loop": false,
+   "anchor": [
+    5,
+    15
+   ],
+   "placement": "same spots as sasquatch_peek",
+   "note": "Reward 3. A rare white yeti that peeks in place of the sasquatch."
+  },
+  "yeti_wave": {
+   "files": [
+    "yeti_wave_morning.png",
+    "yeti_wave_day.png",
+    "yeti_wave_afternoon.png",
+    "yeti_wave_night.png"
+   ],
+   "frame_w": 14,
+   "frame_h": 16,
+   "frames": 14,
+   "ms_per_frame": 160,
+   "loop": false,
+   "anchor": [
+    5,
+    15
+   ],
+   "placement": "same spots as sasquatch_peek",
+   "note": "Reward 3 with reward 1: the yeti waves too."
+  },
+  "bird_flap_shiny": {
+   "files": [
+    "bird_flap_shiny_morning.png",
+    "bird_flap_shiny_day.png",
+    "bird_flap_shiny_afternoon.png",
+    "bird_flap_shiny_night.png"
+   ],
+   "frame_w": 16,
+   "frame_h": 12,
+   "frames": 4,
+   "ms_per_frame": 100,
+   "loop": true,
+   "anchor": [
+    8,
+    6
+   ],
+   "placement": "as bird_flap",
+   "note": "Reward 2. Golden bird; use instead of bird_flap once unlocked. Leave a sparkle behind it every few frames."
+  },
+  "bird_far_shiny": {
+   "files": [
+    "bird_far_shiny_morning.png",
+    "bird_far_shiny_day.png",
+    "bird_far_shiny_afternoon.png",
+    "bird_far_shiny_night.png"
+   ],
+   "frame_w": 8,
+   "frame_h": 6,
+   "frames": 2,
+   "ms_per_frame": 180,
+   "loop": true,
+   "anchor": [
+    3,
+    3
+   ],
+   "placement": "as bird_far",
+   "note": "Reward 2. Golden far bird."
+  },
+  "sparkle": {
+   "files": [
+    "sparkle.png"
+   ],
+   "frame_w": 7,
+   "frame_h": 7,
+   "frames": 4,
+   "ms_per_frame": 90,
+   "loop": false,
+   "anchor": [
+    3,
+    3
+   ],
+   "placement": "spawned in code",
+   "note": "A twinkle that plays once and disappears. Used for the shiny bird trail and on the trophy."
+  },
+  "mug_camp": {
+   "files": [
+    "mug_camp.png",
+    "mug_camp_night.png"
+   ],
+   "frame_w": 32,
+   "frame_h": 44,
+   "frames": 6,
+   "ms_per_frame": 150,
+   "loop": true,
+   "anchor": [
+    13,
+    40
+   ],
+   "placement": {
+    "x": 218,
+    "y": 146
+   },
+   "note": "Reward 4. White enamel camp mug with a navy rim and a pine tree; drop-in replacement for mug."
+  },
+  "ashtray": {
+   "files": [
+    "ashtray.png",
+    "ashtray_night.png"
+   ],
+   "frame_w": 22,
+   "frame_h": 14,
+   "frames": 1,
+   "ms_per_frame": 0,
+   "loop": false,
+   "anchor": [
+    11,
+    13
+   ],
+   "placement": {
+    "x": 124,
+    "y": 147
+   },
+   "note": "Reward 5. Static sill item between the pack and the folder: a ceramic ashtray with ash, two butts and one tip still glowing."
+  },
+  "trophy": {
+   "files": [
+    "trophy.png",
+    "trophy_night.png"
+   ],
+   "frame_w": 18,
+   "frame_h": 24,
+   "frames": 1,
+   "ms_per_frame": 0,
+   "loop": false,
+   "anchor": [
+    9,
+    23
+   ],
+   "placement": {
+    "x": 72,
+    "y": 147
+   },
+   "note": "Reward 13. A two-handled gold cup on a wooden base, at the left of the sill; its top stands in front of the bottom of the view. Spawn a sparkle on it now and then."
+  },
+  "folder_reviewed_overlay": {
+   "files": [
+    "folder_reviewed_overlay.png",
+    "folder_reviewed_overlay_night.png"
+   ],
+   "frame_w": 52,
+   "frame_h": 22,
+   "frames": 1,
+   "ms_per_frame": 0,
+   "loop": false,
+   "anchor": [
+    23,
+    20
+   ],
+   "placement": {
+    "x": 160,
+    "y": 149
+   },
+   "note": "Reward 6. A gold seal with a tick; draw it directly over the closed folder sprite (same size and anchor). Hide it while the folder is open."
+  },
+  "shooting_star": {
+   "files": [
+    "shooting_star.png"
+   ],
+   "frame_w": 40,
+   "frame_h": 20,
+   "frames": 8,
+   "ms_per_frame": 60,
+   "loop": false,
+   "anchor": [
+    0,
+    0
+   ],
+   "placement": {
+    "region": "night sky, x 60-240, y 26-50",
+    "clip": "sky_mask.png"
+   },
+   "note": "Reward 7. Night only. A streak falling down and to the left, then fading. Plays once at a random spot."
+  },
+  "aurora": {
+   "files": [
+    "aurora.png"
+   ],
+   "frame_w": 240,
+   "frame_h": 60,
+   "frames": 60,
+   "ms_per_frame": 160,
+   "loop": true,
+   "anchor": [
+    0,
+    0
+   ],
+   "placement": {
+    "x": 40,
+    "y": 24,
+    "clip": "sky_mask.png"
+   },
+   "note": "Reward 8. Night only. A slow 60-frame loop (about 10 seconds) of three layered curtains with rising rays, green at the lower edge fading through teal to violet. Draw under the stars, clipped by the sky mask. Fade the whole layer in and out over several seconds; never cut it on or off."
+  },
+  "rainbow": {
+   "files": [
+    "rainbow.png"
+   ],
+   "frame_w": 128,
+   "frame_h": 64,
+   "frames": 1,
+   "ms_per_frame": 0,
+   "loop": false,
+   "anchor": [
+    0,
+    0
+   ],
+   "placement": {
+    "x": 96,
+    "y": 60
+   },
+   "note": "Reward 9. A translucent arc over the waterfall. Fade it in when rain stops and out after about 20 seconds. Draw after the waterfall and before the near forest."
+  },
+  "constellation_sasquatch": {
+   "files": [
+    "constellation_sasquatch.png"
+   ],
+   "frame_w": 34,
+   "frame_h": 34,
+   "frames": 1,
+   "ms_per_frame": 0,
+   "loop": false,
+   "anchor": [
+    0,
+    0
+   ],
+   "placement": {
+    "x": 52,
+    "y": 27,
+    "clip": "sky_mask.png"
+   },
+   "note": "Reward 10. Night only. A striding figure picked out in stars and faint lines, in the upper left of the sky."
+  },
+  "deer_walk": {
+   "files": [
+    "deer_walk_morning.png",
+    "deer_walk_day.png",
+    "deer_walk_afternoon.png",
+    "deer_walk_night.png"
+   ],
+   "frame_w": 14,
+   "frame_h": 10,
+   "frames": 4,
+   "ms_per_frame": 170,
+   "loop": true,
+   "anchor": [
+    6,
+    9
+   ],
+   "placement": {
+    "path": "feet on y=123, enters from x 128 and stops near x 148",
+    "behind": "near_forest_<time>.png"
+   },
+   "note": "Reward 12. Faces right; mirror to walk left."
+  },
+  "deer_graze": {
+   "files": [
+    "deer_graze_morning.png",
+    "deer_graze_day.png",
+    "deer_graze_afternoon.png",
+    "deer_graze_night.png"
+   ],
+   "frame_w": 14,
+   "frame_h": 10,
+   "frames": 6,
+   "ms_per_frame": 320,
+   "loop": false,
+   "anchor": [
+    6,
+    9
+   ],
+   "placement": {
+    "x": 148,
+    "y": 123,
+    "behind": "near_forest_<time>.png"
+   },
+   "note": "Reward 12. Stands, lowers its head to the water, looks up, flicks its tail. Then walk on or back."
+  },
+  "mug_camp_sip": {
+   "files": [
+    "mug_camp_sip.png",
+    "mug_camp_sip_night.png"
+   ],
+   "frame_w": 144,
+   "frame_h": 90,
+   "frames": 17,
+   "ms_per_frame": 120,
+   "loop": false,
+   "anchor": [
+    0,
+    0
+   ],
+   "placement": {
+    "x": 120,
+    "y": 90
+   },
+   "note": "The same sip for the enamel camp mug. Plays once when the mug is clicked. Hide the static mug and its steam while it plays, then show them again. The mug lifts, comes toward the viewer, tips at the bottom edge of the screen, and returns. Draw above everything else."
+  },
+  "folder_reviewed": {
+   "files": [
+    "folder_reviewed.png",
+    "folder_reviewed_night.png"
+   ],
+   "frame_w": 52,
+   "frame_h": 22,
+   "frames": 1,
+   "ms_per_frame": 0,
+   "loop": false,
+   "anchor": [
+    23,
+    20
+   ],
+   "placement": {
+    "x": 160,
+    "y": 149
+   },
+   "note": "Reward 6. The closed folder with the gold seal already on it; use in place of folder once Case Closed is earned."
+  },
+  "folder_reviewed_open": {
+   "files": [
+    "folder_reviewed_open.png",
+    "folder_reviewed_open_night.png"
+   ],
+   "frame_w": 52,
+   "frame_h": 40,
+   "frames": 9,
+   "ms_per_frame": 110,
+   "loop": false,
+   "anchor": [
+    23,
+    38
+   ],
+   "placement": {
+    "x": 160,
+    "y": 149
+   },
+   "note": "Reward 6. The gold-seal folder opens. Same size, anchor and timing as folder_open, so it is a drop-in swap; the seal stays on the cover as it tips."
+  },
+  "folder_reviewed_close": {
+   "files": [
+    "folder_reviewed_close.png",
+    "folder_reviewed_close_night.png"
+   ],
+   "frame_w": 52,
+   "frame_h": 40,
+   "frames": 9,
+   "ms_per_frame": 110,
+   "loop": false,
+   "anchor": [
+    23,
+    38
+   ],
+   "placement": {
+    "x": 160,
+    "y": 149
+   },
+   "note": "Reward 6. The gold-seal folder closes. Same size, anchor and timing as folder_open, so it is a drop-in swap; the seal stays on the cover as it tips."
+  },
+  "folder_reviewed_place": {
+   "files": [
+    "folder_reviewed_place.png",
+    "folder_reviewed_place_night.png"
+   ],
+   "frame_w": 66,
+   "frame_h": 70,
+   "frames": 10,
+   "ms_per_frame": 120,
+   "loop": false,
+   "anchor": [
+    0,
+    0
+   ],
+   "placement": {
+    "x": 130,
+    "y": 110
+   },
+   "note": "Reward 6. The gold-seal folder sliding up onto the sill, for the whoami command. Same box, frames and timing as folder_place, so it is a drop-in swap; show folder_reviewed once it ends."
+  }
+ }
+}

@@ -1,0 +1,828 @@
+"""behaviour.py — exercises the site the way a visitor would and records proof.
+
+1. Layout at several browser sizes: whole-number scale in device pixels,
+   the scene fills the screen with the window and sill fully visible above
+   the one-line prompt, and crisp (every visible art pixel is a uniform
+   scale x scale block equal to the native canvas pixel). Saves screenshots.
+2. Commands typed into the real terminal, in test mode so each effect can be
+   compared pixel for pixel with a page that did not run the command.
+   `time X` must end up identical to a page that started at X: proof that
+   every layer swapped palette and nothing was left behind.
+3. Terminal behaviour: focus, history recall, the reply bubble (one at a
+   time, replaced by each command, removed by `clear`), unknown / empty /
+   repeated input, and that creatures and wind are no longer commands.
+4. The scheduler: with config.js swapped for one with short timers (via a
+   network route, so no source file changes), every event must fire by itself.
+5. The cigarette easter egg: hidden `cig` command places the pack; hover
+   outlines it; a click plays the whole smoking sequence over everything.
+6. The folder: `whoami` places it; hover outlines it (closed or open); a
+   click opens it and calls js/folder-contents.js open(), another click closes
+   it and calls close().
+7. The folder pop-up: art pixel-exact at a whole-number scale, every word
+   from content/folder_content.json shown as written, tabs, scrolling, the
+   resume download, closing (X, Escape, outside click), and the plain
+   single-column panel on a phone.
+8. No console errors or warnings, no failed requests, anywhere above.
+
+Writes tests/results/behaviour.md and tests/results/screens/.
+Run:  python tests/behaviour.py
+"""
+import io, re, sys
+from pathlib import Path
+import numpy as np
+from PIL import Image
+from playwright.sync_api import sync_playwright
+
+sys.path.insert(0, str(Path(__file__).parent))
+from harness import ROOT, RESULTS, serve_site, open_browser, watch_page, canvas_pixels
+
+SCREENS = RESULTS / 'screens'
+report, failures = [], []
+
+
+def check(ok, what):
+    report.append(f"- {'PASS' if ok else 'FAIL'}: {what}")
+    if not ok:
+        failures.append(what)
+    print(report[-1])
+
+
+def open_page(browser, base, query, problems, **context):
+    ctx = browser.new_context(**context)
+    page = ctx.new_page()
+    page_problems = watch_page(page)
+    page.goto(base + 'index.html' + query)
+    try:
+        page.wait_for_function('window.cabin && window.cabin.app', timeout=15000)
+    except Exception:
+        loaded = page.evaluate('performance.getEntriesByType("resource").length')
+        raise RuntimeError(f'page did not start: {loaded} resources loaded, problems {page_problems}, '
+                           f'bubble {page.text_content("#bubble")!r}')
+    return page, page_problems
+
+
+def type_command(page, line):
+    page.keyboard.type(line)
+    page.keyboard.press('Enter')
+
+
+def output_lines(page):
+    """The lines in the reply bubble, or [] when no bubble is showing."""
+    return page.eval_on_selector_all('#bubble:not([hidden]) .line', 'els => els.map(e => e.textContent)')
+
+
+def bubble_visible(page):
+    return page.evaluate("!document.getElementById('bubble').hidden")
+
+
+def diff_box(a, b):
+    m = np.any(a != b, axis=2)
+    if not m.any():
+        return 0, None
+    ys, xs = np.nonzero(m)
+    return int(m.sum()), (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))
+
+
+def save_pair(name, before, after):
+    strip = np.concatenate([before, after], axis=1)
+    Image.fromarray(strip).resize((strip.shape[1] * 3, strip.shape[0] * 3), Image.NEAREST).save(SCREENS / name)
+
+
+# ── 1. layout ─────────────────────────────────────────────────────────────
+SIZES = [
+    ('desktop_1920x1080', dict(viewport={'width': 1920, 'height': 1080}, device_scale_factor=1)),
+    ('laptop_1366x768', dict(viewport={'width': 1366, 'height': 768}, device_scale_factor=1)),
+    ('hidpi_1440x900_dpr2', dict(viewport={'width': 1440, 'height': 900}, device_scale_factor=2)),
+    ('odd_1000x700_dpr1.25', dict(viewport={'width': 1000, 'height': 700}, device_scale_factor=1.25)),
+    ('phone_390x844_dpr3', dict(viewport={'width': 390, 'height': 844}, device_scale_factor=3,
+                                is_mobile=True, has_touch=True)),
+    ('phone_landscape_844x390_dpr3', dict(viewport={'width': 844, 'height': 390}, device_scale_factor=3,
+                                          is_mobile=True, has_touch=True)),
+]
+
+
+def check_layout(browser, base, problems):
+    report.append('\n## Layout and crispness\n')
+    for name, ctx in SIZES:
+        page, pp = open_page(browser, base, '?test&time=day&timing=reference&demo=reference', problems, **ctx)
+        page.evaluate('cabin.test.advanceTo(11)')
+        g = page.evaluate('''() => {
+            const c = document.getElementById('scene').getBoundingClientRect();
+            const s = document.getElementById('stage').getBoundingClientRect();
+            const t = document.getElementById('terminal').getBoundingClientRect();
+            return { c: [c.left, c.top, c.width, c.height], s: [s.left, s.top, s.width, s.height],
+                     t: [t.left, t.top, t.width, t.height], dpr: devicePixelRatio,
+                     scale: cabin.display.scale(), vw: innerWidth, vh: innerHeight };
+        }''')
+        dpr, scale = g['dpr'], g['scale']
+        cw, ch = g['c'][2] * dpr, g['c'][3] * dpr
+        whole = abs(cw - 320 * scale) < 0.01 and abs(ch - 180 * scale) < 0.01
+        # Fills the screen: the canvas reaches every edge of the viewport.
+        fills = (g['c'][0] <= 0.01 and g['c'][1] <= 0.01 and g['c'][0] + g['c'][2] >= g['vw'] - 0.01
+                 and g['c'][1] + g['c'][3] >= g['vh'] - 0.01)
+        # The window opening down to the bottom of the sill (art x 40-279,
+        # y 24-149) is fully on screen and above the prompt line.
+        kx0 = g['c'][0] + 40 * scale / dpr; kx1 = g['c'][0] + 280 * scale / dpr
+        ky0 = g['c'][1] + 24 * scale / dpr; ky1 = g['c'][1] + 150 * scale / dpr
+        window_visible = kx0 >= -0.01 and kx1 <= g['vw'] + 0.01 and ky0 >= -0.01 and ky1 <= g['t'][1] + 0.01
+        one_line = g['t'][3] <= 40   # the prompt is a single line
+        page.screenshot(path=str(SCREENS / f'layout_{name}.png'))
+        # Crispness: everything visible above the prompt must be exactly the
+        # native image with each pixel repeated scale x scale times.
+        full = np.asarray(Image.open(SCREENS / f'layout_{name}.png').convert('RGB'))
+        big = np.repeat(np.repeat(canvas_pixels(page)[..., :3], scale, axis=0), scale, axis=1)
+        x0, y0 = round(g['c'][0] * dpr), round(g['c'][1] * dpr)
+        vx0, vy0 = max(0, x0), max(0, y0)
+        # Stop a row short of the prompt: its fractional top edge may snap up a pixel.
+        vx1 = min(full.shape[1], x0 + big.shape[1]); vy1 = min(int(g['t'][1] * dpr) - 1, y0 + big.shape[0])
+        crisp = np.array_equal(full[vy0:vy1, vx0:vx1], big[vy0 - y0:vy1 - y0, vx0 - x0:vx1 - x0])
+        # A tall phone cannot be filled without cutting into the window.
+        expect_fill = not name.startswith('phone_390')
+        check(whole and window_visible and one_line and crisp and fills == expect_fill and not pp,
+              f'{name}: scale {scale}, whole-number={whole}, fills the screen={fills}, '
+              f'window and sill fully visible above the prompt={window_visible}, '
+              f'prompt {g["t"][3]:.0f} px tall={one_line}, every visible pixel a clean {scale}x{scale} block={crisp}'
+              + (f', console: {pp}' if pp else ''))
+        problems.extend(pp)
+        page.context.close()
+
+
+# ── 2. commands ──────────────────────────────────────────────────────────
+def capture_at(browser, base, query, tick, problems, commands=(), command_tick=0):
+    page, pp = open_page(browser, base, query, problems)
+    page.evaluate(f'cabin.test.advanceTo({command_tick})')
+    for c in commands:
+        type_command(page, c)
+    page.evaluate(f'cabin.test.advanceTo({tick})')
+    img = canvas_pixels(page)
+    lines = output_lines(page)
+    problems.extend(pp)
+    page.context.close()
+    return img, lines
+
+
+def check_commands(browser, base, problems):
+    report.append('\n## Commands (typed into the terminal, test mode, compared with a page that did not run them)\n')
+    q = '?test&time=day'
+    # Creatures and wind come only from the timers now; typing them does nothing.
+    for cmd in ('bird', 'sasquatch', 'wind', 'farbird'):
+        before, _ = capture_at(browser, base, q, 25, problems)
+        after, lines = capture_at(browser, base, q, 25, problems, [cmd])
+        n, _ = diff_box(before, after)
+        check(n == 0 and len(lines) == 1 and 'no such command' in lines[0],
+              f'`{cmd}` is not a command any more: scene unchanged ({n} differing pixels), bubble said "{lines[0]}"')
+
+    for target in ('morning', 'afternoon', 'night'):
+        switched, lines = capture_at(browser, base, q, 40, problems, [f'time {target}'], command_tick=5)
+        fresh, _ = capture_at(browser, base, f'?test&time={target}', 40, problems)
+        mid, _ = capture_at(browser, base, q, 12, problems, [f'time {target}'], command_tick=5)
+        day12, _ = capture_at(browser, base, q, 12, problems)
+        night12, _ = capture_at(browser, base, f'?test&time={target}', 12, problems)
+        n_after, _ = diff_box(switched, fresh)
+        save_pair(f'command_time_{target}.png', day12, mid)
+        check(n_after == 0 and diff_box(mid, day12)[0] > 0 and diff_box(mid, night12)[0] > 0,
+              f'`time {target}`: mid-fade frame differs from both palettes; 3.5 s later the frame is '
+              f'identical to a page started at {target} ({n_after} differing pixels), so every layer swapped')
+
+    for target in ('rain', 'snow', 'clear'):
+        start = '&weather=rain' if target == 'clear' else ''
+        switched, lines = capture_at(browser, base, q + start, 20, problems, [f'weather {target}'], command_tick=5)
+        fresh, _ = capture_at(browser, base, f'{q}&weather={target}', 20, problems)
+        save_pair(f'command_weather_{target}.png', fresh, switched)
+        check(diff_box(switched, fresh)[0] == 0,
+              f'`weather {target}`: identical to a page started with {target}; terminal said "{lines[-1]}"')
+
+
+# ── 3. terminal ──────────────────────────────────────────────────────────
+def check_terminal(browser, base, problems):
+    report.append('\n## Terminal\n')
+    page, pp = open_page(browser, base, '?test&time=day', problems)
+    focused = lambda: page.evaluate('document.activeElement && document.activeElement.id')
+    check(focused() == 'input', 'input has focus on load, so typing works straight away')
+    page.mouse.click(300, 200)
+    check(focused() == 'input', 'clicking the scene keeps focus in the input')
+
+    check(not bubble_visible(page), 'no bubble before anything is typed (test mode has no greeting)')
+    type_command(page, 'help')
+    help_lines = len(output_lines(page))
+    out = '\n'.join(output_lines(page))
+    names = ['help', 'clear', 'whoami', 'badges']
+    gone = ['bird', 'wind', 'sasquatch', 'cig', 'time', 'weather', 'reset']   # removed, or hidden from help
+    check(all(re.search(rf'^{n}\b', out, re.M) for n in names)
+          and not any(re.search(rf'^{n}\b', out, re.M) for n in gone),
+          f'`help` shows one bubble listing {", ".join(names)} and not {", ".join(gone)}')
+    page.wait_for_timeout(300)   # let the pop-in finish before the screenshot
+    page.screenshot(path=str(SCREENS / 'bubble_help.png'))
+
+    type_command(page, 'dance')
+    lines = output_lines(page)
+    check(lines == ['no such command "dance". type "help" to see what you can do.'],
+          f'unknown command replaces the help bubble with one hint line: {lines}')
+    check(page.evaluate("document.querySelectorAll('#bubble').length") == 1, 'there is only ever one bubble')
+
+    type_command(page, 'weather snow')
+    check(output_lines(page) == ['it starts to snow.'], f'a new command replaces the bubble: {output_lines(page)}')
+    page.evaluate('cabin.test.advanceTo(5)')
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SCREENS / 'bubble_reply.png'))
+
+    type_command(page, '')
+    check(not bubble_visible(page), 'an empty command removes the bubble and shows nothing else')
+    type_command(page, '   ')
+    check(not bubble_visible(page), 'a blank command does the same')
+
+    for bad in ('time noon', 'weather fog'):
+        type_command(page, bad)
+        check(len(output_lines(page)) == 1 and 'usage' in output_lines(page)[0],
+              f'`{bad}` shows its usage: "{output_lines(page)[0]}"')
+
+    for _ in range(20):
+        type_command(page, 'time night')
+        type_command(page, 'time day')
+        type_command(page, 'help')
+    page.evaluate('cabin.test.advanceTo(200)')
+    check(page.evaluate("document.querySelectorAll('#bubble .line').length") == help_lines and not pp,
+          '60 rapid commands: still one bubble holding only the last reply, scene kept running, no errors')
+    check(page.evaluate('cabin.app.timeOfDay.current()') == 'day', 'after the last `time day` the scene is day')
+
+    page.keyboard.press('ArrowUp')
+    v1 = page.input_value('#input')
+    page.keyboard.press('ArrowUp')
+    v2 = page.input_value('#input')
+    page.keyboard.press('ArrowDown')
+    page.keyboard.press('ArrowDown')
+    v3 = page.input_value('#input')
+    check((v1, v2, v3) == ('help', 'time day', ''), f'up/down recall: {v1!r}, {v2!r}, back to {v3!r}')
+
+    type_command(page, 'time auto')
+    hour = page.evaluate('new Date().getHours()')
+    check(page.evaluate('cabin.app.timeOfDay.mode()') == 'auto',
+          f'`time auto` returns to the clock (local hour {hour} -> {page.evaluate("cabin.app.timeOfDay.current()")})')
+
+    check(bubble_visible(page), 'the `time auto` reply is showing')
+    type_command(page, 'clear')
+    check(not bubble_visible(page) and output_lines(page) == [], '`clear` removes the bubble')
+    problems.extend(pp)
+    page.context.close()
+
+
+# ── 5b. folder (whoami) ──────────────────────────────────────────────────
+def check_folder(browser, base, problems):
+    report.append('\n## Folder: `whoami` (test mode)\n')
+    manifest = __import__('json').loads((ROOT / 'anim' / 'folder' / 'folder_manifest.json').read_text())
+    anim = manifest['animations']
+    slowdown = float(re.search(r'animationSlowdown:\s*([\d.]+)', (ROOT / 'js' / 'config.js').read_text()).group(1))
+    ticks = lambda n: int(anim[n]['frames'] * anim[n]['ms_per_frame'] * slowdown // 100) + 2
+
+    def top_left(n):
+        a = anim[n]
+        return a['placement']['x'] - a['anchor'][0], a['placement']['y'] - a['anchor'][1]
+
+    cl, ct = top_left('folder')
+    closed_box = (cl - 1, ct - 1, cl + anim['folder']['frame_w'], ct + anim['folder']['frame_h'])
+    ol, ot = top_left('folder_opened')
+    open_box = (ol - 1, ot - 1, ol + anim['folder_opened']['frame_w'], ot + anim['folder_opened']['frame_h'])
+    within = lambda b, box: b is not None and b[0] >= box[0] and b[1] >= box[1] and b[2] <= box[2] and b[3] <= box[3]
+
+    def screen_point(page, x, y):
+        r = page.evaluate("(() => { const r = document.getElementById('scene').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+        return r[0] + (x + 0.5) * r[2] / 320, r[1] + (y + 0.5) * r[3] / 180
+
+    def frame(page, tick):
+        page.evaluate(f'cabin.test.advanceTo({tick})')
+        return canvas_pixels(page)
+
+    def outline_check(before, after, box):
+        changed = np.any(before != after, axis=2)
+        n, b = diff_box(before, after)
+        return n, n > 0 and bool(np.all(after[changed][:, :3] == 0)) and within(b, box)
+
+    for t in ('day', 'night'):
+        page, pp = open_page(browser, base, f'?test&time={t}', problems, viewport={'width': 1366, 'height': 768})
+        page.evaluate("""async () => {
+            const { folderContents } = await import('./js/folder-contents.js');
+            window.hookCalls = [];
+            folderContents.open = ({ close }) => { hookCalls.push('open'); window.closeFromContent = close; };
+            folderContents.close = () => { hookCalls.push('close'); };
+        }""")
+        hooks = lambda: page.evaluate('hookCalls')
+        type_command(page, 'whoami')
+        said = output_lines(page)
+        tick = ticks('folder_place') + 1
+        plain, _ = capture_at(browser, base, f'?test&time={t}', tick, problems)
+        settled = frame(page, tick)
+        n, b = diff_box(plain, settled)
+        check(n > 0 and within(b, closed_box) and said == ['you take out the folder. click it to open it.'],
+              f'{t}: `whoami` slides the folder onto the sill, then only the closed folder remains '
+              f'({n} pixels, inside its box: {within(b, closed_box)}); bubble "{said[0]}"')
+        type_command(page, 'whoami')
+        check(output_lines(page) == ['the folder is already on the sill. click it to open it.'],
+              f'{t}: a second `whoami` says "{output_lines(page)[0]}"')
+
+        cx, cy = screen_point(page, cl + anim['folder']['frame_w'] // 2, ct + anim['folder']['frame_h'] // 2)
+        page.mouse.move(cx, cy)
+        hovered = frame(page, tick)
+        cursor = page.evaluate("getComputedStyle(document.getElementById('scene')).cursor")
+        nh, ok = outline_check(settled, hovered, closed_box)
+        check(ok and cursor == 'pointer', f'{t}: hovering the closed folder draws a black outline ({nh} pixels) and a "{cursor}" cursor')
+        save_pair(f'folder_hover_{t}.png', settled[100:170, 110:210], hovered[100:170, 110:210])
+        page.mouse.move(5, 5)
+        check(diff_box(settled, frame(page, tick))[0] == 0, f'{t}: moving away removes the outline')
+
+        # Open: the cover swings up, then the open hook runs.
+        page.mouse.click(cx, cy)
+        mid = frame(page, tick + 3)
+        check(hooks() == [], f'{t}: the open hook waits until the folder has finished opening ({hooks()})')
+        tick += ticks('folder_open')
+        opened = frame(page, tick)
+        check(hooks() == ['open'] and diff_box(settled, opened)[0] > 0 and diff_box(mid, opened)[0] > 0,
+              f'{t}: clicking opens the folder, then calls folderContents.open() once ({hooks()})')
+        save_pair(f'folder_open_{t}.png', settled[100:170, 110:210], opened[100:170, 110:210])
+
+        # Hover the open folder, then click to close it.
+        ox, oy = screen_point(page, ol + anim['folder_opened']['frame_w'] // 2, ot + 8)
+        page.mouse.move(ox, oy)
+        open_hovered = frame(page, tick)
+        nh, ok = outline_check(opened, open_hovered, open_box)
+        check(ok, f'{t}: hovering the open folder outlines it too ({nh} pixels)')
+        page.mouse.click(ox, oy)
+        check(hooks() == ['open', 'close'], f'{t}: clicking the open folder calls folderContents.close() ({hooks()})')
+        tick += ticks('folder_open')
+        page.mouse.move(5, 5)
+        reclosed = frame(page, tick)
+        just_placed = lambda at: capture_at(browser, base, f'?test&time={t}', at, problems, ['whoami'])[0]
+        check(diff_box(just_placed(tick), reclosed)[0] == 0,
+              f'{t}: it plays the opening backwards and ends identical to a folder that was never opened')
+
+        # Your content can close the folder itself with the close() it is given.
+        page.mouse.click(cx, cy)
+        tick += ticks('folder_open')
+        frame(page, tick)
+        page.evaluate('closeFromContent()')
+        tick += ticks('folder_open')
+        page.mouse.move(5, 5)
+        check(hooks() == ['open', 'close', 'open', 'close'] and diff_box(just_placed(tick), frame(page, tick))[0] == 0,
+              f'{t}: calling close() from the content closes the folder ({hooks()})')
+
+        # Pack and folder together: each highlights on its own.
+        type_command(page, 'cig')
+        tick += 20
+        both = frame(page, tick)
+        page.mouse.move(cx, cy)
+        n_folder, ok_folder = outline_check(both, frame(page, tick), closed_box)
+        check(ok_folder, f'{t}: with the cigarette pack also out, hovering the folder outlines only the folder')
+        check(not pp, f'{t}: no console problems ({pp})')
+        problems.extend(pp)
+        page.context.close()
+
+
+
+# ── 5c. folder pop-up ────────────────────────────────────────────────────
+def check_folder_popup(browser, base, problems):
+    report.append('\n## Folder pop-up\n')
+    import json
+    content = json.loads((ROOT / 'content' / 'folder_content.json').read_text(encoding='utf-8'))
+    layout = json.loads((ROOT / 'anim' / 'folder' / 'popup' / 'popup_layout.json').read_text())
+    art_dir = ROOT / 'anim' / 'folder' / 'popup'
+
+    def strings(node):
+        if isinstance(node, str):
+            return [node]
+        if isinstance(node, list):
+            return [x for v in node for x in strings(v)]
+        if isinstance(node, dict):
+            return [x for k, v in node.items() if k != 'href' for x in strings(v)]
+        return []
+
+    def open_popup(page):
+        page.focus('#input')
+        type_command(page, 'whoami')
+        page.evaluate('cabin.test.advanceTo(20)')
+        r = page.evaluate("(() => { const r = document.getElementById('scene').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+        page.mouse.click(r[0] + 160.5 * r[2] / 320, r[1] + 140.5 * r[3] / 180)
+        page.evaluate('cabin.test.advanceTo(40)')
+        page.wait_for_selector('.fp-backdrop.is-visible')
+        page.wait_for_timeout(400)   # fade-in
+
+    visible = lambda page: page.evaluate("!document.querySelector('.fp-backdrop').hidden")
+    click_tab = lambda page, name: page.evaluate(
+        f"[...document.querySelectorAll('.fp-tab')].find(b => b.textContent === '{name}').click()")
+    # textContent, not innerText: headings are shown in capitals by CSS only.
+    page_text = lambda page: page.evaluate("document.querySelector('.fp').textContent")
+
+    for name, ctx in (('1280x752', dict(viewport={'width': 1280, 'height': 752})),
+                      ('1440x900_dpr2', dict(viewport={'width': 1440, 'height': 900}, device_scale_factor=2))):
+        page, pp = open_page(browser, base, '?test&time=day', problems, **ctx)
+        open_popup(page)
+        plain = page.evaluate("document.querySelector('.fp').classList.contains('is-plain')")
+        dpr = page.evaluate('devicePixelRatio')
+        g = page.evaluate("""(() => { const r = document.querySelector('.fp-art').getBoundingClientRect();
+                                       return [r.left, r.top, r.width, r.height]; })()""")
+        scale = g[2] * dpr / layout['popup']['w']
+        whole = abs(scale - round(scale)) < 1e-6
+        # Art crispness: hide the text, screenshot, and compare with the art
+        # scaled up by whole pixels (where the art is opaque).
+        page.add_style_tag(content='.fp-region, .fp-close, .fp-tab { visibility: hidden !important; }')
+        page.wait_for_timeout(50)
+        shot = np.asarray(Image.open(io.BytesIO(page.screenshot())).convert('RGBA')).astype(int)
+        art = Image.open(art_dir / layout['popup']['file']).convert('RGBA')
+        tab = layout['tabs'][0]
+        art.alpha_composite(Image.open(art_dir / tab['active_file']).convert('RGBA'), (tab['x'], tab['y']))
+        s_ = int(round(scale))
+        big = np.repeat(np.repeat(np.asarray(art).astype(int), s_, 0), s_, 1)
+        x0, y0 = round(g[0] * dpr), round(g[1] * dpr)
+        region = shot[y0:y0 + big.shape[0], x0:x0 + big.shape[1]]
+        opaque = big[..., 3] == 255
+        art_exact = region.shape == big.shape and bool(np.all(region[opaque][:, :3] == big[opaque][:, :3]))
+        page.screenshot(path=str(SCREENS / f'popup_{name}_about.png'))
+        page.add_style_tag(content='.fp-region, .fp-close, .fp-tab { visibility: visible !important; }')
+        check(not plain and whole and art_exact,
+              f'{name}: pop-up drawn at a whole-number scale ({scale:g} device px per art px), '
+              f'art pixel-exact against popup_folder.png + active tab: {art_exact}')
+
+        left = strings({k: v for k, v in content.items() if k != 'tabs'})
+        missing_left = [t for t in left if t not in page_text(page)]
+        all_missing = {}
+        for tab_name, sections in content['tabs'].items():
+            click_tab(page, tab_name)
+            text = page_text(page)
+            selected = page.evaluate("document.querySelector('.fp-tab[aria-selected=\"true\"]').textContent")
+            missing = [t for t in strings(sections) if t not in text]
+            if missing or selected != tab_name:
+                all_missing[tab_name] = missing or [f'selected {selected}']
+            page.wait_for_timeout(50)
+            page.screenshot(path=str(SCREENS / f'popup_{name}_{tab_name}.png'))
+        check(not missing_left and not all_missing,
+              f'{name}: every string in folder_content.json appears exactly as written '
+              f'(left side: {len(left)} strings; tabs: {", ".join(content["tabs"])}); missing: {missing_left or all_missing or "none"}')
+
+        click_tab(page, 'resume')
+        scroll = page.evaluate("(() => { const p = document.querySelector('.fp-page'); return [p.scrollHeight, p.clientHeight, getComputedStyle(p).overflowY]; })()")
+        check(scroll[0] > scroll[1] and scroll[2] == 'auto', f'{name}: the long resume tab scrolls inside the page ({scroll[0]} px of content in {scroll[1]} px)')
+
+        pdf = page.evaluate("""async () => { const a = [...document.querySelectorAll('.fp-link')].find(l => l.href.endsWith('.pdf'));
+                                             const r = await fetch(a.href); const b = new Uint8Array(await r.arrayBuffer());
+                                             return [a.hasAttribute('download'), r.status, String.fromCharCode(...b.slice(0, 5))]; }""")
+        check(pdf == [True, 200, '%PDF-'], f'{name}: the resume link downloads a real PDF (download attribute, HTTP {pdf[1]}, starts {pdf[2]!r})')
+
+        # Focus stays in the pop-up (the terminal must not steal it).
+        page.click('.fp-page')
+        inside = page.evaluate("!!document.activeElement.closest('.fp')")
+        check(inside, f'{name}: clicking inside the pop-up keeps focus there (not the terminal input)')
+
+        # Three ways to close; each closes the folder on the sill too.
+        def closed_after(action):
+            action()
+            page.evaluate('cabin.test.advanceTo(200)')
+            page.wait_for_timeout(400)
+            return not visible(page)
+        r = page.evaluate("(() => { const r = document.querySelector('.fp-close').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()")
+        by_x = closed_after(lambda: page.mouse.click(*r))
+        open_again = lambda: (page.evaluate('cabin.test.advanceTo(220)'), page.mouse.click(*sill_point(page)),
+                              page.evaluate('cabin.test.advanceTo(240)'), page.wait_for_selector('.fp-backdrop.is-visible'),
+                              page.wait_for_timeout(300))
+        def sill_point(page):
+            q = page.evaluate("(() => { const r = document.getElementById('scene').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+            return q[0] + 160.5 * q[2] / 320, q[1] + 140.5 * q[3] / 180
+        open_again()
+        by_escape = closed_after(lambda: page.keyboard.press('Escape'))
+        page.evaluate('cabin.test.advanceTo(260)')
+        page.mouse.click(*sill_point(page))
+        page.evaluate('cabin.test.advanceTo(280)')
+        page.wait_for_selector('.fp-backdrop.is-visible')
+        page.wait_for_timeout(300)
+        by_outside = closed_after(lambda: page.mouse.click(4, 4))
+        page.evaluate('cabin.test.advanceTo(300)')
+        page.mouse.move(2, 2)
+        # All four tabs were read, so the closed folder now wears its REVIEWED seal.
+        sill_closed = diff_box(capture_at(browser, base, '?test&debug&time=day', 300, problems,
+                                          ['whoami', 'debug unlock case_closed'])[0],
+                               canvas_pixels(page))[0] == 0
+        check(by_x and by_escape and by_outside and sill_closed,
+              f'{name}: closes on the X ({by_x}), Escape ({by_escape}) and a click outside ({by_outside}); '
+              f'the folder on the sill closes again too ({sill_closed})')
+        check(not pp, f'{name}: no console problems ({pp})')
+        problems.extend(pp)
+        page.context.close()
+
+    # Phone: too small for the folder art, so the plain single-column panel.
+    page, pp = open_page(browser, base, '?test&time=day', problems, viewport={'width': 390, 'height': 844},
+                         device_scale_factor=3, is_mobile=True, has_touch=True)
+    open_popup(page)
+    plain = page.evaluate("document.querySelector('.fp').classList.contains('is-plain')")
+    text = page_text(page)
+    missing = [t for t in strings({k: v for k, v in content.items() if k != 'tabs'}) + strings(content['tabs']['about']) if t not in text]
+    fits = page.evaluate("document.querySelector('.fp').getBoundingClientRect().width <= innerWidth")
+    page.screenshot(path=str(SCREENS / 'popup_phone.png'))
+    page.keyboard.press('Escape')
+    page.evaluate('cabin.test.advanceTo(100)')
+    page.wait_for_timeout(400)
+    check(plain and not missing and fits and not visible(page) and not pp,
+          f'phone 390x844: plain single-column panel ({plain}), all content shown (missing: {missing or "none"}), '
+          f'fits the width ({fits}), Escape closes it ({not visible(page)})')
+    problems.extend(pp)
+    page.context.close()
+
+
+
+# ── 5d. the coffee mug ───────────────────────────────────────────────────
+def check_mug(browser, base, problems):
+    report.append('\n## Coffee mug: hover outline and sip (test mode)\n')
+    import json
+    manifest = json.loads((ROOT / 'anim' / 'manifest.json').read_text())
+    ach = json.loads((ROOT / 'anim' / 'achievements' / 'achievements.json').read_text())
+    mug = manifest['animations']['mug']
+    slowdown = float(re.search(r'animationSlowdown:\s*([\d.]+)', (ROOT / 'js' / 'config.js').read_text()).group(1))
+    left, top = mug['placement']['x'] - mug['anchor'][0], mug['placement']['y'] - mug['anchor'][1]
+    box = (left - 1, top - 1, left + mug['frame_w'], top + mug['frame_h'])
+
+    def sheet(info, base_dir, frame, time):
+        files = info['files']
+        name = next((f for f in files if f.endswith('_night.png')), None) if time == 'night' else None
+        name = name or next(f for f in files if not f.endswith('_night.png'))
+        im = np.asarray(Image.open(base_dir / name).convert('RGBA'))
+        return im[:, frame * info['frame_w']:(frame + 1) * info['frame_w']]
+
+    def screen_point(page, x, y):
+        r = page.evaluate("(() => { const r = document.getElementById('scene').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+        return r[0] + (x + 0.5) * r[2] / 320, r[1] + (y + 0.5) * r[3] / 180
+
+    def frame(page, tick):
+        page.evaluate(f'cabin.test.advanceTo({tick})')
+        return canvas_pixels(page)
+
+    for t, unlock, sip_name, sip_info, sip_dir in (
+            ('day', None, 'mug_sip', manifest['animations']['mug_sip'], ROOT / 'anim'),
+            ('night', None, 'mug_sip', manifest['animations']['mug_sip'], ROOT / 'anim'),
+            ('day', 'caffeinated', 'mug_camp_sip', ach['animations']['mug_camp_sip'], ROOT / 'anim' / 'achievements')):
+        label = f'{t}{" (camp mug)" if unlock else ""}'
+        q = f'?test&debug&time={t}'
+        page, pp = open_page(browser, base, q, problems, viewport={'width': 1366, 'height': 768})
+        pre = [f'debug unlock {unlock}'] if unlock else []
+        for c in pre:
+            type_command(page, c)
+        rest = frame(page, 10)
+        cx, cy = screen_point(page, mug['placement']['x'], mug['placement']['y'] - 10)
+        page.mouse.move(cx, cy)
+        hovered = frame(page, 10)
+        changed = np.any(rest != hovered, axis=2)
+        ys, xs = np.nonzero(changed)
+        cursor = page.evaluate("getComputedStyle(document.getElementById('scene')).cursor")
+        # Black, except where the translucent steam drifts in front of the outline.
+        steam = np.zeros_like(changed)
+        cup = sheet(mug, ROOT / 'anim', (10 * 100 * 1) // int(mug['ms_per_frame'] * slowdown) % mug['frames'], t)
+        a = cup[..., 3]
+        steam[top:top + a.shape[0], left:left + a.shape[1]] = (a > 0) & (a < 255)
+        black = bool(changed.any() and np.all(hovered[changed & ~steam][:, :3] == 0))
+        inside = bool(changed.any() and xs.min() >= box[0] and xs.max() <= box[2] and ys.min() >= box[1] and ys.max() <= box[3])
+        # The steam's own rows are left out: the outline starts at the rim.
+        below_steam = bool(changed.any() and ys.min() >= top + 18)
+        check(black and inside and below_steam and cursor == 'pointer',
+              f'{label}: hovering the cup draws a black outline ({int(changed.sum())} px, all black {black}, '
+              f'around the cup and not the steam {below_steam}) with a "{cursor}" cursor')
+        save_pair(f'mug_hover_{t}{"_camp" if unlock else ""}.png', rest[90:160, 180:260], hovered[90:160, 180:260])
+
+        page.mouse.click(cx, cy)
+        sip_ms = sip_info['ms_per_frame'] * slowdown
+        k = 5                                            # 500 ms into the sip
+        f = int(k * 100 // sip_ms)
+        mid = frame(page, 10 + k)
+        art = sheet(sip_info, sip_dir, f, t)
+        sx, sy = sip_info['placement']['x'], sip_info['placement']['y']
+        region = mid[sy:sy + art.shape[0], sx:sx + art.shape[1]]
+        opaque = art[..., 3] == 255
+        exact = bool(np.all(region[opaque][:, :3] == art[opaque][:, :3]))
+        over_frame = int((opaque[min(art.shape[0], 131 - sy):, :]).sum())   # art rows below the window opening
+        page.mouse.click(cx, cy)                         # mid-sip: ignored
+        counted = page.evaluate('cabin.app.progressStats()')['stats'].get('mugClicks')
+        check(exact and counted == 1, f'{label}: the click plays {sip_name} on top of everything '
+                                      f'(frame {f} pixel-exact, {over_frame} of its px over the sill and frame); '
+                                      f'a click mid-sip is ignored ({counted} sip counted)')
+        Image.fromarray(mid).resize((960, 540), Image.NEAREST).save(SCREENS / f'mug_sip_{t}{"_camp" if unlock else ""}.png')
+
+        end = 10 + int(sip_info['frames'] * sip_ms // 100) + 2
+        page.mouse.move(2, 2)
+        back = frame(page, end)
+        never, _ = capture_at(browser, base, q, end, problems, pre)
+        n = int(np.any(back != never, axis=2).sum())
+        check(n == 0 and not pp, f'{label}: after {sip_info["frames"] * sip_ms / 1000:.2f} s the cup is back on the sill '
+                                 f'with its steam, identical to a page where nobody sipped ({n} px differ)')
+        problems.extend(pp)
+        page.context.close()
+
+
+
+# ── 5. cigarette easter egg ──────────────────────────────────────────────
+def check_cigarette(browser, base, problems):
+    report.append('\n## Cigarette easter egg (test mode)\n')
+    manifest = __import__('json').loads((ROOT / 'anim' / 'smoke' / 'smoke_manifest.json').read_text())
+    anim = manifest['animations']
+    slowdown = float(re.search(r'animationSlowdown:\s*([\d.]+)', (ROOT / 'js' / 'config.js').read_text()).group(1))
+    dur = lambda n: anim[n]['frames'] * anim[n]['ms_per_frame'] * slowdown
+    place_ms = dur('pack_place')
+    smoke_ms = dur('cig_pick') + sum(dur(st.get('play') or st['loop']) * st.get('times', 1)
+                                     for st in manifest['sequences']['smoke']['steps'])
+    pk = anim['cig_pack']
+    left, top = pk['placement']['x'] - pk['anchor'][0], pk['placement']['y'] - pk['anchor'][1]
+    box = (left - 1, top - 1, left + pk['frame_w'], top + pk['frame_h'])   # pack plus outline ring
+
+    def screen_point(page, x, y):
+        r = page.evaluate("(() => { const r = document.getElementById('scene').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+        return r[0] + (x + 0.5) * r[2] / 320, r[1] + (y + 0.5) * r[3] / 180
+
+    def frame(page, tick):
+        page.evaluate(f'cabin.test.advanceTo({tick})')
+        return canvas_pixels(page)
+
+    for t in ('day', 'night'):
+        page, pp = open_page(browser, base, f'?test&time={t}', problems, viewport={'width': 1366, 'height': 768})
+        plain, _ = capture_at(browser, base, f'?test&time={t}', 5, problems)
+        type_command(page, 'cig')
+        said = output_lines(page)
+        placing = frame(page, 5)
+        n, b = diff_box(plain, placing)
+        settled_tick = int(place_ms // 100) + 2
+        settled = frame(page, settled_tick)
+        plain_settled, _ = capture_at(browser, base, f'?test&time={t}', settled_tick, problems)
+        n2, b2 = diff_box(plain_settled, settled)
+        inside = b2 is not None and b2[0] >= box[0] and b2[1] >= box[1] and b2[2] <= box[2] and b2[3] <= box[3]
+        check(n > 0 and inside and said == ['you set your pack down on the sill.'],
+              f'{t}: `cig` slides the pack in ({n} pixels changing at 0.5 s), then only the pack remains '
+              f'({n2} pixels, inside the pack box: {inside}); bubble "{said[0]}"')
+        type_command(page, 'cig')
+        check(output_lines(page) == ['your pack is already on the sill.'], f'{t}: a second `cig` says "{output_lines(page)[0]}"')
+
+        # Hover: a black ring appears around the pack and the cursor is a hand.
+        cx, cy = screen_point(page, left + pk['frame_w'] // 2, top + pk['frame_h'] // 2)
+        page.mouse.move(cx, cy)
+        hovered = frame(page, settled_tick)
+        nh, bh = diff_box(settled, hovered)
+        changed = np.any(settled != hovered, axis=2)
+        all_black = bool(np.all(hovered[changed][:, :3] == 0))
+        cursor = page.evaluate("getComputedStyle(document.getElementById('scene')).cursor")
+        ring_inside = bh is not None and bh[0] >= box[0] and bh[1] >= box[1] and bh[2] <= box[2] and bh[3] <= box[3]
+        check(nh > 0 and all_black and ring_inside and cursor == 'pointer',
+              f'{t}: hovering the pack draws a black outline ({nh} pixels, all black: {all_black}, '
+              f'hugging the pack: {ring_inside}) and the cursor becomes "{cursor}"')
+        save_pair(f'cig_hover_{t}.png', settled[100:170, 60:160], hovered[100:170, 60:160])
+        page.mouse.move(5, 5)
+        unhovered = frame(page, settled_tick)
+        check(diff_box(settled, unhovered)[0] == 0, f'{t}: moving the mouse away removes the outline')
+
+        # Click: the cigarette comes out and the smoking plays over everything.
+        page.mouse.move(cx, cy)
+        page.mouse.click(cx, cy)
+        click_tick = settled_tick
+        shots = []
+        for at_ms in (1000, 3500, 6000, 15000, 25000, smoke_ms - 500):
+            shots.append(frame(page, click_tick + int(at_ms // 100)))
+        during = shots[2]
+        page.mouse.move(cx + 1, cy)   # hovering while smoking: no outline, no hand
+        busy_cursor = page.evaluate("getComputedStyle(document.getElementById('scene')).cursor")
+        plain_mid, _ = capture_at(browser, base, f'?test&time={t}', click_tick + 60, problems, ['cig'])
+        over_frame = np.any(during != plain_mid, axis=2)
+        outside_opening = over_frame.copy(); outside_opening[24:131, 40:280] = False
+        page.mouse.click(cx, cy)      # ignored while smoking
+        end_tick = click_tick + int(smoke_ms // 100) + 2
+        after = frame(page, end_tick)
+        page.mouse.move(5, 5)
+        after = frame(page, end_tick)
+        # A whole cigarette earns Smoke Break: the ashtray is on the sill now too.
+        plain_after, _ = capture_at(browser, base, f'?test&debug&time={t}', end_tick, problems,
+                                    ['cig', 'debug unlock smoke_break'])
+        n_after = diff_box(plain_after, after)[0]
+        check(over_frame.sum() > 0 and busy_cursor != 'pointer' and n_after == 0,
+              f'{t}: clicking starts the smoking ({over_frame.sum()} pixels differ at 6 s, '
+              f'{outside_opening.sum()} of them over the window frame or sill, i.e. drawn above everything); '
+              f'no hand cursor mid-smoke; after {smoke_ms / 1000:.2f} s it ends and the scene is identical to '
+              f'"pack on the sill" ({n_after} differing pixels)')
+        strip = np.concatenate(shots[:5], axis=1)
+        Image.fromarray(strip).save(SCREENS / f'cig_smoking_{t}.png')
+
+        # Smoke again: clicking after it ends works a second time.
+        page.mouse.move(cx, cy)
+        page.mouse.click(cx, cy)
+        again = frame(page, end_tick + 30)
+        check(diff_box(plain_after, again)[0] > 0, f'{t}: the pack can be clicked again for another cigarette')
+        check(not pp, f'{t}: no console problems ({pp})')
+        problems.extend(pp)
+        page.context.close()
+
+
+
+# ── 4. scheduler ─────────────────────────────────────────────────────────
+def check_scheduler(browser, base, problems):
+    report.append('\n## Scheduler (real clock, config.js served with short timers)\n')
+    source = (ROOT / 'js' / 'config.js').read_text()
+    fast = re.sub(r'(\w+):\s*\{ minWaitSec: \d+,\s*maxWaitSec: \d+,\s*chance: ([\d.]+) \}',
+                  r'\1: { minWaitSec: 0.3, maxWaitSec: 0.6, chance: \2 }', source)
+    assert fast != source
+    ctx = browser.new_context(viewport={'width': 1280, 'height': 800})
+    ctx.route('**/js/config.js', lambda route: route.fulfill(body=fast, content_type='text/javascript'))
+    page = ctx.new_page()
+    pp = watch_page(page)
+    page.goto(base + 'index.html')
+    page.wait_for_function('window.cabin && window.cabin.scheduler')
+    page.evaluate('''() => {
+        window.fired = {}; window.started = {};
+        for (const [name, fn] of Object.entries(cabin.app.events)) {
+            cabin.app.events[name] = (...a) => { fired[name] = (fired[name] || 0) + 1;
+                                                 const ok = fn(...a); if (ok) started[name] = (started[name] || 0) + 1; return ok; };
+        }
+    }''')
+    shots = []
+    for i in range(4):
+        page.wait_for_timeout(2500)
+        shots.append(np.asarray(Image.open(io.BytesIO(page.locator('#scene').screenshot()))))
+    fired = page.evaluate('fired')
+    started = page.evaluate('started')
+    for name in ('bird', 'farbird', 'wind', 'sasquatch'):
+        check(fired.get(name, 0) > 0, f'{name} fired by itself {fired.get(name, 0)} times in 10 s '
+                                      f'({started.get(name, 0)} actually started)')
+    rolls = 10 / 0.45
+    report.append(f'  sasquatch chance check: about {rolls:.0f} rolls at chance 0.3, '
+                  f'expected about {rolls * 0.3:.0f} fires, got {fired.get("sasquatch", 0)}')
+    Image.fromarray(shots[-1]).save(SCREENS / 'scheduler_live.png')
+    check(not pp, f'no console problems on the live (non-test) page: {pp}')
+    problems.extend(pp)
+
+    # The front trees: one full sway, then a rest of 8-20 s (config), checked
+    # by driving the real treetops module for 10 simulated minutes.
+    trees = page.evaluate('''async () => {
+        const { config } = await import('./js/config.js');
+        const { createTreetops } = await import('./js/scene/treetops.js');
+        const info = { frames: 4, ms_per_frame: 300, loop: true, anchor: [0, 0], placement: { x: 0, y: 0 },
+                       frame_w: 320, frame_h: 180 };
+        const trees = createTreetops({ animation: () => ({ info, imageFor: () => ({}) }) });
+        let shown = null;
+        const ctx = { drawImage: (img, sx) => { shown = sx / 320; } };
+        const sways = [], rests = []; let swayStart = null, restStart = null, last = null, order = [];
+        for (let t = 0; t < 600000; t += 16) {
+            shown = null; trees.draw(ctx, 'day'); trees.update(16);
+            const moving = shown !== null;
+            if (moving && swayStart === null) { swayStart = t; if (restStart !== null) rests.push(t - restStart); restStart = null; order = []; }
+            if (moving && order[order.length - 1] !== shown) order.push(shown);
+            if (!moving && swayStart !== null) { sways.push({ ms: t - swayStart, order: order.join('') }); swayStart = null; restStart = t; }
+        }
+        return { range: config.treetops.restBetweenSwaysSec, sways, rests };
+    }''')
+    rests = [r / 1000 for r in trees['rests']]
+    orders = {s['order'] for s in trees['sways']}
+    check(orders == {'0123'} and all(trees['range'][0] - 0.05 <= r <= trees['range'][1] + 0.05 for r in rests)
+          and len(trees['sways']) > 10,
+          f"front trees: {len(trees['sways'])} sways in 10 minutes (they used to sway non-stop), each a "
+          f"full cycle {sorted(orders)}, rests {min(rests):.1f}-{max(rests):.1f} s (config {trees['range']})")
+
+    # The chance and wait-range logic, statistically, with a seeded random
+    # source: 20,000 rolls of a 3-10 minute, 30% timer.
+    stats = page.evaluate('''async () => {
+        const { createScheduler } = await import('./js/scheduler.js');
+        let seed = 12345;
+        const random = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+        let fires = 0;
+        const s = createScheduler({ sasquatch: { minWaitSec: 180, maxWaitSec: 600, chance: 0.3 } },
+                                  { sasquatch: () => { fires += 1; } }, random);
+        let rolls = 0, minWait = Infinity, maxWait = 0, last = 0, clock = 0;
+        while (rolls < 20000) {
+            const before = s.timers.sasquatch.remainingMs;
+            s.update(1000); clock += 1000;
+            if (s.timers.sasquatch.remainingMs > before) {
+                rolls += 1; const wait = clock - last; last = clock;
+                if (rolls > 1) { minWait = Math.min(minWait, wait); maxWait = Math.max(maxWait, wait); }
+            }
+        }
+        return { rate: fires / rolls, minWait: minWait / 1000, maxWait: maxWait / 1000 };
+    }''')
+    check(0.28 < stats['rate'] < 0.32 and 180 <= stats['minWait'] and stats['maxWait'] <= 601,
+          f'sasquatch timer over 20,000 seeded rolls: fired {stats["rate"]:.1%} of the time (config 30%), '
+          f'waits between {stats["minWait"]:.0f} s and {stats["maxWait"]:.0f} s (config 180-600 s)')
+    ctx.close()
+
+
+def main():
+    SCREENS.mkdir(parents=True, exist_ok=True)
+    base, stop = serve_site()
+    problems = []
+    with sync_playwright() as p:
+        browser = open_browser(p)
+        check_layout(browser, base, problems)
+        check_commands(browser, base, problems)
+        check_terminal(browser, base, problems)
+        check_mug(browser, base, problems)
+        check_folder(browser, base, problems)
+        check_folder_popup(browser, base, problems)
+        check_cigarette(browser, base, problems)
+        check_scheduler(browser, base, problems)
+        browser.close()
+    stop()
+    report.append('\n## Console\n')
+    check(not problems, f'no console errors/warnings or failed requests across every page above ({len(problems)})')
+    for pr in problems:
+        report.append(f'  - {pr}')
+    (RESULTS / 'behaviour.md').write_text('# Behaviour checks\n' + '\n'.join(report) + '\n')
+    print(f'\n{len(failures)} failures')
+    return 1 if failures else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

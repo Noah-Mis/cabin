@@ -1,0 +1,319 @@
+/* style.css — page layout, crisp canvas scaling, the one-line prompt and
+   its speech bubble. Colours come from the cabin wood palette (outline
+   26160C, shade 54341A, mid 84562A, light A8723A, highlight CC9654). */
+
+:root {
+  --ground: #120a05;
+  --terminal-bg: #1e1109;
+  --rule: #54341a;
+  --text: #cc9654;
+  --prompt: #a8723a;
+  --ink: #26160c;          /* bubble text */
+  --line: #cc9654;         /* bubble outline: light wood, so it shows on the dark page */
+  --paper: #f4e3c3;        /* bubble fill */
+  --error: #a8321e;
+  --p: 3px;                /* one "pixel" of the bubble's pixel-art outline */
+  --font: ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--ground);
+  overflow: hidden;
+}
+
+/* The stage is the whole screen; display.js scales the canvas to fill it.
+   The prompt line sits on top of it along the bottom. */
+#stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+#scene {
+  position: absolute;
+  image-rendering: pixelated;   /* nearest-neighbour: no smoothing when scaled up */
+}
+
+/* ── The prompt: a single line along the bottom ─────────────────────── */
+#terminal {
+  position: fixed;         /* also what the bubble is placed relative to */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--terminal-bg);
+  border-top: 2px solid var(--rule);
+  color: var(--text);
+  font: 14px/1.4 var(--font);
+  padding: 5px 12px calc(5px + env(safe-area-inset-bottom, 0px));
+}
+
+#prompt {
+  display: flex;
+  gap: 0.6em;
+  align-items: baseline;
+  margin: 0;
+}
+
+#prompt label { color: var(--prompt); }
+
+#input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  caret-color: var(--caret, var(--text));
+  font: inherit;
+  padding: 0;
+}
+
+/* ── The speech bubble: the reply to the last command ─────────────────
+   Drawn as pixel art: four offset copies of the box form a one-pixel
+   outline that leaves the corners notched, and the tail is a staircase of
+   single pixels pointing down at the prompt. */
+#bubble {
+  position: absolute;
+  left: calc(12px + var(--p));
+  bottom: calc(100% + 6 * var(--p));   /* room for the tail */
+  width: max-content;
+  max-width: min(72ch, calc(100vw - 24px - 2 * var(--p)));
+  padding: calc(2 * var(--p)) calc(3 * var(--p));
+  background: var(--paper);
+  color: var(--ink);
+  font: 13px/1.35 var(--font);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  box-shadow:
+    0 calc(-1 * var(--p)) 0 var(--line),
+    0 var(--p) 0 var(--line),
+    calc(-1 * var(--p)) 0 0 var(--line),
+    var(--p) 0 0 var(--line);
+  transform-origin: 0 100%;
+  animation: bubble-pop 120ms steps(2, end);
+}
+
+#bubble::after {
+  content: '';
+  position: absolute;
+  left: calc(2 * var(--p));
+  top: 100%;
+  width: var(--p);
+  height: var(--p);
+  /* x, y in bubble pixels below the bottom edge: fill opens the outline,
+     then the tail narrows down and to the left. */
+  box-shadow:
+    calc(1 * var(--p)) 0 var(--paper), calc(2 * var(--p)) 0 var(--paper), calc(3 * var(--p)) 0 var(--paper),
+    0 calc(1 * var(--p)) var(--line), calc(1 * var(--p)) calc(1 * var(--p)) var(--paper),
+    calc(2 * var(--p)) calc(1 * var(--p)) var(--paper), calc(3 * var(--p)) calc(1 * var(--p)) var(--line),
+    0 calc(2 * var(--p)) var(--line), calc(1 * var(--p)) calc(2 * var(--p)) var(--paper),
+    calc(2 * var(--p)) calc(2 * var(--p)) var(--line),
+    0 calc(3 * var(--p)) var(--line), calc(1 * var(--p)) calc(3 * var(--p)) var(--line),
+    0 calc(4 * var(--p)) var(--line);
+}
+
+@keyframes bubble-pop {
+  from { transform: scale(0.6); }
+}
+
+.line.error { color: var(--error); }
+
+@media (max-width: 600px) {
+  /* 16px stops phones zooming in when the input is focused. */
+  #terminal { font-size: 16px; padding-left: 10px; padding-right: 10px; }
+  #bubble { left: calc(10px + var(--p)); max-width: calc(100vw - 20px - 2 * var(--p)); }
+}
+
+/* ── Folder pop-up (js/folder-popup.js) ─────────────────────────────────
+   Positions are art pixels times --u, the size of one art pixel in CSS
+   pixels; colours (--fp-*) come from the layout file and config. */
+.fp-backdrop {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: var(--prompt-h, 0px);
+  z-index: 10;
+  overflow: auto;
+  background: var(--fp-backdrop);
+  opacity: 0;
+  transition: opacity var(--fp-fade) linear;
+}
+.fp-backdrop.is-visible { opacity: 1; }
+
+.fp {
+  --body: clamp(12px, calc(var(--u) * 3.3), 16px);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--u));
+  color: var(--fp-ink);
+  font: var(--body)/1.3 var(--font);
+  outline: none;
+}
+.fp p, .fp ul, .fp h3 { margin: 0; }
+.fp ul { list-style: none; padding: 0; }
+
+.fp-art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--w) * 1px);
+  height: calc(var(--h) * 1px);
+  transform-origin: 0 0;
+}
+.fp-art img { position: absolute; image-rendering: pixelated; }
+
+.fp-region, .fp-close, .fp-tab {
+  position: absolute;
+  left: calc(var(--x) * var(--u));
+  top: calc(var(--y) * var(--u));
+  width: calc(var(--rw) * var(--u));
+  height: calc(var(--rh) * var(--u));
+}
+/* The X and the tab labels are part of the art; these are invisible
+   buttons on top of them. */
+.fp-close, .fp-tab {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.fp-close:focus-visible, .fp-tab:focus-visible, .fp-page:focus-visible { outline: 2px solid var(--fp-stamp-red); }
+
+/* Index card. The region is the ruled area: the name sits on the first
+   rule (6 art pixels down), the lines on the rules below it (8 apart), and
+   the header goes in the red band just above the region. */
+.fp-card {
+  display: grid;
+  grid-template-rows: calc(var(--u) * 6) repeat(3, calc(var(--u) * 8));
+}
+.fp-card-header {
+  position: absolute;
+  top: calc(var(--u) * -10);
+  line-height: calc(var(--u) * 8);
+  color: var(--fp-paper);
+  font-size: calc(var(--body) * 0.8);
+  font-weight: bold;
+}
+.fp-card-name, .fp-card-line { align-self: end; padding-bottom: calc(var(--u) * 0.75); white-space: nowrap; }
+.fp-card-name { color: var(--fp-ink-dark); font-size: calc(var(--body) * 1.15); font-weight: bold; }
+.fp-card-line { font-size: calc(var(--body) * 0.92); }
+
+.fp-sticky { padding-top: calc(var(--u) * 1); color: var(--fp-ink-dark); font-size: calc(var(--body) * 0.88); }
+.fp-sticky-title { font-weight: bold; margin-bottom: 0.5em !important; }
+.fp-sticky-links li { margin-bottom: 0.5em; }
+.fp-sticky .fp-link { color: inherit; text-decoration: none; }
+.fp-sticky .fp-link:hover { text-decoration: underline; }
+
+.fp-stamp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fp-stamp-red);
+  font-size: calc(var(--body) * 0.9);
+  font-weight: bold;
+  letter-spacing: 0.04em;
+}
+
+/* The page: the selected tab's content, scrolling when it is long. */
+.fp-page {
+  padding: calc(var(--u) * 1) calc(var(--u) * 2) calc(var(--u) * 2) 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--fp-tan) transparent;
+}
+.fp-heading {
+  margin-top: 1.1em !important;
+  margin-bottom: 0.35em !important;
+  color: var(--fp-stamp-red);
+  font-size: calc(var(--body) * 1.05);
+  text-transform: uppercase;
+}
+.fp-section:first-child .fp-heading { margin-top: 0 !important; }
+.fp-text { margin-bottom: 0.45em !important; }
+.fp-item { margin-top: 0.45em; }
+.fp-item-title { color: var(--fp-ink-dark); font-weight: bold; }
+.fp-meta { color: var(--fp-meta); font-size: 0.92em; }
+.fp-bullets li { position: relative; padding-left: 1.2em; }
+.fp-bullets li::before { content: '›'; position: absolute; left: 0.2em; }
+.fp-tags { display: flex; flex-wrap: wrap; gap: 0.35em; }
+.fp-tag { padding: 0.05em 0.45em; background: var(--fp-tan); color: var(--fp-ink-dark); }
+.fp-link { color: var(--fp-link); text-decoration: none; }
+.fp-link:hover { text-decoration: underline; }
+
+/* Narrow screens: the same content as one plain column, same colours. */
+.fp.is-plain {
+  --body: 15px;
+  position: relative;
+  width: auto;
+  height: auto;
+  max-width: 40rem;
+  margin: 12px auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--fp-tan);
+}
+.fp.is-plain .fp-art, .fp.is-plain .fp-photo { display: none; }
+.fp.is-plain .fp-region, .fp.is-plain .fp-close, .fp.is-plain .fp-tab { position: static; width: auto; height: auto; }
+.fp.is-plain .fp-close {
+  align-self: flex-end;
+  padding: 4px 10px;
+  background: var(--fp-stamp-red);
+  color: var(--fp-paper);
+}
+.fp.is-plain .fp-close::before { content: 'close ✕'; }
+.fp.is-plain .fp-card { display: block; padding: 0 0 10px; background: var(--fp-paper); }
+.fp.is-plain .fp-card-header { position: static; padding: 0 10px; background: var(--fp-stamp-red); line-height: 2; }
+.fp.is-plain .fp-card-name, .fp.is-plain .fp-card-line { padding: 4px 10px 0; white-space: normal; }
+.fp.is-plain .fp-sticky { padding: 10px; background: var(--fp-paper); }
+.fp.is-plain .fp-stamp { align-self: flex-start; padding: 2px 10px; border: 2px solid var(--fp-stamp-red); }
+.fp.is-plain .fp-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.fp.is-plain .fp-tab { padding: 4px 10px; background: var(--fp-paper); color: var(--fp-ink-dark); text-transform: uppercase; }
+.fp.is-plain .fp-tab[aria-selected="true"] { background: var(--fp-stamp-red); color: var(--fp-paper); }
+.fp.is-plain .fp-page { padding: 12px; overflow: visible; background: var(--fp-paper); }
+
+/* ── Achievement unlock sign (js/unlock-sign.js) ───────────────────────
+   Lined up with the canvas; --u is one art pixel in CSS pixels. It waits
+   above the view and slides down while shown. */
+.us {
+  position: fixed;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(var(--hide-y));
+  transition: transform var(--us-slide) ease-out, opacity var(--us-slide) linear;
+}
+.us.is-down { opacity: 1; transform: none; }
+.us-art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+.us-board, .us-badge { position: absolute; image-rendering: pixelated; }
+.us-board { left: 0; top: 0; }
+.us-badge { background-repeat: no-repeat; }
+.us-text {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--us-text);
+  font-family: var(--font);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.us-label { margin: 0; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.06em; }
+.us-name { margin: 0; font-weight: bold; }

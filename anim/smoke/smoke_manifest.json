@@ -1,0 +1,438 @@
+{
+  "canvas": [
+    320,
+    180
+  ],
+  "note": "All sheets are single rows of equal frames, played at ms_per_frame. Draw them above everything else in the scene.",
+  "animations": {
+    "cig_pack": {
+      "files": [
+        "cig_pack.png",
+        "cig_pack_night.png"
+      ],
+      "frame_w": 20,
+      "frame_h": 14,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        7,
+        13
+      ],
+      "placement": {
+        "x": 101,
+        "y": 148,
+        "region": "sill band"
+      },
+      "note": "Static sill item: red and white flip-top cigarette pack. Lying flat on its back, pointing away from the viewer toward the window and leaning slightly right; lid end farthest. Anchor is the bottom-centre of the near end. Draw after cabin_window, like the mug."
+    },
+    "pack_place": {
+      "files": [
+        "pack_place.png",
+        "pack_place_night.png"
+      ],
+      "frame_w": 120,
+      "frame_h": 70,
+      "frames": 10,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 80,
+        "y": 110
+      },
+      "note": "The pack slides up onto the sill and settles with a small bounce. The pack is part of these frames; show cig_pack once it ends."
+    },
+    "cig_pick": {
+      "files": [
+        "cig_pick.png",
+        "cig_pick_night.png"
+      ],
+      "frame_w": 120,
+      "frame_h": 70,
+      "frames": 18,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 80,
+        "y": 110
+      },
+      "note": "The lid flips open showing the filters, one cigarette rises out, lifts clear, turns over and drifts down toward the viewer while the lid shuts. Draw over the static cig_pack."
+    },
+    "smoke_raise": {
+      "files": [
+        "smoke_raise.png",
+        "smoke_raise_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 8,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "An unlit cigarette rises into view at the lower middle."
+    },
+    "smoke_light": {
+      "files": [
+        "smoke_light.png",
+        "smoke_light_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 14,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "A lighter rises, its flame lights the tip, and it lowers."
+    },
+    "smoke_hold_0": {
+      "files": [
+        "smoke_hold_0.png",
+        "smoke_hold_0_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 8,
+      "ms_per_frame": 120,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "Resting pose with a lit cigarette at burn level 0 (0 = full length). The ember smoulders with drifting hot spots, a soft glow and the odd spark; a wisp of smoke rises."
+    },
+    "smoke_drag_0": {
+      "files": [
+        "smoke_drag_0.png",
+        "smoke_drag_0_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 12,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "The cigarette comes toward the viewer until the tip glows at the bottom edge, then pulls away. Burn level 0."
+    },
+    "smoke_hold_1": {
+      "files": [
+        "smoke_hold_1.png",
+        "smoke_hold_1_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 8,
+      "ms_per_frame": 120,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "Resting pose with a lit cigarette at burn level 1 (0 = full length). The ember smoulders with drifting hot spots, a soft glow and the odd spark; a wisp of smoke rises."
+    },
+    "smoke_drag_1": {
+      "files": [
+        "smoke_drag_1.png",
+        "smoke_drag_1_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 12,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "The cigarette comes toward the viewer until the tip glows at the bottom edge, then pulls away. Burn level 1."
+    },
+    "smoke_hold_2": {
+      "files": [
+        "smoke_hold_2.png",
+        "smoke_hold_2_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 8,
+      "ms_per_frame": 120,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "Resting pose with a lit cigarette at burn level 2 (0 = full length). The ember smoulders with drifting hot spots, a soft glow and the odd spark; a wisp of smoke rises."
+    },
+    "smoke_drag_2": {
+      "files": [
+        "smoke_drag_2.png",
+        "smoke_drag_2_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 12,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "The cigarette comes toward the viewer until the tip glows at the bottom edge, then pulls away. Burn level 2."
+    },
+    "smoke_hold_3": {
+      "files": [
+        "smoke_hold_3.png",
+        "smoke_hold_3_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 8,
+      "ms_per_frame": 120,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "Resting pose with a lit cigarette at burn level 3 (0 = full length). The ember smoulders with drifting hot spots, a soft glow and the odd spark; a wisp of smoke rises."
+    },
+    "smoke_drag_3": {
+      "files": [
+        "smoke_drag_3.png",
+        "smoke_drag_3_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 12,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "The cigarette comes toward the viewer until the tip glows at the bottom edge, then pulls away. Burn level 3."
+    },
+    "smoke_hold_4": {
+      "files": [
+        "smoke_hold_4.png",
+        "smoke_hold_4_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 8,
+      "ms_per_frame": 120,
+      "loop": true,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "Resting pose with a lit cigarette at burn level 4 (0 = full length). The ember smoulders with drifting hot spots, a soft glow and the odd spark; a wisp of smoke rises."
+    },
+    "smoke_drag_4": {
+      "files": [
+        "smoke_drag_4.png",
+        "smoke_drag_4_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 12,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "The cigarette comes toward the viewer until the tip glows at the bottom edge, then pulls away. Burn level 4."
+    },
+    "smoke_exhale": {
+      "files": [
+        "smoke_exhale.png",
+        "smoke_exhale_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 24,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "Smoke blown from the viewer: rises from the bottom centre, spreads and fades. Partly transparent."
+    },
+    "smoke_lower": {
+      "files": [
+        "smoke_lower.png",
+        "smoke_lower_night.png"
+      ],
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 8,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 0,
+        "y": 0
+      },
+      "note": "The cigarette lowers out of view."
+    }
+  },
+  "sequences": {
+    "smoke": {
+      "total_frames": 466,
+      "seconds": 55.9,
+      "steps": [
+        {
+          "play": "smoke_raise"
+        },
+        {
+          "play": "smoke_light"
+        },
+        {
+          "loop": "smoke_hold_0",
+          "times": 6
+        },
+        {
+          "play": "smoke_drag_0"
+        },
+        {
+          "play": "smoke_exhale",
+          "while_looping": "smoke_hold_1"
+        },
+        {
+          "loop": "smoke_hold_1",
+          "times": 6
+        },
+        {
+          "play": "smoke_drag_1"
+        },
+        {
+          "play": "smoke_exhale",
+          "while_looping": "smoke_hold_2"
+        },
+        {
+          "loop": "smoke_hold_2",
+          "times": 6
+        },
+        {
+          "play": "smoke_drag_2"
+        },
+        {
+          "play": "smoke_exhale",
+          "while_looping": "smoke_hold_3"
+        },
+        {
+          "loop": "smoke_hold_3",
+          "times": 6
+        },
+        {
+          "play": "smoke_drag_3"
+        },
+        {
+          "play": "smoke_exhale",
+          "while_looping": "smoke_hold_4"
+        },
+        {
+          "loop": "smoke_hold_4",
+          "times": 6
+        },
+        {
+          "play": "smoke_drag_4"
+        },
+        {
+          "play": "smoke_exhale",
+          "while_looping": "smoke_hold_4"
+        },
+        {
+          "loop": "smoke_hold_4",
+          "times": 2
+        },
+        {
+          "play": "smoke_lower"
+        }
+      ],
+      "note": "Play the steps in order, all at 120 ms per frame, drawn above everything else including the window. For \"while_looping\", keep the named hold loop running underneath while the other animation plays."
+    },
+    "get_cigarette": {
+      "steps": [
+        {
+          "play": "pack_place"
+        },
+        {
+          "play": "cig_pick"
+        }
+      ],
+      "note": "Then start the smoke sequence."
+    }
+  }
+}

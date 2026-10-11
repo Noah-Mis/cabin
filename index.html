@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cabin</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="stage">
+    <canvas id="scene" aria-label="The view from a log cabin window: mountains, a pine forest and a waterfall, with a coffee cup on the sill."></canvas>
+  </main>
+  <section id="terminal" aria-label="Terminal">
+    <div id="bubble" role="status" aria-live="polite" hidden></div>
+    <form id="prompt" autocomplete="off">
+      <label for="input">&gt;</label>
+      <input id="input" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" enterkeyhint="send">
+    </form>
+  </section>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
