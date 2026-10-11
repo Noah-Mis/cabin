@@ -99,6 +99,9 @@ function buildDom(layout, content, onClose) {
   const folderImage = image(dir + layout.popup.file, layout.popup);
   const activeTab = image('', layout.tabs[0]);
   art.append(folderImage, activeTab);
+  // Fetch every tab's art up front: switching tabs mid-download would
+  // otherwise cancel it, leaving a blank tab (and a failed request).
+  for (const tab of layout.tabs) new Image().src = dir + tab.active_file;
 
   const close = placed(el('button', 'fp-close'), layout.regions.close);
   close.type = 'button';
