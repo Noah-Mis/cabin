@@ -38,6 +38,20 @@ html, body {
   image-rendering: pixelated;   /* nearest-neighbour: no smoothing when scaled up */
 }
 
+/* Buttons for keyboard users that stand in for something drawn on the
+   canvas (the achievement board): reachable with Tab, never seen; the scene
+   shows the item's hover outline while one has focus. */
+.scene-hotspot {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+}
+
 /* ── The prompt: a single line along the bottom ─────────────────────── */
 #terminal {
   position: fixed;         /* also what the bubble is placed relative to */
@@ -128,10 +142,10 @@ html, body {
   #bubble { left: calc(10px + var(--p)); max-width: calc(100vw - 20px - 2 * var(--p)); }
 }
 
-/* ── Folder pop-up (js/folder-popup.js) ─────────────────────────────────
+/* ── Pop-ups over the scene (js/popup-frame.js) ────────────────────────
    Positions are art pixels times --u, the size of one art pixel in CSS
-   pixels; colours (--fp-*) come from the layout file and config. */
-.fp-backdrop {
+   pixels. Each pop-up adds its own class (.fp, .ab) for its contents. */
+.popup-backdrop {
   position: fixed;
   left: 0;
   right: 0;
@@ -139,27 +153,26 @@ html, body {
   bottom: var(--prompt-h, 0px);
   z-index: 10;
   overflow: auto;
-  background: var(--fp-backdrop);
+  background: var(--popup-backdrop);
   opacity: 0;
-  transition: opacity var(--fp-fade) linear;
+  transition: opacity var(--popup-fade) linear;
 }
-.fp-backdrop.is-visible { opacity: 1; }
+.popup-backdrop.is-visible { opacity: 1; }
 
-.fp {
+.popup {
   --body: clamp(12px, calc(var(--u) * 3.3), 16px);
   position: absolute;
   left: 0;
   top: 0;
   width: calc(var(--w) * var(--u));
   height: calc(var(--h) * var(--u));
-  color: var(--fp-ink);
   font: var(--body)/1.3 var(--font);
   outline: none;
 }
-.fp p, .fp ul, .fp h3 { margin: 0; }
-.fp ul { list-style: none; padding: 0; }
+.popup p, .popup ul, .popup h3 { margin: 0; }
+.popup ul { list-style: none; padding: 0; }
 
-.fp-art {
+.popup-art {
   position: absolute;
   left: 0;
   top: 0;
@@ -167,7 +180,26 @@ html, body {
   height: calc(var(--h) * 1px);
   transform-origin: 0 0;
 }
-.fp-art img { position: absolute; image-rendering: pixelated; }
+.popup-art img { position: absolute; image-rendering: pixelated; }
+
+/* Narrow screens: the same content as one plain column. */
+.popup.is-plain {
+  --body: 15px;
+  position: relative;
+  width: auto;
+  height: auto;
+  max-width: 40rem;
+  margin: 12px auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.popup.is-plain .popup-art { display: none; }
+
+/* ── Folder pop-up (js/folder-popup.js) ─────────────────────────────────
+   Colours (--fp-*) come from the layout file and config. */
+.fp { color: var(--fp-ink); }
 
 .fp-region, .fp-close, .fp-tab {
   position: absolute;
@@ -251,20 +283,8 @@ html, body {
 .fp-link:hover { text-decoration: underline; }
 
 /* Narrow screens: the same content as one plain column, same colours. */
-.fp.is-plain {
-  --body: 15px;
-  position: relative;
-  width: auto;
-  height: auto;
-  max-width: 40rem;
-  margin: 12px auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--fp-tan);
-}
-.fp.is-plain .fp-art, .fp.is-plain .fp-photo { display: none; }
+.fp.is-plain { background: var(--fp-tan); }
+.fp.is-plain .fp-photo { display: none; }
 .fp.is-plain .fp-region, .fp.is-plain .fp-close, .fp.is-plain .fp-tab { position: static; width: auto; height: auto; }
 .fp.is-plain .fp-close {
   align-self: flex-end;
@@ -282,6 +302,96 @@ html, body {
 .fp.is-plain .fp-tab { padding: 4px 10px; background: var(--fp-paper); color: var(--fp-ink-dark); text-transform: uppercase; }
 .fp.is-plain .fp-tab[aria-selected="true"] { background: var(--fp-stamp-red); color: var(--fp-paper); }
 .fp.is-plain .fp-page { padding: 12px; overflow: visible; background: var(--fp-paper); }
+
+/* ── Achievement board pop-up (js/board-popup.js) ──────────────────────
+   Colours (--ab-*) come from the board layout file. Badges are frames of
+   the badge sheet, picked with --frame. */
+.ab { color: var(--ab-ink); }
+
+.ab-badge, .ab-slot-badge, .ab-plain-badge {
+  width: calc(var(--ab-badge-w) * 1px);
+  height: calc(var(--ab-badge-h) * 1px);
+  background: var(--ab-badges) no-repeat;
+  background-position: calc(var(--frame, 0) * var(--ab-badge-w) * -1px) 0;
+  image-rendering: pixelated;
+}
+.ab-badge { position: absolute; }
+.ab-badge-2x { transform: scale(2); transform-origin: 0 0; }
+.ab-fill {
+  position: absolute;
+  background: var(--ab-progress-fill);
+  box-shadow: inset 0 1px 0 var(--ab-progress-fill-light);   /* the one-pixel light line along the top */
+}
+
+.ab-region, .ab-close, .ab-slot {
+  position: absolute;
+  left: calc(var(--x) * var(--u));
+  top: calc(var(--y) * var(--u));
+  width: calc(var(--rw) * var(--u));
+  height: calc(var(--rh) * var(--u));
+}
+/* The X and the slots are part of the art; these are invisible buttons on top. */
+.ab-close, .ab-slot {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.ab-slot-badge, .ab-slot-name, .ab-plain-badge { display: none; }
+.ab-close:focus-visible, .ab-slot:focus-visible { outline: 2px solid var(--ab-progress-fill); }
+
+.ab-name {
+  display: flex;
+  align-items: center;
+  color: var(--ab-ink-dark);
+  font-size: calc(var(--body) * 1.5);
+  font-weight: bold;
+  line-height: 1.2;
+}
+.ab-heading {
+  color: var(--ab-heading);
+  font-size: calc(var(--body) * 0.95);
+  font-weight: bold;
+  margin-bottom: 0.2em !important;
+}
+.ab-how, .ab-reward { overflow: hidden; font-size: calc(var(--body) * 1.05); }
+.ab-count { color: var(--ab-ink-dark); font-weight: bold; }
+.ab-progress {
+  display: flex;
+  align-items: center;
+  color: var(--ab-text-on-felt);
+  font-size: calc(var(--body) * 1.1);
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* Narrow screens: a grid of badges, the note, and the count. */
+.ab.is-plain { background: var(--ab-ink-dark); color: var(--ab-ink); }
+.ab.is-plain .ab-region, .ab.is-plain .ab-close, .ab.is-plain .ab-slot { position: static; width: auto; height: auto; }
+.ab.is-plain .ab-close {
+  align-self: flex-end;
+  padding: 4px 10px;
+  background: var(--ab-heading);
+  color: #fff;
+}
+.ab.is-plain .ab-close::before { content: 'close ✕'; }
+.ab.is-plain .ab-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 6px; }
+.ab.is-plain .ab-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  color: var(--ab-text-on-felt);
+  text-align: left;
+}
+.ab.is-plain .ab-slot[aria-selected="true"] { outline: 2px solid var(--ab-progress-fill); }
+.ab.is-plain .ab-slot-badge, .ab.is-plain .ab-slot-name, .ab.is-plain .ab-plain-badge { display: block; flex: none; }
+.ab.is-plain .ab-slot-badge, .ab.is-plain .ab-plain-badge { zoom: 2; }
+.ab.is-plain .ab-note { padding: 12px; background: #f4f0e8; display: flex; flex-direction: column; gap: 8px; }
+.ab.is-plain .ab-progress { color: var(--ab-text-on-felt); }
 
 /* ── Achievement unlock sign (js/unlock-sign.js) ───────────────────────
    Lined up with the canvas; --u is one art pixel in CSS pixels. It waits

@@ -297,6 +297,8 @@
    "goal": 600,
    "reward": "A deer visits the water now and then",
    "assets": [
+    "deer_far",
+    "far_trees_cover",
     "deer_walk",
     "deer_graze"
    ],
@@ -603,10 +605,21 @@
     9
    ],
    "placement": {
-    "path": "feet on y=123, enters from x 128 and stops near x 148",
+    "feet_y": 123,
+    "bank": {
+     "start_x": 97,
+     "stop_x": 144,
+     "faces": "right",
+     "feet_y": 123
+    },
+    "forbidden_x": [
+     152,
+     320
+    ],
+    "on": "pond_bank_<time>.png",
     "behind": "near_forest_<time>.png"
    },
-   "note": "Reward 12. Faces right; mirror to walk left."
+   "note": "Reward 12. The deer walks from a hidden start to the water on one bank, drinks, turns and walks back. It never crosses the pool or the waterfall. See deer_brief.md."
   },
   "deer_graze": {
    "files": [
@@ -625,11 +638,21 @@
     9
    ],
    "placement": {
-    "x": 148,
-    "y": 123,
+    "feet_y": 123,
+    "bank": {
+     "start_x": 97,
+     "stop_x": 144,
+     "faces": "right",
+     "feet_y": 123
+    },
+    "forbidden_x": [
+     152,
+     320
+    ],
+    "on": "pond_bank_<time>.png",
     "behind": "near_forest_<time>.png"
    },
-   "note": "Reward 12. Stands, lowers its head to the water, looks up, flicks its tail. Then walk on or back."
+   "note": "Reward 12. Played at the stop position on either bank: stands, lowers its head to the water, looks up, flicks its tail. Frame 0 is the plain standing pose for pauses and the turn."
   },
   "mug_camp_sip": {
    "files": [
@@ -730,6 +753,166 @@
     "y": 110
    },
    "note": "Reward 6. The gold-seal folder sliding up onto the sill, for the whoami command. Same box, frames and timing as folder_place, so it is a drop-in swap; show folder_reviewed once it ends."
+  },
+  "deer_far": {
+   "files": [
+    "deer_far_morning.png",
+    "deer_far_day.png",
+    "deer_far_afternoon.png",
+    "deer_far_night.png"
+   ],
+   "frame_w": 7,
+   "frame_h": 6,
+   "frames": 2,
+   "ms_per_frame": 240,
+   "loop": true,
+   "anchor": [
+    3,
+    5
+   ],
+   "placement": {
+    "path": [
+     [
+      128,
+      104
+     ],
+     [
+      129,
+      104
+     ],
+     [
+      130,
+      105
+     ],
+     [
+      131,
+      105
+     ],
+     [
+      132,
+      105
+     ],
+     [
+      133,
+      105
+     ],
+     [
+      134,
+      105
+     ],
+     [
+      135,
+      105
+     ],
+     [
+      136,
+      105
+     ],
+     [
+      137,
+      105
+     ],
+     [
+      138,
+      104
+     ],
+     [
+      139,
+      104
+     ],
+     [
+      140,
+      104
+     ],
+     [
+      141,
+      104
+     ],
+     [
+      142,
+      104
+     ],
+     [
+      143,
+      104
+     ],
+     [
+      144,
+      104
+     ],
+     [
+      145,
+      103
+     ],
+     [
+      146,
+      103
+     ],
+     [
+      147,
+      103
+     ],
+     [
+      148,
+      103
+     ],
+     [
+      149,
+      103
+     ],
+     [
+      150,
+      103
+     ]
+    ],
+    "path_note": "each entry is [x, y] for the feet; walk it one entry per frame",
+    "cover": "far_trees_cover_<time>.png"
+   },
+   "note": "A small, distant deer for the clifftop. Faces right; mirror to walk left. Frame 0 is also the standing pose."
+  },
+  "far_trees_cover": {
+   "files": [
+    "far_trees_cover_morning.png",
+    "far_trees_cover_day.png",
+    "far_trees_cover_afternoon.png",
+    "far_trees_cover_night.png"
+   ],
+   "frame_w": 16,
+   "frame_h": 23,
+   "frames": 1,
+   "ms_per_frame": 0,
+   "loop": false,
+   "anchor": [
+    0,
+    0
+   ],
+   "placement": {
+    "x": 120,
+    "y": 90
+   },
+   "note": "Draw immediately after deer_far, only while it is on screen. It repaints the far trees left of the cliff so the small deer passes behind them."
+  },
+  "pond_bank": {
+   "files": [
+    "pond_bank_morning.png",
+    "pond_bank_day.png",
+    "pond_bank_afternoon.png",
+    "pond_bank_night.png"
+   ],
+   "frame_w": 36,
+   "frame_h": 4,
+   "frames": 1,
+   "ms_per_frame": 0,
+   "loop": false,
+   "anchor": [
+    0,
+    0
+   ],
+   "placement": {
+    "x": 118,
+    "y": 124
+   },
+   "note": "Always drawn, for every visitor, straight after the waterfall and before the deer and near forest. A strip of grassy bank along the left of the pool, so the deer stands on land."
   }
  }
 }

@@ -9,8 +9,13 @@ Exports:
     open_browser(playwright) -> browser
     watch_page(page) -> problems list (filled in as the page runs)
     canvas_pixels(page) -> numpy array (H, W, 4) of the native canvas
+    add_board(image, time, unlocked=()) -> image with the achievement board drawn
+        where the site hangs it, over the window frame, with a pin (or the
+        star) for each achievement id in `unlocked`
+    add_pond_bank(image, time) -> image with the grassy bank by the pool (scenery,
+        drawn right after the waterfall)
 """
-import base64, functools, io, threading
+import base64, functools, io, json, threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import numpy as np
@@ -18,6 +23,31 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / 'tests' / 'results'
+BOARD = json.loads((ROOT / 'anim' / 'board' / 'board_layout.json').read_text())['board']
+ACHIEVEMENT_IDS = [a['id'] for a in json.loads((ROOT / 'anim' / 'achievements' / 'achievements.json').read_text())['achievements']]
+
+
+def add_pond_bank(image, time):
+    info = json.loads((ROOT / 'anim' / 'achievements' / 'achievements.json').read_text())['animations']['pond_bank']
+    bank = Image.open(ROOT / 'anim' / 'achievements' / f'pond_bank_{time}.png').convert('RGBA')
+    image.alpha_composite(bank, (info['placement']['x'], info['placement']['y']))
+    return image
+
+
+def add_board(image, time, unlocked=()):
+    art = lambda name: Image.open(ROOT / 'anim' / 'board' / name).convert('RGBA')
+    night = next(f for f in BOARD['files'] if f.endswith('_night.png'))
+    day = next(f for f in BOARD['files'] if f != night)
+    x, y = BOARD['canvas_x'], BOARD['canvas_y']
+    image.alpha_composite(art(night if time == 'night' else day), (x, y))
+    pins = [i for i in ACHIEVEMENT_IDS if i != BOARD['star']['for']]
+    for id_ in unlocked:
+        if id_ == BOARD['star']['for']:
+            (dx, dy), name = BOARD['star']['position'], BOARD['star']['file']
+        else:
+            (dx, dy), name = BOARD['pin']['positions'][pins.index(id_)], BOARD['pin']['file']
+        image.alpha_composite(art(name), (x + dx, y + dy))
+    return image
 
 
 class QuietHandler(SimpleHTTPRequestHandler):

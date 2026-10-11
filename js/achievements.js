@@ -13,8 +13,8 @@
 // entry, plus a reward wherever the thing it changes is drawn.
 //
 // Exports: startAchievements({ definitions, progress, universes, onUnlock }),
-//          track, isUnlocked, listAchievements, resetAchievements,
-//          debugSetStat, debugUnlock
+//          track, isUnlocked, listAchievements, latestUnlocked,
+//          resetAchievements, debugSetStat, debugUnlock
 
 let definitions = [];
 let progress = null;          // js/progress.js store; null until started
@@ -50,6 +50,11 @@ export function listAchievements() {
     unlocked: unlocked.includes(definition.id),
     count: countOf(definition, stats, unlocked),
   }));
+}
+
+// The id of the achievement earned most recently, or null.
+export function latestUnlocked() {
+  return progress?.unlocked().at(-1) ?? null;
 }
 
 export function resetAchievements() {

@@ -4,7 +4,7 @@
 // Clicking him while he shows counts once per appearance.
 // Rewards: first_sighting — he waves (sasquatch_wave);
 //          cryptid_hunter — sometimes it is the yeti (yeti_peek / yeti_wave).
-// Exports: createSasquatch(assets) -> scene element with events.sasquatch and pointer
+// Exports: createSasquatch(assets) -> scene element with events.sasquatch, running.sasquatch and pointer
 
 import { config } from '../config.js';
 import { createSprite, drawnBoxes } from '../sprite.js';
@@ -63,6 +63,7 @@ export function createSasquatch(assets) {
       sprite.draw(ctx, time, sprite.frameAt(peek.elapsedMs), peek.spot.x, peek.spot.y);
     },
     events: { sasquatch: peekOut },
+    running: { sasquatch: () => peek !== null },
     pointer: {
       contains: isOn,
       setHovered() {},

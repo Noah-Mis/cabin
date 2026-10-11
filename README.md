@@ -14,6 +14,7 @@ anim/                 the art: one folder per scene element, plus manifest.json 
   waterfall/ stars/ clouds/ rain/ snow/ treetops/ birds/ sasquatch/ mug/ wind/
   smoke/              the smoke pack with its own smoke_manifest.json (listed in config.assetPacks)
   folder/             the folder pack with its own folder_manifest.json
+  board/              the achievement board and its pop-up: art, board_layout.json (every position), mockups, brief
   achievements/       achievement sprites, badges, sign, and achievements.json (THE LIST OF ACHIEVEMENTS)
     popup/            the folder pop-up art, popup_layout.json (positions, colours), notes, mockups
   previews/ scripts/  reference previews and the Python that generated the art
@@ -39,16 +40,19 @@ js/
   pointer.js          mouse hover and click on scene elements, in art pixels
   outline.js          the black hover outline for clickable sill items
   folder-contents.js  what the folder shows when opened: connects it to the pop-up
-  folder-popup.js     the pop-up: folder art at pixel scale, HTML text over its regions, tabs, closing
+  popup-frame.js      what every pop-up shares: backdrop, pixel scale, plain fallback, fade, Escape / click-outside
+  folder-popup.js     the folder pop-up: folder art at pixel scale, HTML text over its regions, tabs
+  board-popup.js      the achievement board pop-up: badge slots, selection, the note, progress
   folder-sections.js  turns content sections (text, items, bullets, tags, links) into HTML
   testmode.js         ?test: fixed state, tick stepping, reference demo
   scene/
     layers.js         THE DRAW ORDER: one line per element (and the sun slot)
     crossing.js       a sprite sliding across the opening (bird, far bird, wind use it)
-    background.js  sky.js  stars.js  clouds.js  farbird.js  waterfall.js
+    background.js  sky.js  stars.js  clouds.js  farbird.js  waterfall.js  pondbank.js
     sasquatch.js  nearforest.js  treetops.js  bird.js  precipitation.js
     wind.js  windowframe.js  mug.js
     folder.js         `whoami`: the folder on the sill; click to open / close
+    board.js          the achievement board on the right-hand log: a pin per achievement; click to open
     aurora.js  shootingstars.js  rainbow.js  deer.js  trophy.js   achievement rewards
     sparkles.js       one-shot twinkles (bird trail, clicked stars, trophy)
     cigarette.js      hidden `cig` easter egg
@@ -81,13 +85,16 @@ and open http://localhost:8000. For GitHub Pages, push the folder as-is.
 
 ## Add a creature or event
 
-1. Write `js/scene/deer.js` exporting `createDeer(assets)` that returns
-   `{ update, draw, events: { deer: (options) => true } }`. Take positions and
-   sizes from `assets.animation('deer').info` (the manifest), tunables from `config`.
-2. Add one line, `createDeer(assets),` to `js/scene/layers.js` where it belongs in the draw order.
-3. Put it on a timer: add `deer: { minWaitSec, maxWaitSec, chance }` to
+1. Write `js/scene/fox.js` exporting `createFox(assets)` that returns
+   `{ update, draw, events: { fox: (options) => true } }`. Take positions and
+   sizes from `assets.animation('fox').info` (the manifest), tunables from `config`.
+2. Add one line, `createFox(assets),` to `js/scene/layers.js` where it belongs in the draw order.
+3. Put it on a timer: add `fox: { minWaitSec, maxWaitSec, chance }` to
    `config.events`. Creatures and wind only ever come from these timers; they
    are deliberately not terminal commands.
+4. If it must never be out at the same time as another visitor, return
+   `running: { fox: () => boolean }` too and add `skipWhile: ['sasquatch']` to
+   its timer (the deer and the sasquatch do this).
 
 The sun goes in the marked **SUN SLOT** at the top of the sky group in
 `layers.js`, which clips it to the sky so it sets behind the mountains.

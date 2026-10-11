@@ -7,6 +7,8 @@
 // night pairs (mug, smoke), and wind's plain + morning + night.
 // Exports: loadAssets(config)
 //   -> Promise<{ manifest, sequences, failures, image, timeImage, animation, variants, slowDown, packManifest }>
+//          and the helpers it is built on, for art outside the packs:
+//          loadJson(url), loadImage(url), pickFilesByTime(files, times)
 
 export async function loadAssets(config) {
   const packs = await Promise.all(config.assetPacks.map(async (pack) => ({
@@ -76,7 +78,7 @@ export async function loadAssets(config) {
   return { manifest, sequences, failures, image, timeImage, animation, variants, slowDown, packManifest };
 }
 
-function pickFilesByTime(files, times) {
+export function pickFilesByTime(files, times) {
   const timeOf = (file) => times.find((t) => file.endsWith(`_${t}.png`));
   const shared = files.find((f) => !timeOf(f));
   const byTime = {};
@@ -84,7 +86,7 @@ function pickFilesByTime(files, times) {
   return byTime;
 }
 
-async function loadJson(url) {
+export async function loadJson(url) {
   // 'no-cache' asks the server every time (an unchanged file is a tiny "not
   // modified" reply), so an updated manifest is never paired with stale code.
   const response = await fetch(url, { cache: 'no-cache' });
@@ -92,7 +94,7 @@ async function loadJson(url) {
   return response.json();
 }
 
-function loadImage(url) {
+export function loadImage(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);

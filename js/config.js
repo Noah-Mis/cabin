@@ -40,16 +40,17 @@ export const config = {
 
   // ── Occasional events ────────────────────────────────────────────────
   // Each event waits a random time between minWaitSec and maxWaitSec, then
-  // fires with probability `chance` (0-1), then waits again.
+  // fires with probability `chance` (0-1), then waits again. `skipWhile`
+  // lists events whose visit, if still running, makes this one skip its turn.
   events: {
     bird:      { minWaitSec: 20,  maxWaitSec: 60,  chance: 1.0 },
     farbird:   { minWaitSec: 30,  maxWaitSec: 90,  chance: 1.0 },
     wind:      { minWaitSec: 40,  maxWaitSec: 120, chance: 1.0 },
-    sasquatch: { minWaitSec: 180, maxWaitSec: 600, chance: 0.3 },
+    sasquatch: { minWaitSec: 180, maxWaitSec: 600, chance: 0.3, skipWhile: ['deer'] },   // they share the forest
     // Achievement rewards: these only do anything once earned (and, for
     // shooting stars, at night).
     shootingstar: { minWaitSec: 30, maxWaitSec: 90, chance: 1.0 },
-    deer:      { minWaitSec: 120, maxWaitSec: 300, chance: 1.0 },
+    deer:      { minWaitSec: 120, maxWaitSec: 300, chance: 1.0, skipWhile: ['sasquatch'] },
   },
 
   // ── Moving things ────────────────────────────────────────────────────
@@ -98,6 +99,23 @@ export const config = {
     fadeMs: 200,
   },
 
+  // The achievement board on the right-hand log, and the pop-up it opens.
+  // Every position, size and colour is in the layout file.
+  board: {
+    artDir: 'anim/board/',
+    layoutFile: 'anim/board/board_layout.json',
+    minCssPxPerArtPx: 3,          // same as the folder: plain panel below this
+    fadeMs: 200,
+    words: {
+      label: 'Achievements',
+      how: 'HOW',
+      reward: 'REWARD',
+      unknown: '???',
+      undiscovered: 'Not yet discovered.',
+      progress: (earned, total) => `${earned} of ${total} earned`,
+    },
+  },
+
   // ── Achievements ─────────────────────────────────────────────────────
   // What they are, their goals and every sprite position are in
   // anim/achievements/achievements.json; these are the tunables.
@@ -115,9 +133,17 @@ export const config = {
     birdSparkleEveryMs: 300,      // the golden bird's trail
     birdSparkleBehindPx: 7,       // how far behind the bird's anchor it drops them
     trophySparkleEverySec: [3, 9],
+    // The deer's visit (js/scene/deer.js): on the clifftop, out of sight,
+    // then down at the pool. Its path and positions are in achievements.json;
+    // it walks one path entry (far) or one pixel (near) per animation frame.
     deer: {
-      walkSpeedPxPerSec: 6,
-      fadeMs: 500,                // the near trees never fully hide it, so fade in and out
+      clifftopPauseSec: [2, 4],   // standing at the end of the clifftop path
+      intermissionSec: [4, 7],    // out of sight between the two appearances
+      approachPauseSec: [1, 2],   // the one stop on the way to the water
+      drinkBeatSec: [0.5, 1],     // standing at the water before the first drink
+      drinks: [2, 3],             // how many times it drinks
+      drinkPauseSec: [0.4, 1.2],  // between drinks
+      startleSpeedFactor: 2,      // clicked: back into the trees at double pace
     },
     sign: {
       showMs: 4000,

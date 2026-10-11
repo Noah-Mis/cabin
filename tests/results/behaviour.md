@@ -2,12 +2,12 @@
 
 ## Layout and crispness
 
-- PASS: desktop_1920x1080: scale 6, whole-number=True, fills the screen=True, window and sill fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 6x6 block=True
-- PASS: laptop_1366x768: scale 5, whole-number=True, fills the screen=True, window and sill fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 5x5 block=True
-- PASS: hidpi_1440x900_dpr2: scale 10, whole-number=True, fills the screen=True, window and sill fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 10x10 block=True
-- PASS: odd_1000x700_dpr1.25: scale 5, whole-number=True, fills the screen=True, window and sill fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 5x5 block=True
-- PASS: phone_390x844_dpr3: scale 4, whole-number=True, fills the screen=False, window and sill fully visible above the prompt=True, prompt 34 px tall=True, every visible pixel a clean 4x4 block=True
-- PASS: phone_landscape_844x390_dpr3: scale 8, whole-number=True, fills the screen=True, window and sill fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 8x8 block=True
+- PASS: desktop_1920x1080: scale 6 (filling needs 6), whole-number=True, fills the screen=True, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 6x6 block=True
+- PASS: laptop_1366x768: scale 5 (filling needs 5), whole-number=True, fills the screen=True, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 5x5 block=True
+- PASS: hidpi_1440x900_dpr2: scale 10 (filling needs 10), whole-number=True, fills the screen=True, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 10x10 block=True
+- PASS: odd_1000x700_dpr1.25: scale 4 (filling needs 5), whole-number=True, fills the screen=False, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 4x4 block=True
+- PASS: phone_390x844_dpr3: scale 4 (filling needs 15), whole-number=True, fills the screen=False, window, sill and board fully visible above the prompt=True, prompt 34 px tall=True, every visible pixel a clean 4x4 block=True
+- PASS: phone_landscape_844x390_dpr3: scale 8 (filling needs 8), whole-number=True, fills the screen=True, window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 8x8 block=True
 
 ## Commands (typed into the terminal, test mode, compared with a page that did not run them)
 
@@ -27,7 +27,7 @@
 - PASS: input has focus on load, so typing works straight away
 - PASS: clicking the scene keeps focus in the input
 - PASS: no bubble before anything is typed (test mode has no greeting)
-- PASS: `help` shows one bubble listing help, clear, whoami, badges and not bird, wind, sasquatch, cig, time, weather, reset
+- PASS: `help` shows one bubble listing help, clear, whoami and not bird, wind, sasquatch, cig, time, weather, reset, badges
 - PASS: unknown command replaces the help bubble with one hint line: ['no such command "dance". type "help" to see what you can do.']
 - PASS: there is only ever one bubble
 - PASS: a new command replaces the bubble: ['it starts to snow.']
@@ -38,7 +38,7 @@
 - PASS: 60 rapid commands: still one bubble holding only the last reply, scene kept running, no errors
 - PASS: after the last `time day` the scene is day
 - PASS: up/down recall: 'help', 'time day', back to ''
-- PASS: `time auto` returns to the clock (local hour 22 -> night)
+- PASS: `time auto` returns to the clock (local hour 12 -> day)
 - PASS: the `time auto` reply is showing
 - PASS: `clear` removes the bubble
 
@@ -119,12 +119,12 @@
 ## Scheduler (real clock, config.js served with short timers)
 
 - PASS: bird fired by itself 22 times in 10 s (8 actually started)
-- PASS: farbird fired by itself 21 times in 10 s (3 actually started)
-- PASS: wind fired by itself 23 times in 10 s (23 actually started)
-- PASS: sasquatch fired by itself 7 times in 10 s (3 actually started)
-  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 7
+- PASS: farbird fired by itself 22 times in 10 s (3 actually started)
+- PASS: wind fired by itself 21 times in 10 s (21 actually started)
+- PASS: sasquatch fired by itself 5 times in 10 s (2 actually started)
+  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 5
 - PASS: no console problems on the live (non-test) page: []
-- PASS: front trees: 49 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.0-14.9 s (config [7, 15])
+- PASS: front trees: 50 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.1-14.8 s (config [7, 15])
 - PASS: sasquatch timer over 20,000 seeded rolls: fired 30.6% of the time (config 30%), waits between 181 s and 600 s (config 180-600 s)
 
 ## Console
