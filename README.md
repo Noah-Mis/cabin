@@ -18,7 +18,8 @@ anim/                 the art: one folder per scene element, plus manifest.json 
     popup/            the folder pop-up art, popup_layout.json (positions, colours), notes, mockups
   previews/ scripts/  reference previews and the Python that generated the art
 js/
-  config.js           every tunable: event timers, speeds, fade, file names, clock hours
+  config.js           every tunable: event timers, speeds, fade, file names, clock hours,
+                      and compactLandscape (what counts as a phone held sideways)
   main.js             boot: load art, build scene, wire terminal + timers, run the loop
   assets.js           loads manifest.json and images; picks the right <time> file
   sprite.js           plays one sprite sheet: which frame, draw at anchor, mirror
@@ -27,7 +28,7 @@ js/
   timeofday.js        current time of day, following the clock in "auto"
   weather.js          current weather; spells of rain or snow now and then, on the scheduler
   scheduler.js        random min/max/chance timers that fire events
-  terminal.js         one-line prompt, reply bubble, up/down history
+  terminal.js         one-line prompt, reply bubble, up/down history; sideways phone: keyboard only from the prompt
   commands.js         the command table
   sill.js             what is on the window sill: one ordered list; hidden `ls`, `rm`, `touch` change it
   random.js           small random helpers
@@ -40,7 +41,8 @@ js/
   pointer.js          mouse hover and click on scene elements, in art pixels
   outline.js          the black hover outline for clickable sill items
   folder-contents.js  what the folder shows when opened: connects it to the pop-up
-  popup-frame.js      what every pop-up shares: backdrop, pixel scale, plain fallback, fade, Escape / click-outside
+  popup-frame.js      what every pop-up shares: backdrop, pixel scale, plain fallback (art kept on a sideways phone),
+                      fade, Escape / click-outside
   folder-popup.js     the folder pop-up: folder art at pixel scale, HTML text over its regions, tabs
   board-popup.js      the achievement board pop-up: badge slots, selection, the note, progress
   folder-sections.js  turns content sections (text, items, bullets, tags, links) into HTML
