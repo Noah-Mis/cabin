@@ -17,6 +17,7 @@ import { createRainbow } from './rainbow.js';
 import { createSasquatch } from './sasquatch.js';
 import { createDeer } from './deer.js';
 import { createNearForest } from './nearforest.js';
+import { createTreeSnow } from './treesnow.js';
 import { createTreetops } from './treetops.js';
 import { createBird } from './bird.js';
 import { createPrecipitation } from './precipitation.js';
@@ -31,8 +32,10 @@ import { createCigarette } from './cigarette.js';
 export function buildLayers(assets, { weather, timeOfDay, board }) {
   const mug = createMug(assets);
   const deer = createDeer(assets, { weather });
+  const treeSnow = createTreeSnow(assets, { weather });
   return [
     createBackground(assets),
+    treeSnow.far,                     // snow on the hill forest baked into the background, while it snows
     createSky(assets, [               // everything in here is clipped to the sky
       // ── SUN SLOT ── a sun that moves across the sky goes here, first, so it
       //    sits behind the stars and clouds and sets behind the mountains.
@@ -49,6 +52,7 @@ export function buildLayers(assets, { weather, timeOfDay, board }) {
     createSasquatch(assets),
     deer,                             // the deer at the pool, behind the near forest like the sasquatch
     createNearForest(assets),
+    treeSnow,                         // snow on the front trees, at the same stage as the far ones
     createTreetops(assets),
     createBird(assets),
     createPrecipitation(assets, weather),

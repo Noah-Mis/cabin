@@ -10,6 +10,7 @@ style.css             layout, crisp scaling, terminal colours
 anim/                 the art: one folder per scene element, plus manifest.json (source of truth)
   scene/              background, near forest, window frame, sky mask (the static layers)
   waterfall/ stars/ clouds/ rain/ snow/ treetops/ birds/ sasquatch/ mug/ wind/
+  tree_snow/          snow settling on the trees in four stages (weather_overlays in manifest.json), and its brief
   smoke/              the smoke pack with its own smoke_manifest.json (listed in config.assetPacks)
   folder/             the folder pack with its own folder_manifest.json
   board/              the achievement board and its pop-up: art, board_layout.json (every position), mockups, brief
@@ -24,7 +25,7 @@ js/
   display.js          whole-number scale (device pixels) that fills the screen, keeping the window in view
   renderer.js         draws the layer list; cross-fades between times of day
   timeofday.js        current time of day, following the clock in "auto"
-  weather.js          current weather
+  weather.js          current weather; spells of rain or snow now and then, on the scheduler
   scheduler.js        random min/max/chance timers that fire events
   terminal.js         one-line prompt, reply bubble, up/down history
   commands.js         the command table
@@ -48,7 +49,7 @@ js/
     layers.js         THE DRAW ORDER: one line per element (and the sun slot)
     crossing.js       a sprite sliding across the opening (bird, far bird, wind use it)
     background.js  sky.js  stars.js  clouds.js  farbird.js  waterfall.js  pondbank.js
-    sasquatch.js  nearforest.js  treetops.js  bird.js  precipitation.js
+    sasquatch.js  nearforest.js  treesnow.js  treetops.js  bird.js  precipitation.js
     wind.js  windowframe.js  mug.js
     folder.js         `whoami`: the folder on the sill; click to open / close
     board.js          the achievement board on the right-hand log: a pin per achievement; click to open

@@ -27,7 +27,7 @@
 Writes tests/results/behaviour.md and tests/results/screens/.
 Run:  python tests/behaviour.py
 """
-import io, math, re, sys
+import io, json, math, re, sys
 from pathlib import Path
 import numpy as np
 from PIL import Image
@@ -197,13 +197,20 @@ def check_commands(browser, base, problems):
               f'`time {target}`: mid-fade frame differs from both palettes; 3.5 s later the frame is '
               f'identical to a page started at {target} ({n_after} differing pixels), so every layer swapped')
 
+    # Snow settles on the trees the longer it falls, so a page that started
+    # snowing earlier has more of it: leave those pixels out (check_tree_snow tests them).
+    snow_on_trees = tree_snow_mask()
     for target in ('rain', 'snow', 'clear'):
         start = '&weather=rain' if target == 'clear' else ''
         switched, lines = capture_at(browser, base, q + start, 20, problems, [f'weather {target}'], command_tick=5)
         fresh, _ = capture_at(browser, base, f'{q}&weather={target}', 20, problems)
         save_pair(f'command_weather_{target}.png', fresh, switched)
+        if target == 'snow':
+            switched, fresh = switched.copy(), fresh.copy()
+            switched[snow_on_trees] = fresh[snow_on_trees] = 0
         check(diff_box(switched, fresh)[0] == 0,
-              f'`weather {target}`: identical to a page started with {target}; terminal said "{lines[-1]}"')
+              f'`weather {target}`: identical to a page started with {target}'
+              f'{" (apart from how much snow has settled on the trees)" if target == "snow" else ""}; terminal said "{lines[-1]}"')
 
 
 # ── 3. terminal ──────────────────────────────────────────────────────────
@@ -751,7 +758,7 @@ def check_scheduler(browser, base, problems):
         shots.append(np.asarray(Image.open(io.BytesIO(page.locator('#scene').screenshot()))))
     fired = page.evaluate('fired')
     started = page.evaluate('started')
-    for name in ('bird', 'farbird', 'wind', 'sasquatch'):
+    for name in ('bird', 'farbird', 'wind', 'sasquatch', 'weather'):
         check(fired.get(name, 0) > 0, f'{name} fired by itself {fired.get(name, 0)} times in 10 s '
                                       f'({started.get(name, 0)} actually started)')
     rolls = 10 / 0.45
@@ -937,6 +944,99 @@ def check_sill(browser, base, problems):
     page.context.close()
 
 
+def tree_snow_mask():
+    """Every pixel any stage of tree snow can cover, at any time of day."""
+    info = json.loads((ROOT / 'anim' / 'manifest.json').read_text())['weather_overlays']['tree_snow']
+    mask = np.zeros((180, 320), bool)
+    for layer in ('far', 'near'):
+        for time in ('morning', 'day', 'afternoon', 'night'):
+            for n in range(1, info['stages'] + 1):
+                path = ROOT / 'anim' / info[f'files_{layer}'].replace('<time>', time).replace('<N>', str(n))
+                mask |= np.asarray(Image.open(path).convert('RGBA'))[..., 3] > 0
+    return mask
+
+
+SNOW_ALONE = """(layer) => {
+  const snow = cabin.layers.find((l) => l.amount);
+  const c = document.createElement('canvas'); c.width = 320; c.height = 180;
+  const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+  (layer === 'far' ? snow.far : snow).draw(ctx, cabin.app.timeOfDay.current());
+  return c.toDataURL().split(',')[1];
+}"""
+
+
+def check_tree_snow(browser, base, problems):
+    """Snow settles on the trees while it snows, a stage at a time, and melts off after."""
+    report.append('\n## Snow on the trees (test mode)\n')
+    info = json.loads((ROOT / 'anim' / 'manifest.json').read_text())['weather_overlays']['tree_snow']
+    settings = {k: float(re.search(rf'{k}:\s*([\d.]+)', (ROOT / 'js' / 'config.js').read_text()).group(1))
+                for k in ('fadeSec', 'stageUpSec', 'stageDownSec')}
+    stage_art = lambda layer, time, n: np.asarray(Image.open(
+        ROOT / 'anim' / info[f'files_{layer}'].replace('<time>', time).replace('<N>', str(n))).convert('RGBA'))
+    import base64
+    alone = lambda page, layer: np.asarray(Image.open(io.BytesIO(base64.b64decode(page.evaluate(SNOW_ALONE, layer)))).convert('RGBA'))
+    for time in ('day', 'night'):
+        page, pp = open_page(browser, base, f'?test&debug&time={time}', problems)
+        amount = lambda: round(page.evaluate('cabin.layers.find((l) => l.amount).amount()'), 3)
+        clear_px = int((alone(page, 'near')[..., 3] > 0).sum() + (alone(page, 'far')[..., 3] > 0).sum())
+        type_command(page, 'weather snow')
+        timeline, exact = [], []
+        tick = 0
+        fade_ticks, up_ticks = round(settings['fadeSec'] * 10), round(settings['stageUpSec'] * 10)
+        for n in range(1, info['stages'] + 1):
+            tick = fade_ticks + (n - 1) * up_ticks
+            page.evaluate(f'cabin.test.advanceTo({tick})')
+            timeline.append(amount())
+            exact.append(all(np.array_equal(alone(page, layer), stage_art(layer, time, n)) for layer in ('far', 'near')))
+        page.evaluate(f'cabin.test.advanceTo({tick + 300})')
+        capped = amount()
+        type_command(page, 'weather clear')
+        down_ticks = round(settings['stageDownSec'] * 10)
+        page.evaluate(f'cabin.test.advanceTo({tick + 300 + down_ticks})')
+        melting = amount()
+        page.evaluate(f'cabin.test.advanceTo({tick + 300 + (info["stages"] - 1) * down_ticks + fade_ticks + 1})')
+        gone = amount()
+        gone_px = int((alone(page, 'near')[..., 3] > 0).sum() + (alone(page, 'far')[..., 3] > 0).sum())
+        check(clear_px == 0 and timeline == [1.0, 2.0, 3.0, 4.0] and all(exact) and capped == 4.0
+              and melting == 3.0 and gone == 0 and gone_px == 0 and not pp,
+              f'{time}: none while clear ({clear_px} px); snowing, it reaches stage {timeline} at '
+              f'{settings["fadeSec"]:g} s and every {settings["stageUpSec"]:g} s after, each one the stage art exactly '
+              f'(far and near: {exact}), and stops at {capped}; once it clears it melts a stage every '
+              f'{settings["stageDownSec"]:g} s ({melting} after the first) and is gone ({gone}, {gone_px} px)')
+        problems.extend(pp)
+        page.context.close()
+
+
+def check_weather_spells(browser, base, problems):
+    """Rain or snow comes by itself and clears; the `weather` command overrides it."""
+    report.append('\n## Weather spells (test mode)\n')
+    page, pp = open_page(browser, base, '?test&debug&time=day', problems)
+    now = lambda: page.evaluate('cabin.app.weather.get()')
+    page.evaluate('cabin.test.advanceTo(1)')
+    page.evaluate("cabin.app.events.weather({ kind: 'rain', seconds: 2 })")
+    raining = now()
+    page.evaluate('cabin.test.advanceTo(15)')
+    still = now()
+    page.evaluate('cabin.test.advanceTo(30)')
+    cleared = now()
+    page.evaluate("cabin.app.events.weather({ kind: 'snow', seconds: 2 })")
+    earned = page.evaluate("cabin.achievements.isUnlocked('storm_chaser')")
+    type_command(page, 'weather rain')        # by hand: the spell ends, rain stays
+    page.evaluate('cabin.test.advanceTo(300)')
+    kept = now()
+    refused = page.evaluate('cabin.app.events.weather()')   # not from an overcast sky
+    type_command(page, 'weather clear')
+    rolled = page.evaluate('cabin.app.events.weather()')
+    rolled_kind = now()
+    check(raining == 'rain' and still == 'rain' and cleared == 'clear' and earned and kept == 'rain'
+          and refused is False and rolled and rolled_kind in ('rain', 'snow') and not pp,
+          f'a 2 s spell of rain: {raining}, still {still} at 1.4 s, {cleared} at 2.9 s; a spell of snow next earns '
+          f'Storm Chaser ({earned}); `weather rain` by hand overrides the spell and stays ({kept} 30 s later); no spell '
+          f'starts unless the sky is clear ({refused}); a rolled spell brings {rolled_kind}')
+    problems.extend(pp)
+    page.context.close()
+
+
 def check_unlock_bubble(browser, base, problems):
     """An unlock replaces the bubble left by anything earlier; during a command it joins that reply."""
     report.append('\n## Unlock lines in the bubble (test mode)\n')
@@ -975,6 +1075,8 @@ def main():
         check_cigarette(browser, base, problems)
         check_sill(browser, base, problems)
         check_unlock_bubble(browser, base, problems)
+        check_weather_spells(browser, base, problems)
+        check_tree_snow(browser, base, problems)
         check_scheduler(browser, base, problems)
         browser.close()
     stop()

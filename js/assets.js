@@ -5,8 +5,10 @@
 // time suffix serves every time that has no file of its own. This one rule
 // covers all the variants: four palettes, the night-only stars, the plain +
 // night pairs (mug, smoke), and wind's plain + morning + night.
+// The scene manifest's weather_overlays (tree snow) are stacks of full-canvas
+// stills named by pattern: <time> and <N> (stage 1..stages) are filled in.
 // Exports: loadAssets(config)
-//   -> Promise<{ manifest, sequences, failures, image, timeImage, animation, variants, slowDown, packManifest }>
+//   -> Promise<{ manifest, sequences, failures, image, timeImage, animation, variants, slowDown, packManifest, overlay }>
 //          and the helpers it is built on, for art outside the packs:
 //          loadJson(url), loadImage(url), pickFilesByTime(files, times)
 
@@ -29,6 +31,13 @@ export async function loadAssets(config) {
     for (const time of config.times) paths.add(packs[0].dir + pattern.replace('<time>', time));
   }
   for (const file of manifest.window?.files ?? []) paths.add(packs[0].dir + file);   // the window frame
+  const overlayPath = (pattern, time, n) => packs[0].dir + pattern.replace('<time>', time).replace('<N>', n);
+  for (const overlay of Object.values(manifest.weather_overlays ?? {})) {
+    for (const [key, pattern] of Object.entries(overlay)) {
+      if (!key.startsWith('files_')) continue;
+      for (const time of config.times) for (let n = 1; n <= overlay.stages; n++) paths.add(overlayPath(pattern, time, n));
+    }
+  }
   const images = new Map();
   const failures = [];
   await Promise.all([...paths].map(async (path) => {
@@ -75,7 +84,15 @@ export async function loadAssets(config) {
     return packs.find((pack) => pack.dir === dir)?.manifest ?? null;
   }
 
-  return { manifest, sequences, failures, image, timeImage, animation, variants, slowDown, packManifest };
+  // A weather overlay: its manifest entry, and imageFor(layer, time, stage)
+  // for layer 'far' or 'near' (its files_<layer> pattern).
+  function overlay(name) {
+    const info = manifest.weather_overlays?.[name];
+    if (!info) throw new Error(`the manifest has no weather overlay called "${name}"`);
+    return { info, imageFor: (layer, time, n) => images.get(overlayPath(info[`files_${layer}`], time, n)) ?? null };
+  }
+
+  return { manifest, sequences, failures, image, timeImage, animation, variants, slowDown, packManifest, overlay };
 }
 
 export function pickFilesByTime(files, times) {

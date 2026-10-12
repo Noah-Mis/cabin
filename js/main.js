@@ -96,7 +96,8 @@ async function boot() {
   const weather = createWeather(config);
   const timeOfDay = createTimeOfDay(config, testOptions?.time);
   const layers = buildLayers(assets, { weather, timeOfDay, board: { ...boardArt, popup: boardPopup } });
-  const events = collectEvents(layers);
+  // The scene's events, plus a spell of weather (the weather isn't a layer).
+  const events = { ...collectEvents(layers), weather: weather.startSpell };
   const renderer = createRenderer(canvas, layers);
 
   trackPointer(canvas, layers);
@@ -126,6 +127,7 @@ async function boot() {
 
   function update(dtMs) {
     timeOfDay.update(dtMs);
+    weather.update(dtMs);
     for (const layer of layers) layer.update?.(dtMs);
   }
   function render() {
@@ -140,7 +142,7 @@ async function boot() {
   }
 
   startSound(config.sound);   // test mode stays silent
-  const scheduler = createScheduler(config.events, events, Math.random, collectRunning(layers));
+  const scheduler = createScheduler(config.events, events, Math.random, { ...collectRunning(layers), weather: weather.running });
   window.cabin.scheduler = scheduler;
   terminal.print(config.terminal.greeting);
 

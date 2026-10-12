@@ -14,6 +14,8 @@ Exports:
         star) for each achievement id in `unlocked`
     add_pond_bank(image, time) -> image with the grassy bank by the pool (scenery,
         drawn right after the waterfall)
+    tree_snow(time, amount) -> (far, near) RGBA layers of snow on the trees, as
+        js/scene/treesnow.js draws them for that `amount` (0 = none)
 """
 import base64, functools, io, json, threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -32,6 +34,25 @@ def add_pond_bank(image, time):
     bank = Image.open(ROOT / 'anim' / 'achievements' / f'pond_bank_{time}.png').convert('RGBA')
     image.alpha_composite(bank, (info['placement']['x'], info['placement']['y']))
     return image
+
+
+def tree_snow(time, amount):
+    info = json.loads((ROOT / 'anim' / 'manifest.json').read_text())['weather_overlays']['tree_snow']
+    layers = []
+    for layer in ('far', 'near'):
+        canvas = Image.new('RGBA', (320, 180))
+        stage = max(1, int(amount))
+        art = lambda n: Image.open(ROOT / 'anim' / info[f'files_{layer}'].replace('<time>', time).replace('<N>', str(n))).convert('RGBA')
+        def faded(im, alpha):
+            a = np.asarray(im).copy()
+            a[..., 3] = np.round(a[..., 3] * alpha).astype(np.uint8)
+            return Image.fromarray(a)
+        if amount > 0:
+            canvas.alpha_composite(faded(art(stage), min(1, amount)))
+            if stage < info['stages'] and amount - stage > 0:
+                canvas.alpha_composite(faded(art(stage + 1), amount - stage))
+        layers.append(canvas)
+    return tuple(layers)
 
 
 def add_board(image, time, unlocked=()):
