@@ -20,7 +20,7 @@
 - PASS: `time afternoon`: mid-fade frame differs from both palettes; 3.5 s later the frame is identical to a page started at afternoon (0 differing pixels), so every layer swapped
 - PASS: `time night`: mid-fade frame differs from both palettes; 3.5 s later the frame is identical to a page started at night (0 differing pixels), so every layer swapped
 - PASS: `weather rain`: identical to a page started with rain; terminal said "it starts to rain."
-- PASS: `weather snow`: identical to a page started with snow; terminal said "it starts to snow."
+- PASS: `weather snow`: identical to a page started with snow (apart from how much snow has settled on the trees); terminal said "it starts to snow."
 - PASS: `weather clear`: identical to a page started with clear; terminal said "the sky clears."
 
 ## Terminal
@@ -39,7 +39,7 @@
 - PASS: 60 rapid commands: still one bubble holding only the last reply, scene kept running, no errors
 - PASS: after the last `time day` the scene is day
 - PASS: up/down recall: 'help', 'time day', back to ''
-- PASS: `time auto` returns to the clock (local hour 18 -> afternoon)
+- PASS: `time auto` returns to the clock (local hour 21 -> night)
 - PASS: the `time auto` reply is showing
 - PASS: `clear` removes the bubble
 
@@ -128,15 +128,25 @@
 
 - PASS: the 25th sip replaces the bubble ['mugClicks = 24'] with ['achievement unlocked: Caffeinated. The cup becomes an enamel camp mug.']; an unlock during `weather snow` shares its reply: ['achievement unlocked: Storm Chaser. A rainbow shows over the falls after rain.', 'it starts to snow.']
 
+## Weather spells (test mode)
+
+- PASS: a 2 s spell of rain: rain, still rain at 1.4 s, clear at 2.9 s; a spell of snow next earns Storm Chaser (True); `weather rain` by hand overrides the spell and stays (rain 30 s later); no spell starts unless the sky is clear (False); a rolled spell brings rain
+
+## Snow on the trees (test mode)
+
+- PASS: day: none while clear (0 px); snowing, it reaches stage [1, 2, 3, 4] at 3 s and every 30 s after, each one the stage art exactly (far and near: [True, True, True, True]), and stops at 4; once it clears it melts a stage every 20 s (3 after the first) and is gone (0, 0 px)
+- PASS: night: none while clear (0 px); snowing, it reaches stage [1, 2, 3, 4] at 3 s and every 30 s after, each one the stage art exactly (far and near: [True, True, True, True]), and stops at 4; once it clears it melts a stage every 20 s (3 after the first) and is gone (0, 0 px)
+
 ## Scheduler (real clock, config.js served with short timers)
 
-- PASS: bird fired by itself 22 times in 10 s (8 actually started)
+- PASS: bird fired by itself 23 times in 10 s (8 actually started)
 - PASS: farbird fired by itself 22 times in 10 s (3 actually started)
-- PASS: wind fired by itself 24 times in 10 s (24 actually started)
-- PASS: sasquatch fired by itself 4 times in 10 s (3 actually started)
-  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 4
+- PASS: wind fired by itself 23 times in 10 s (23 actually started)
+- PASS: sasquatch fired by itself 7 times in 10 s (2 actually started)
+- PASS: weather fired by itself 8 times in 10 s (1 actually started)
+  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 7
 - PASS: no console problems on the live (non-test) page: []
-- PASS: front trees: 52 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.2-15.0 s (config [7, 15])
+- PASS: front trees: 50 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.3-14.8 s (config [7, 15])
 - PASS: sasquatch timer over 20,000 seeded rolls: fired 30.6% of the time (config 30%), waits between 181 s and 600 s (config 180-600 s)
 
 ## Console

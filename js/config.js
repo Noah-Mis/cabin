@@ -37,6 +37,20 @@ export const config = {
 
   weathers: ['clear', 'rain', 'snow'],
   defaultWeather: 'clear',
+  // Now and then a spell of rain or snow (the `weather` event below) that
+  // clears by itself. The hidden `weather` command overrides it.
+  weatherSpell: {
+    lastsSec: [90, 240],          // how long it rains or snows
+    snowShare: 0.35,              // the rest of the spells are rain
+  },
+  // Snow settling on the trees while it snows (js/scene/treesnow.js): it
+  // fades in, builds up a stage at a time, and melts back off when it stops.
+  // The stages themselves are in the manifest's weather_overlays.tree_snow.
+  treeSnow: {
+    fadeSec: 3,                   // fading in at the first stage, and out at the end
+    stageUpSec: 30,               // continuous snow per stage after that
+    stageDownSec: 20,             // melting, per stage, once it stops
+  },
 
   // ── Occasional events ────────────────────────────────────────────────
   // Each event waits a random time between minWaitSec and maxWaitSec, then
@@ -51,6 +65,8 @@ export const config = {
     // shooting stars, at night).
     shootingstar: { minWaitSec: 30, maxWaitSec: 90, chance: 1.0 },
     deer:      { minWaitSec: 120, maxWaitSec: 300, chance: 1.0, skipWhile: ['sasquatch'] },
+    // A spell of weather; it only starts from a clear sky (see weatherSpell above).
+    weather:   { minWaitSec: 120, maxWaitSec: 420, chance: 0.5 },
   },
 
   // ── Moving things ────────────────────────────────────────────────────

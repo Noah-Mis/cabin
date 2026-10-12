@@ -27,7 +27,7 @@ from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).parent))
 from reference import load_reference
-from harness import RESULTS, serve_site, open_browser, watch_page, canvas_pixels, add_board, add_pond_bank
+from harness import RESULTS, serve_site, open_browser, watch_page, canvas_pixels, add_board, add_pond_bank, tree_snow
 
 TICKS = range(48)
 # Rounding allowed per channel when blending semi-transparent pixels (see main).
@@ -129,7 +129,17 @@ def run_pass(page, base, ns, manifest, label, query_for, expected_for):
         for k in TICKS:
             page.evaluate(f'cabin.test.advanceTo({k})')
             site = canvas_pixels(page)
-            ref = np.asarray(expected_for(t, k, weather, wind, unlocked).convert('RGBA'))
+            # Snow settles on the trees as it falls: draw the page's current amount
+            # onto the background (far trees) and the near forest, as the site does.
+            amount = page.evaluate('cabin.layers.find((l) => l.amount).amount()')
+            bg, near = ns['BG'][t], ns['NEAR'][t]
+            far_snow, near_snow = tree_snow(t, amount)
+            ns['BG'][t] = Image.alpha_composite(bg.convert('RGBA'), far_snow)
+            ns['NEAR'][t] = Image.alpha_composite(near, near_snow)
+            try:
+                ref = np.asarray(expected_for(t, k, weather, wind, unlocked).convert('RGBA'))
+            finally:
+                ns['BG'][t], ns['NEAR'][t] = bg, near
             n, max_delta, differing = diff_stats(site, ref, waterfall_rect(manifest) if label == 'A' else None)
             per_tick.append({'tick': k, 'differing_pixels': n, 'max_channel_delta': max_delta})
             if max_delta > TOLERANCE:

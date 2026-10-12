@@ -17,10 +17,12 @@
   },
   "draw_order": [
     "bg_<time>",
+    "tree_snow_far_<time>_s<N> (when snowing)",
     "stars / clouds / far birds (clipped by sky_mask)",
     "waterfall",
     "sasquatch",
     "near_forest_<time>",
+    "tree_snow_near_<time>_s<N> (when snowing)",
     "treetops",
     "bird",
     "rain or snow",
@@ -426,5 +428,29 @@
       "scene/cabin_window_night.png"
     ],
     "note": "Use the night file with bg_night and cross-fade between the two like every other time-of-day asset. Morning, day and afternoon share cabin_window.png."
+  },
+  "weather_overlays": {
+    "tree_snow": {
+      "stages": 4,
+      "files_far": "tree_snow/tree_snow_far_<time>_s<N>.png",
+      "files_near": "tree_snow/tree_snow_near_<time>_s<N>.png",
+      "naming": "<time> = morning|day|afternoon|night, <N> = 1..stages",
+      "frame_w": 320,
+      "frame_h": 180,
+      "frames": 1,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "shown_when": "weather == 'snow'",
+      "stages_note": "4 accumulation stages. s1 = light dusting, s4 = heavy blanket. As the snow keeps falling, advance up the stages; when it eases or melts, step back down. Cross-fade between adjacent stages.",
+      "draw": {
+        "tree_snow_far_<time>_s<N>": "immediately AFTER bg_<time>, BEFORE the waterfall",
+        "tree_snow_near_<time>_s<N>": "immediately AFTER near_forest_<time> (after the sasquatch emerges)"
+      },
+      "fade": "fade the whole effect in when the snow starts; separately cross-fade between stages as accumulation changes. Both the far and near layer always show the SAME stage N.",
+      "note": "static overlays (not animated); pixels align exactly with the baked tree pixels, draw at [0,0]. Snow uses each palette's snow_l/snow_s, so swap the <time> variants together like every other time-of-day asset. See tree_snow/tree_snow_brief.md and scripts/treesnow.py."
+    }
   }
 }
