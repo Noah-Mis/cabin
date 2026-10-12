@@ -1,8 +1,6 @@
-# Cabin window
+# Cabin
 
-A pixel-art view from a log cabin, drawn on a canvas, with a terminal at the
-bottom for making things happen. Plain HTML, CSS and JavaScript modules: no
-framework, no build step, no dependencies.
+My portfolio website for software engineering and computer science! There are a lot of secrets, so try to find all of them!
 
 ## Folder layout
 
