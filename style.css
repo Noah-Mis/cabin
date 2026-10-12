@@ -313,6 +313,16 @@ html, body {
 /* Narrow screens: the same content as one plain column, same colours. */
 .fp.is-plain { background: var(--fp-tan); }
 .fp.is-plain .fp-photo { display: none; }
+/* The photo fills the blue slot inside the frame's grey mat (--inset art px). */
+.fp-photo img {
+  position: absolute;
+  left: calc(var(--inset) * var(--u));
+  top: calc(var(--inset) * var(--u));
+  width: calc((var(--rw) - 2 * var(--inset)) * var(--u));
+  height: calc((var(--rh) - 2 * var(--inset)) * var(--u));
+  object-fit: cover;
+  image-rendering: auto;
+}
 .fp.is-plain .fp-region, .fp.is-plain .fp-close, .fp.is-plain .fp-tab { position: static; width: auto; height: auto; }
 .fp.is-plain .fp-close {
   align-self: flex-end;

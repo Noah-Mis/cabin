@@ -1,5 +1,6 @@
-// progress.js — the visitor's saved achievement progress, and the ONLY module
-// that touches localStorage. Everything lives in one object under one
+// progress.js — the visitor's saved achievement progress, and the only module
+// that touches localStorage apart from js/terrarium.js, which keeps the
+// terrarium under its own key. Everything lives in one object under one
 // versioned key:
 //   { version, stats: { name: number | [values] }, unlocked: [ids] }
 // Storage can be missing, full, or throw (private windows, blocked cookies);

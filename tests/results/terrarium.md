@@ -1,0 +1,30 @@
+# Terrarium checks
+- PASS: a fresh start: 3 moss, 2 fern, 2 clover, hue 3, empty codex and pot ({'moss': 3, 'fern': 2, 'clover': 2})
+- PASS: 10 hours at vigor 3 / hardiness 3: growth 0.3850 (expect 0.3850), water 0.2381 (expect 0.2381), stage young ['stem_leaves', 'crown']
+- PASS: 20 hours: grew only the 11.8 h the soil stayed above 10% (0.4548), dry and wilting at health 0.5, wilt tiles ['wilt', 'crown']
+- PASS: watering clears wilting at once, +25% each, a second within 500 ms is ignored ({'ok': False, 'reason': 'wait'}); health waits for a trim
+- PASS: watering past full: capped at 100%, "Saturated!" for a moment, then "Growing..."
+- PASS: trim: -0.05 growth (0.050), health back to 1
+- PASS: a week away counts as 48 h: thirsty and wilting, not dead, no dry time counted ({'dead': False, 'wilting': True, 'hydration': 0, 'dryMs': 0})
+- PASS: bone dry while visited: alive at 23 h, withered past 24 h (['dead', 'dead']), water refused
+- PASS: a withered plant: harvest becomes Clear, empties the pot, no seeds
+- PASS: harvest: refused before 1.0; 1 seed at vigor 3, 2 at vigor 4; a flowering starter (wildflower) on the first harvest only; codex ['bluebell', 'aurora']
+- PASS: a ready bluebell with bloom 2: ['stem_leaves', 'full']
+- PASS: failed crosses raise the chance 5 points each, capped at +25: [0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.4]
+- PASS: a hit gives the hybrid, puts it in the codex and resets the pity
+- PASS: a pair with no hybrid still crosses and gives a parent back (daisy)
+- PASS: the same species twice needs two seeds, and gives that species back (a non-flowering one keeps bloom 0)
+- PASS: a flowering hybrid gets a bloom gene even from bloom-0 parents (aurora bloom 1)
+- PASS: tile stacks by stage, always ending in a crown or bloom: bluebell ['seed', 'sprout', 'stem_leaves crown', 'stem_leaves stem_leaves crown', 'stem_leaves bud', 'stem_leaves opening', 'stem_leaves full']; fern ends 'stem_leaves stem_leaves crown'; the same every redraw
+- PASS: a new page reads the same state back
+- PASS: unreadable data, another version, or a malformed seed: a fresh start with the starter seeds
+- PASS: no seeds and an empty pot on load: the starter set again ({'moss': 3, 'fern': 2, 'clover': 2})
+- PASS: every journal string fits its line (33 characters, 19 beside the pot; bench names 39 px): all fit
+- PASS: the pot is on the left wall as drawn (True), shows a hand (pointer), and a click opens the journal (True)
+- PASS: the journal is drawn over the snow and everything else (1450/1450 margin pixels exact)
+- PASS: tabs switch on a click (seeds: 1); picking moss and Plant plants it (moss) and turns to the pot (0); plain paper keeps the arrow ('')
+- PASS: the bench crosses fern x clover: two seeds in, one back (4 -> 3)
+- PASS: `water` with the journal open: the pot is watered (0.75), the tab stays (2)
+- PASS: closes on a click outside (True), on the pot (True), on Escape (True); the Terrarium button opens it (True)
+- PASS: commands answer in character: {'terrarium status': 'aurora bloom: ready. water 100%, growth 100%.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 2  fern 2  clover 1', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, ivy, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
+- PASS: no console problems ([])

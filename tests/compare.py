@@ -27,7 +27,7 @@ from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).parent))
 from reference import load_reference
-from harness import RESULTS, serve_site, open_browser, watch_page, canvas_pixels, add_board, add_pond_bank, tree_snow
+from harness import RESULTS, serve_site, open_browser, watch_page, canvas_pixels, add_board, add_terrarium_pot, add_pond_bank, tree_snow
 
 TICKS = range(48)
 # Rounding allowed per channel when blending semi-transparent pixels (see main).
@@ -83,6 +83,7 @@ def manifest_compose(ns, manifest, t, k, weather, unlocked):
                 c.alpha_composite(tile, (tx, ty))
     c.alpha_composite(ns['WIN'])
     add_board(c, t, unlocked)   # hung on the log after the window, before the sill items (which never overlap it)
+    add_terrarium_pot(c, t)     # on the other wall, likewise
     mug = ns['SHEETS']['mug_night' if t == 'night' else 'mug']
     c.alpha_composite(fr(mug, ns['MW'], frame('mug')), (ns['MUG_AT'][0] - ns['MCX'], ns['MUG_AT'][1] - 40))
     return c
@@ -199,7 +200,7 @@ def main():
 
         rows = run_pass(page, base, ns, manifest, 'A', query('&timing=reference&demo=reference'),
                         lambda t, k, w, wind, unlocked: (use_window_for(ns, manifest, t),
-                                                         add_board(ns['compose'](t, k, weather=w, wind=wind).convert('RGBA'), t, unlocked))[1])
+                                                         add_terrarium_pot(add_board(ns['compose'](t, k, weather=w, wind=wind).convert('RGBA'), t, unlocked), t))[1])
         rows += run_pass(page, base, ns, manifest, 'B', query(''),
                          lambda t, k, w, wind, unlocked: manifest_compose(ns, manifest, t, k, w, unlocked))
         browser.close()

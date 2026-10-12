@@ -3,7 +3,9 @@
 // and y in art pixels (the click is converted from screen pixels first). A
 // group, like the sky, lists its children's pointers as `pointers`. The
 // topmost element under the mouse gets the hover and the click, and the
-// cursor becomes a hand over it.
+// cursor becomes a hand over it. Optional, for elements with parts of their
+// own (the terrarium journal): move(x, y) follows the mouse while hovered,
+// and cursor(x, y) picks the cursor there instead of the hand.
 // Exports: trackPointer(canvas, layers)
 
 export function trackPointer(canvas, layers) {
@@ -21,19 +23,24 @@ export function trackPointer(canvas, layers) {
 
   const targetAt = ({ x, y }) => targets.find((target) => target.contains(x, y)) ?? null;
 
-  function hover(target) {
-    if (target === hovered) return;
-    hovered?.setHovered(false);
-    hovered = target;
-    hovered?.setHovered(true);
-    canvas.style.cursor = hovered ? 'pointer' : '';
+  function hover(target, { x, y } = {}) {
+    if (target !== hovered) {
+      hovered?.setHovered(false);
+      hovered = target;
+      hovered?.setHovered(true);
+    }
+    hovered?.move?.(x, y);
+    canvas.style.cursor = !hovered ? '' : hovered.cursor ? hovered.cursor(x, y) : 'pointer';
   }
 
-  canvas.addEventListener('pointermove', (event) => hover(targetAt(artPoint(event))));
+  canvas.addEventListener('pointermove', (event) => {
+    const point = artPoint(event);
+    hover(targetAt(point), point);
+  });
   canvas.addEventListener('pointerleave', () => hover(null));
   canvas.addEventListener('click', (event) => {
     const point = artPoint(event);
     targetAt(point)?.click(point.x, point.y);
-    hover(targetAt(point));   // a click can make something stop being clickable
+    hover(targetAt(point), point);   // a click can make something stop being clickable
   });
 }

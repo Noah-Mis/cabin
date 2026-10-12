@@ -50,6 +50,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from harness import ROOT, RESULTS, BOARD, serve_site, open_browser, watch_page, canvas_pixels
 
 SCREENS = RESULTS / 'screens'
+_TERRARIUM = json.loads((ROOT / 'anim' / 'terrarium' / 'terrarium_manifest.json').read_text(encoding='utf-8'))['animations']
+POT, JOURNAL = _TERRARIUM['terrarium_potshelf'], _TERRARIUM['terrarium_journal']
+PROGRESS_KEY = re.search(r"achievements: \{.*?storageKey: '([^']+)'", (ROOT / 'js' / 'config.js').read_text(encoding='utf-8'), re.S).group(1)
 report, failures = [], []
 
 
@@ -147,6 +150,10 @@ def check_layout(browser, base, problems):
         bx0 = g['c'][0] + (BOARD['canvas_x'] - 1) * scale / dpr; bx1 = g['c'][0] + (BOARD['canvas_x'] + BOARD['w'] + 1) * scale / dpr
         by1 = g['c'][1] + (BOARD['canvas_y'] + BOARD['h'] + 1) * scale / dpr
         board_visible = bx0 >= -0.01 and bx1 <= g['vw'] + 0.01 and by1 <= g['t'][1] + 0.01
+        # The terrarium pot on the left wall (and its outline), and the bottom of its journal.
+        px0 = g['c'][0] + (POT['placement']['x'] - 1) * scale / dpr
+        py1 = g['c'][1] + max(POT['placement']['y'] + POT['frame_h'] + 1, JOURNAL['placement']['y'] + JOURNAL['frame_h']) * scale / dpr
+        board_visible = board_visible and px0 >= -0.01 and py1 <= g['t'][1] + 0.01
         # The window stays centred left to right (the board never pulls the picture
         # sideways): its middle is within a device pixel of the screen's.
         off_centre = (kx0 + kx1) / 2 - g['vw'] / 2
@@ -170,7 +177,7 @@ def check_layout(browser, base, problems):
         check(whole and window_visible and board_visible and centred and one_line and crisp and fills == expect_fill and not pp,
               f'{name}: scale {scale} (filling needs {cover}), whole-number={whole}, fills the screen={fills}, '
               f'window centred={centred} ({off_centre:+.1f} px), '
-              f'window, sill and board fully visible above the prompt={window_visible and board_visible}, '
+              f'window, sill, board, terrarium pot and journal fully visible above the prompt={window_visible and board_visible}, '
               f'prompt {g["t"][3]:.0f} px tall={one_line}, every visible pixel a clean {scale}x{scale} block={crisp}'
               + (f', console: {pp}' if pp else ''))
         problems.extend(pp)
@@ -859,8 +866,8 @@ def check_welcome_note(browser, base, problems):
     type_command(page, 'ls')
     kept = output_lines(page)
     # A visitor from before the note existed: saved progress, no note. They never get one.
-    page.evaluate("""() => { const key = Object.keys(localStorage)[0]; const saved = JSON.parse(localStorage.getItem(key));
-                             delete saved.stats.welcomeNote; localStorage.setItem(key, JSON.stringify(saved)); }""")
+    page.evaluate("""(key) => { const saved = JSON.parse(localStorage.getItem(key));
+                             delete saved.stats.welcomeNote; localStorage.setItem(key, JSON.stringify(saved)); }""", PROGRESS_KEY)
     page.reload()
     page.wait_for_function('window.cabin && window.cabin.app')
     page.wait_for_timeout(6000)

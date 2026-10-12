@@ -1,9 +1,10 @@
 // layers.js — the scene, back to front, in the manifest's draw_order.
 // To add a scene element: write its file, import it, and add one line here.
 // Achievement rewards are ordinary elements that draw nothing until earned.
-// Exports: buildLayers(assets, { weather, timeOfDay, board, welcome }) -> list of scene elements
+// Exports: buildLayers(assets, { weather, timeOfDay, board, welcome, terrarium }) -> list of scene elements
 //   board: { layout, images, popup } for the achievement board (see board.js)
 //   welcome: { progress, popup } for the welcome note (see welcomenote.js)
+//   terrarium: { terrarium, journal } for the wall pot and its journal (see terrarium.js)
 
 import { createBackground } from './background.js';
 import { createSky } from './sky.js';
@@ -30,12 +31,17 @@ import { createTrophy } from './trophy.js';
 import { createFolder } from './folder.js';
 import { createCigarette } from './cigarette.js';
 import { createWelcomeNote } from './welcomenote.js';
+import { createTerrariumPot } from './terrarium.js';
 
-export function buildLayers(assets, { weather, timeOfDay, board, welcome }) {
+export function buildLayers(assets, { weather, timeOfDay, board, welcome, terrarium }) {
   const mug = createMug(assets);
   const note = createWelcomeNote(assets, { ...welcome, timeOfDay });
   const deer = createDeer(assets, { weather });
   const treeSnow = createTreeSnow(assets, { weather });
+  // The board before the pot: each adds a keyboard button after the prompt,
+  // and one Tab from the prompt should reach the achievements.
+  const boardLayer = createBoard(assets, board);
+  const pot = createTerrariumPot(assets, terrarium);
   return [
     createBackground(assets),
     treeSnow.far,                     // snow on the hill forest baked into the background, while it snows
@@ -62,7 +68,8 @@ export function buildLayers(assets, { weather, timeOfDay, board, welcome }) {
     createPrecipitation(assets, weather),
     createWind(assets),
     createWindowFrame(assets),
-    createBoard(assets, board),       // hangs on the right-hand log; click it for the achievements
+    boardLayer,                       // hangs on the right-hand log; click it for the achievements
+    pot,                              // the terrarium pot on the left wall; click it for the journal
     // ── sill items ──
     note,                             // the welcome note, left of the others; click it to read
     mug,
@@ -70,6 +77,7 @@ export function buildLayers(assets, { weather, timeOfDay, board, welcome }) {
     createFolder(assets),             // `whoami`; click it to open
     createCigarette(assets),          // easter egg; the smoking is drawn over everything
     mug.overlay,                      // a sip from the mug, over everything
+    pot.journal,                      // the terrarium journal: a modal, over even that
   ];
 }
 

@@ -16,6 +16,8 @@ anim/                 the art: one folder per scene element, plus manifest.json 
   board/              the achievement board and its pop-up: art, board_layout.json (every position), mockups, brief
   achievements/       achievement sprites, badges, sign, and achievements.json (THE LIST OF ACHIEVEMENTS)
     popup/            the folder pop-up art, popup_layout.json (positions, colours), notes, mockups
+  terrarium/          the wall pot and its field journal: sprites, terrarium_manifest.json, the brief
+                      (terrarium_brief.md: every position and rule), mockups/, scripts/ (the art's Python)
   previews/ scripts/  reference previews and the Python that generated the art
 js/
   config.js           every tunable: event timers, speeds, fade, file names, clock hours,
@@ -47,6 +49,9 @@ js/
                       fade, Escape / click-outside
   folder-popup.js     the folder pop-up: folder art at pixel scale, HTML text over its regions, tabs
   board-popup.js      the achievement board pop-up: badge slots, selection, the note, progress
+  terrarium.js        the terrarium's rules and saved state: grow, water, trim, harvest, cross, codex
+  terrarium-species.js  the twelve species (names, rarity, blurbs) and the crosses that breed six of them
+  terrarium-journal.js  the field journal, drawn on the canvas in its own pixel font; its four tabs
   folder-sections.js  turns content sections (text, items, bullets, tags, links) into HTML
   testmode.js         ?test: fixed state, tick stepping, reference demo
   scene/
@@ -57,6 +62,7 @@ js/
     wind.js  windowframe.js  mug.js
     folder.js         `whoami`: the folder on the sill; click to open / close
     board.js          the achievement board on the right-hand log: a pin per achievement; click to open
+    terrarium.js      the pot on the left wall: click it for the journal; keeps the game ticking
     welcomenote.js    first visit: a sasquatch's arm leaves a note on the sill; click to read it
     aurora.js  shootingstars.js  rainbow.js  deer.js  trophy.js   achievement rewards
     sparkles.js       one-shot twinkles (bird trail, clicked stars, trophy)
@@ -151,6 +157,29 @@ For testing without grinding, add `?debug` to the URL; then
 `debug unlock <id|all>`, `debug set <stat> <value>`, `debug event <name> key=value`
 and `debug stats` work in the terminal. Without `?debug` the command doesn't exist.
 
+## Terrarium
+
+The clay pot on the left wall is a slow plant-breeding game; click it (or type
+`terrarium`) for the field journal. One pot: plant a seed, water it now and then,
+and harvest it for seeds about a day later in real time (it grows while the page
+is closed). Crossing two seeds on the journal's bench gives a seed back every
+time, and sometimes a new species; the codex fills up as you go, and Aurora
+Bloom is four crosses deep. `terrarium status`, `water`, `trim`, `harvest`,
+`plant <seed>`, `seeds`, `cross <seed> <seed>` and `codex` work from the
+terminal too (only `terrarium` is in `help`; none count toward Power User).
+
+`anim/terrarium/terrarium_brief.md` is the design: every position, the rules and
+their numbers. The numbers live in `config.terrarium`, the species and crosses
+in `js/terrarium-species.js`. The game saves under its own key
+(`cabin_terrarium`), apart from achievements; `reset yes` clears both. For
+testing, `cabin.app.terrarium.get()` is the live state (set `pot.growth` and
+call `cabin.app.terrarium.tick()`).
+
+Where this differs from the brief: a plant only dies of thirst while the page is
+open (time away dries it out, never kills it, per its edge cases); wilting halves
+growth until the next trim, which is what Trim is for; harvested and bred
+species fill the codex; dead tiles overlap 4px so the withered stalk has no gaps.
+
 ## Sound
 
 Files are in `sounds/`; volumes (in dB), the waterfall's loop region and the
@@ -170,6 +199,7 @@ python tests/compare.py                  # site vs compose(), pixel for pixel
 python tests/behaviour.py                # layout, crispness, commands, terminal, timers, console
 python tests/achievements.py             # all 13 earned for real, rewards in place, persistence, edges
 python tests/sound.py                    # seamless waterfall loop, which sounds play when, mute, console
+python tests/terrarium.py                # the terrarium's rules on a fake clock, the journal by mouse and keyboard
 ```
 
 Results land in `tests/results/`. Test mode on its own: open

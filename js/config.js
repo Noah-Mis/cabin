@@ -11,6 +11,7 @@ export const config = {
     { dir: 'anim/folder/', manifest: 'folder_manifest.json' },
     { dir: 'anim/note/', manifest: 'note_manifest.json' },
     { dir: 'anim/achievements/', manifest: 'achievements.json' },
+    { dir: 'anim/terrarium/', manifest: 'terrarium_manifest.json' },
   ],
   // "<time>" is replaced by morning/day/afternoon/night. (The window frame's
   // files are listed in the manifest's "window" entry.)
@@ -195,6 +196,48 @@ export const config = {
       slideMs: 450,
       marginTopPx: 4,             // art pixels below the top of the window opening
       textColour: '#F4E3C3',
+    },
+  },
+
+  // The terrarium: the pot on the left wall and the field journal it opens
+  // (anim/terrarium/terrarium_brief.md). Positions and sprite sizes are in
+  // anim/terrarium/terrarium_manifest.json; species and crosses are in
+  // js/terrarium-species.js; these are the rules' numbers. Time is real time:
+  // the plant grows while nobody is watching.
+  terrarium: {
+    artDir: 'anim/terrarium/',    // a pack above; its manifest is terrarium_manifest.json
+    storageKey: 'cabin_terrarium',
+    storageVersion: 1,            // unknown or missing version: a fresh start
+    tickSec: 60,                  // on load, then this often while the page is open
+    offlineCapHours: 48,          // a plant left for a week is thirsty, not dead
+    // Ticks further apart than this (a hidden tab, a sleeping laptop) count
+    // as time away: the plant dries out but can't die of it.
+    watchedGapSec: 300,
+    evapPerHour: 0.08,            // divided by (0.6 + hardiness * 0.15)
+    growthPerHour: 0.035,         // times (0.8 + vigor * 0.1) times health
+    wiltBelow: 0.10,              // at or under this hydration: no growth, wilting
+    wiltHealth: 0.5,              // growth rate once it has wilted, until trimmed
+    deadAfterDryHours: 24,        // bone dry this long, while visited
+    plantHydration: 0.5,          // a freshly planted seed's soil
+    waterAmount: 0.25,
+    waterDebounceMs: 500,
+    saturatedShowSec: 4,          // "Saturated!" after watering past full
+    trimFrom: 0.35,               // Trim is disabled below this growth
+    trimGrowth: 0.05,             // what a trim costs
+    pityStep: 0.05,               // each failed try on a pair adds this to its chance
+    pityCap: 0.25,
+    starterSeeds: { moss: 3, fern: 2, clover: 2 },
+    firstHarvestGift: ['daisy', 'wildflower', 'mushroom'],   // one of these, once
+    // Text colours on the paper, per time of day (the font is white).
+    colours: {
+      morning:   { text: '#382A20', text_d: '#645040', accent: '#90542C' },
+      day:       { text: '#342C22', text_d: '#605444', accent: '#8C5830' },
+      afternoon: { text: '#362E20', text_d: '#625642', accent: '#925C2E' },
+      night:     { text: '#A09888', text_d: '#645E56', accent: '#584834' },
+    },
+    words: {
+      label: 'Terrarium',
+      titles: ['TERRARIUM', 'SEED STORE', 'CROSSING BENCH', 'SPECIES CODEX'],
     },
   },
 

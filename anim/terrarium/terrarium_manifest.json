@@ -1,0 +1,395 @@
+{
+  "canvas": [
+    320,
+    180
+  ],
+  "note": "The terrarium mini-game (terrarium_brief.md): the pot on the left interior wall and the field journal it opens. Drawn by scripts/terrarium_journal.py (UI, pot, font) and scripts/plants.py (plant tiles; run its verify() after any art change). Sheets are single rows of equal frames except terrarium_meter (vertical) and the plants/blooms sheets (one row per species).",
+  "animations": {
+    "terrarium_potshelf": {
+      "files": [
+        "terrarium_potshelf_morning.png",
+        "terrarium_potshelf_day.png",
+        "terrarium_potshelf_afternoon.png",
+        "terrarium_potshelf_night.png"
+      ],
+      "frame_w": 32,
+      "frame_h": 36,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 12,
+        "y": 112
+      },
+      "draw_layer": "after_cabin_window",
+      "clickable": true,
+      "click_action": "terrarium:open",
+      "note": "Pot + shelf on the left interior wall. Click target for the journal."
+    },
+    "terrarium_journal": {
+      "files": [
+        "terrarium_journal_morning.png",
+        "terrarium_journal_day.png",
+        "terrarium_journal_afternoon.png",
+        "terrarium_journal_night.png"
+      ],
+      "frame_w": 164,
+      "frame_h": 124,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 78,
+        "y": 28
+      },
+      "draw_layer": "modal",
+      "tab_ys": [
+        10,
+        36,
+        62,
+        88
+      ],
+      "tab_w": 14,
+      "tab_h": 22,
+      "paper_w": 150,
+      "note": "Tabbed field journal. Composited at runtime with tab_active, tabicons, and the active tab's content. All text is JS-rendered. Paper is local x 0-149; tabs protrude to x 163."
+    },
+    "terrarium_tab_active": {
+      "files": [
+        "terrarium_tab_active_morning.png",
+        "terrarium_tab_active_day.png",
+        "terrarium_tab_active_afternoon.png",
+        "terrarium_tab_active_night.png"
+      ],
+      "frame_w": 14,
+      "frame_h": 22,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "relative_to": "terrarium_journal",
+        "x": 150,
+        "y": "tab_ys[activeTab]"
+      },
+      "note": "Drawn over the baked inactive tab for whichever tab is selected."
+    },
+    "terrarium_tabicons": {
+      "files": [
+        "terrarium_tabicons_morning.png",
+        "terrarium_tabicons_day.png",
+        "terrarium_tabicons_afternoon.png",
+        "terrarium_tabicons_night.png"
+      ],
+      "frame_w": 10,
+      "frame_h": 10,
+      "frames": 4,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "relative_to": "terrarium_journal",
+        "x": 151,
+        "y": "tabY + 6"
+      },
+      "note": "0 pot, 1 seed, 2 cross, 3 book."
+    },
+    "terrarium_seeds": {
+      "files": [
+        "terrarium_seeds_morning.png",
+        "terrarium_seeds_day.png",
+        "terrarium_seeds_afternoon.png",
+        "terrarium_seeds_night.png"
+      ],
+      "frame_w": 8,
+      "frame_h": 8,
+      "frames": 12,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "relative_to": "slot",
+        "x": 4,
+        "y": 4
+      },
+      "note": "Frame index == species index. Colour-coded by signature colour."
+    },
+    "terrarium_codex": {
+      "files": [
+        "terrarium_codex_morning.png",
+        "terrarium_codex_day.png",
+        "terrarium_codex_afternoon.png",
+        "terrarium_codex_night.png"
+      ],
+      "frame_w": 16,
+      "frame_h": 16,
+      "frames": 12,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "relative_to": "codex_slot",
+        "x": 0,
+        "y": 0
+      },
+      "note": "Mature-plant portraits. Frame index == species index."
+    },
+    "terrarium_slot_sm": {
+      "files": [
+        "terrarium_slot_sm_morning.png",
+        "terrarium_slot_sm_day.png",
+        "terrarium_slot_sm_afternoon.png",
+        "terrarium_slot_sm_night.png"
+      ],
+      "frame_w": 16,
+      "frame_h": 16,
+      "frames": 4,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "note": "0 empty, 1 hover, 2 filled, 3 locked."
+    },
+    "terrarium_slot_lg": {
+      "files": [
+        "terrarium_slot_lg_morning.png",
+        "terrarium_slot_lg_day.png",
+        "terrarium_slot_lg_afternoon.png",
+        "terrarium_slot_lg_night.png"
+      ],
+      "frame_w": 20,
+      "frame_h": 20,
+      "frames": 3,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "note": "0 empty, 1 hover, 2 filled. Crossing bench slots."
+    },
+    "terrarium_meter": {
+      "files": [
+        "terrarium_meter_morning.png",
+        "terrarium_meter_day.png",
+        "terrarium_meter_afternoon.png",
+        "terrarium_meter_night.png"
+      ],
+      "frame_w": 50,
+      "frame_h": 6,
+      "frames": 10,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "stacking": "vertical",
+      "note": "VERTICAL sheet. Rows 0-4 water 0/25/50/75/100%, rows 5-9 growth. Crop at y = row * 6."
+    },
+    "terrarium_btn_sm": {
+      "files": [
+        "terrarium_btn_sm_morning.png",
+        "terrarium_btn_sm_day.png",
+        "terrarium_btn_sm_afternoon.png",
+        "terrarium_btn_sm_night.png"
+      ],
+      "frame_w": 40,
+      "frame_h": 16,
+      "frames": 3,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "note": "0 normal, 1 hover, 2 disabled. Label drawn in JS. (40 wide: the sheet is 120 px; the brief's 28 is from an older draft.)"
+    },
+    "terrarium_btn_lg": {
+      "files": [
+        "terrarium_btn_lg_morning.png",
+        "terrarium_btn_lg_day.png",
+        "terrarium_btn_lg_afternoon.png",
+        "terrarium_btn_lg_night.png"
+      ],
+      "frame_w": 48,
+      "frame_h": 16,
+      "frames": 3,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "note": "0 normal, 1 hover, 2 disabled. CROSS button."
+    },
+    "terrarium_traits": {
+      "files": [
+        "terrarium_traits_morning.png",
+        "terrarium_traits_day.png",
+        "terrarium_traits_afternoon.png",
+        "terrarium_traits_night.png"
+      ],
+      "frame_w": 8,
+      "frame_h": 8,
+      "frames": 6,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "note": "0 height, 1 bloom, 2 vigor, 3 hue, 4 hardiness, 5 rarity."
+    },
+    "terrarium_stars": {
+      "files": [
+        "terrarium_stars_morning.png",
+        "terrarium_stars_day.png",
+        "terrarium_stars_afternoon.png",
+        "terrarium_stars_night.png"
+      ],
+      "frame_w": 7,
+      "frame_h": 7,
+      "frames": 2,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "note": "0 empty, 1 filled. Draw rarity count side by side, step 8px."
+    },
+    "terrarium_plants": {
+      "files": [
+        "terrarium_plants_morning.png",
+        "terrarium_plants_day.png",
+        "terrarium_plants_afternoon.png",
+        "terrarium_plants_night.png"
+      ],
+      "frame_w": 16,
+      "frame_h": 16,
+      "frames": 9,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "rows": 12,
+      "note": "Foliage tiles. Row = species index, col = 0 seed, 1 sprout, 2 stem, 3 stem_leaves, 4 stem_leaf_l, 5 stem_leaf_r, 6 crown, 7 dead, 8 wilt. Stem occupies x 7-8 on both the top and bottom edge (x 6-9 for mushroom and suncap) — that is the stacking seam."
+    },
+    "terrarium_blooms": {
+      "files": [
+        "terrarium_blooms_morning.png",
+        "terrarium_blooms_day.png",
+        "terrarium_blooms_afternoon.png",
+        "terrarium_blooms_night.png"
+      ],
+      "frame_w": 24,
+      "frame_h": 24,
+      "frames": 3,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "rows": 12,
+      "placement": {
+        "relative_to": "stem_tile",
+        "x": -4,
+        "y": -24
+      },
+      "note": "Blooms, 3 stages: 0 bud, 1 opening, 2 full. Row = species index. Draw 4px LEFT of the stem tile so the stub at x 11-12 lands on the stem at x 7-8. Species with bloom style none (moss, fern, clover, ivy) have empty rows; use the crown foliage tile instead."
+    },
+    "terrarium_pot_back": {
+      "files": [
+        "terrarium_pot_back_morning.png",
+        "terrarium_pot_back_day.png",
+        "terrarium_pot_back_afternoon.png",
+        "terrarium_pot_back_night.png"
+      ],
+      "frame_w": 48,
+      "frame_h": 40,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "relative_to": "terrarium_journal",
+        "x": 12,
+        "y": 54
+      },
+      "draw_layer": "behind_plant",
+      "soil_line": 15,
+      "centre_x": 24,
+      "note": "Back half of the zoomed pot: rim far arc plus the elliptical soil bed (rows 10-18, widest x 6-42). Draw BEFORE the plant."
+    },
+    "terrarium_pot_front": {
+      "files": [
+        "terrarium_pot_front_morning.png",
+        "terrarium_pot_front_day.png",
+        "terrarium_pot_front_afternoon.png",
+        "terrarium_pot_front_night.png"
+      ],
+      "frame_w": 48,
+      "frame_h": 40,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "relative_to": "terrarium_journal",
+        "x": 12,
+        "y": 54
+      },
+      "draw_layer": "in_front_of_plant",
+      "note": "Front half: rim near arc, body, base, saucer. Same x/y as pot_back — they are pixel-aligned. Draw AFTER the plant."
+    },
+    "terrarium_font": {
+      "files": [
+        "terrarium_font.png"
+      ],
+      "frame_w": 4,
+      "frame_h": 6,
+      "frames": 53,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "charset": " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-_/%!?:+><()*'",
+      "advance": 4,
+      "note": "3x5 pixel font in 4x6 cells, white: tinted in JS. Uppercase only; glyph index is the position in charset (0 is space). One file for every time of day."
+    }
+  }
+}
