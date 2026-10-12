@@ -21,9 +21,12 @@
 - PASS: `time morning`: mid-fade frame differs from both palettes; 3.5 s later the frame is identical to a page started at morning (0 differing pixels), so every layer swapped
 - PASS: `time afternoon`: mid-fade frame differs from both palettes; 3.5 s later the frame is identical to a page started at afternoon (0 differing pixels), so every layer swapped
 - PASS: `time night`: mid-fade frame differs from both palettes; 3.5 s later the frame is identical to a page started at night (0 differing pixels), so every layer swapped
-- PASS: `weather rain`: identical to a page started with rain; terminal said "it starts to rain."
-- PASS: `weather snow`: identical to a page started with snow (apart from how much snow has settled on the trees); terminal said "it starts to snow."
-- PASS: `weather clear`: identical to a page started with clear; terminal said "the sky clears."
+- PASS: `weather rain`: once it has built up or thinned out, identical to a page started with rain; terminal said "it starts to rain."
+- PASS: `weather snow`: once it has built up or thinned out, identical to a page started with snow (apart from how much snow has settled on the trees); terminal said "it starts to snow."
+- PASS: `weather clear`: once it has built up or thinned out, identical to a page started with clear; terminal said "the sky clears."
+- PASS: `weather rain` starts light: 183 rain pixels in the window the moment it starts, against 917 in full rain; drops join a line at a time (14 lines, then 41 10 s in, 49 at full) and none vanishes on the way (lines lost: none)
+- PASS: `weather clear` thins the rain out: 49 lines, 41 10 s later, none coming back (none), and none left after 20 s (0 rain pixels)
+- PASS: `weather snow` fades in: colour change in the window, averaged over each 2 s, climbs steadily: [13029, 18798, 24492, 30593, 35972, 42347, 48236, 54039, 59706, 64755]
 
 ## Terminal
 
@@ -40,7 +43,7 @@
 - PASS: 60 rapid commands: still one bubble holding only the last reply, scene kept running, no errors
 - PASS: after the last `time day` the scene is day
 - PASS: up/down recall: 'help', 'time day', back to ''
-- PASS: `time auto` returns to the clock (local hour 21 -> night)
+- PASS: `time auto` returns to the clock (local hour 23 -> night)
 - PASS: the `time auto` reply is showing
 - PASS: `clear` removes the bubble
 
@@ -123,6 +126,15 @@
 - PASS: 915x360_dpr2.625: no console problems ([])
 - PASS: desktop window 844x390: unchanged: plain panel (popup fp is-plain), a click on the scene refocuses the prompt (True), prompt at 14px (14px)
 
+## Welcome note
+
+- PASS: the welcome note comes in on the sasquatch's arm (679 pixels change mid-reach), all of it inside the window opening: the frame hides where it reaches in from (0 outside)
+- PASS: the note lands on the sill: only its box changes (0 pixels elsewhere), pixel-exact against note_sill_day.png (True); saved as left on the sill (1); `ls`: ['mug  note', 'put away: folder']
+- PASS: hovering the note shows the hand (pointer); clicking it opens the note with every word from welcome_note.json (missing: none) and ['help', 'whoami'] as buttons
+- PASS: clicking `help` in it closes the note, puts "help" on the focused prompt (input), and the note is gone from the sill (True), saved as read (2); it is never delivered again (False); `touch note`: ["touch: cannot touch 'note': you don't have one"]
+- PASS: `rm note`: ['you take the note off the sill.'], the sill is bare there (True); `touch note`: ['you put the note on the sill.'], and it is back (True)
+- PASS: a first visit: no note yet at 1.5 s (None), left on the sill by 6 s (1); after a reload the unread note is still there (`ls`: ['mug  note', 'put away: folder']); a visitor with progress saved from before never gets one (None)
+
 - PASS: day: moving the mouse away removes the outline
 - PASS: day: no console problems ([])
 - PASS: night: moving the mouse away removes the outline
@@ -139,7 +151,7 @@
 
 ## Weather spells (test mode)
 
-- PASS: a 2 s spell of rain: rain, still rain at 1.4 s, clear at 2.9 s; a spell of snow next earns Storm Chaser (True); `weather rain` by hand overrides the spell and stays (rain 30 s later); no spell starts unless the sky is clear (False); a rolled spell brings rain
+- PASS: a 2 s spell of rain: rain, still rain at 1.4 s, clear at 2.9 s; a spell of snow next earns Storm Chaser (True); `weather rain` by hand overrides the spell and stays (rain 30 s later); no spell starts unless the sky is clear (False); a rolled spell brings snow
 
 ## Snow on the trees (test mode)
 
@@ -148,14 +160,14 @@
 
 ## Scheduler (real clock, config.js served with short timers)
 
-- PASS: bird fired by itself 22 times in 10 s (8 actually started)
-- PASS: farbird fired by itself 24 times in 10 s (3 actually started)
-- PASS: wind fired by itself 23 times in 10 s (23 actually started)
-- PASS: sasquatch fired by itself 6 times in 10 s (3 actually started)
-- PASS: weather fired by itself 13 times in 10 s (1 actually started)
-  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 6
+- PASS: bird fired by itself 24 times in 10 s (8 actually started)
+- PASS: farbird fired by itself 21 times in 10 s (3 actually started)
+- PASS: wind fired by itself 22 times in 10 s (22 actually started)
+- PASS: sasquatch fired by itself 5 times in 10 s (2 actually started)
+- PASS: weather fired by itself 11 times in 10 s (1 actually started)
+  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 5
 - PASS: no console problems on the live (non-test) page: []
-- PASS: front trees: 48 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.0-14.7 s (config [7, 15])
+- PASS: front trees: 50 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.2-14.5 s (config [7, 15])
 - PASS: sasquatch timer over 20,000 seeded rolls: fired 30.6% of the time (config 30%), waits between 181 s and 600 s (config 180-600 s)
 
 ## Console

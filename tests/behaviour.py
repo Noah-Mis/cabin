@@ -29,7 +29,13 @@
    with no text spilling out of its region, turning the phone with one open,
    the keyboard coming up only from the prompt and going away after a
    command, and a desktop window of the same size left exactly as it was.
-9. No console errors or warnings, no failed requests, anywhere above.
+9. The welcome note: the sasquatch's arm stays behind the window frame,
+   the note lands on the sill pixel-exact, hover and click open the note
+   with every word from content/welcome_note.json, `help` in it goes onto the
+   prompt and the note is gone for good; `rm` / `touch note`; a real first
+   visit gets it by itself, a reload keeps an unread one, and a returning
+   visitor from before never gets one.
+10. No console errors or warnings, no failed requests, anywhere above.
 
 Writes tests/results/behaviour.md and tests/results/screens/.
 Run:  python tests/behaviour.py
@@ -743,6 +749,128 @@ def check_landscape_phone(browser, base, problems):
     problems.extend(pp)
     page.context.close()
 
+# ── 5e. the welcome note ──────────────────────────────────────────────────
+def check_welcome_note(browser, base, problems):
+    report.append('\n## Welcome note\n')
+    content = json.loads((ROOT / 'content' / 'welcome_note.json').read_text(encoding='utf-8'))
+    note = json.loads((ROOT / 'anim' / 'note' / 'note_manifest.json').read_text())['animations']
+    sill = note['note_sill']
+    left, top = sill['placement']['x'] - sill['anchor'][0], sill['placement']['y'] - sill['anchor'][1]
+    box = (slice(top, top + sill['frame_h']), slice(left, left + sill['frame_w']))
+    opening = json.loads((ROOT / 'anim' / 'manifest.json').read_text())['window_opening']
+    q = '?test&time=day'
+    stats = lambda page: page.evaluate('cabin.app.progressStats().stats')
+
+    def art_point(page, x, y):
+        r = page.evaluate("(() => { const r = document.getElementById('scene').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+        return r[0] + x * r[2] / 320, r[1] + y * r[3] / 180
+
+    page, pp = open_page(browser, base, q, problems, viewport={'width': 1366, 'height': 768})
+    sent = page.evaluate('cabin.app.events.welcomeNote()')
+    # Mid-reach: everything the arm adds is inside the window opening (the frame hides the rest).
+    page.evaluate('cabin.test.advanceTo(8)')
+    reaching = canvas_pixels(page)[..., :3]
+    plain = capture_at(browser, base, q, 8, problems)[0][..., :3]
+    changed = np.any(reaching != plain, axis=2)
+    inside = np.zeros_like(changed)
+    inside[opening['y']:opening['y'] + opening['h'], opening['x']:opening['x'] + opening['w']] = True
+    check(sent and changed.any() and not (changed & ~inside).any(),
+          f'the welcome note comes in on the sasquatch\'s arm ({int(changed.sum())} pixels change mid-reach), all of it '
+          f'inside the window opening: the frame hides where it reaches in from ({int((changed & ~inside).sum())} outside)')
+
+    # Once it is done: only the note on the sill is new, exactly the note_sill art.
+    page.evaluate('cabin.test.advanceTo(30)')
+    rested = canvas_pixels(page)[..., :3]
+    plain = capture_at(browser, base, q, 30, problems)[0][..., :3]
+    changed = np.any(rested != plain, axis=2)
+    outside = changed.copy()
+    outside[box] = False
+    art = np.asarray(Image.open(ROOT / 'anim' / 'note' / 'note_sill_day.png').convert('RGBA'))
+    expected = plain[box].copy()
+    opaque = art[..., 3] == 255
+    expected[opaque] = art[..., :3][opaque]
+    exact = np.array_equal(rested[box], expected)
+    type_command(page, 'ls')
+    listed = output_lines(page)
+    check(not outside.any() and exact and stats(page).get('welcomeNote') == 1 and 'note' in listed[0].split(),
+          f'the note lands on the sill: only its box changes ({int(outside.sum())} pixels elsewhere), pixel-exact against '
+          f'note_sill_day.png ({exact}); saved as left on the sill ({stats(page).get("welcomeNote")}); `ls`: {listed}')
+
+    # Hover, click: it unfolds and the note opens with every word from the content file.
+    page.mouse.move(*art_point(page, sill['placement']['x'], sill['placement']['y'] - 6))
+    cursor = page.evaluate("getComputedStyle(document.getElementById('scene')).cursor")
+    page.mouse.click(*art_point(page, sill['placement']['x'], sill['placement']['y'] - 6))
+    page.evaluate('cabin.test.advanceTo(40)')
+    page.wait_for_selector('.wn-backdrop.is-visible')
+    page.wait_for_timeout(300)
+    text = page.evaluate("document.querySelector('.wn').textContent")
+    words = [w for line in content['lines'] for w in line.replace('`', '').split()] + [content['signature']]
+    missing = [w for w in words if w not in text]
+    commands = page.eval_on_selector_all('.wn-command', 'els => els.map(e => e.textContent)')
+    page.screenshot(path=str(SCREENS / 'welcome_note.png'))
+    check(cursor == 'pointer' and not missing and commands == ['help', 'whoami'],
+          f'hovering the note shows the hand ({cursor}); clicking it opens the note with every word from '
+          f'welcome_note.json (missing: {missing or "none"}) and {commands} as buttons')
+
+    # `help` in the note: the note closes for good and the command waits on the prompt.
+    page.click('.wn-command >> text=help')
+    page.evaluate('cabin.test.advanceTo(50)')
+    page.wait_for_selector('.wn-backdrop', state='hidden')
+    prompt = page.input_value('#input')
+    focused = page.evaluate("document.activeElement.id")
+    gone = np.array_equal(canvas_pixels(page)[..., :3], capture_at(browser, base, q, 50, problems, ['ls'], command_tick=30)[0][..., :3])
+    again = page.evaluate('cabin.app.events.welcomeNote()')
+    page.fill('#input', '')
+    type_command(page, 'touch note')
+    touched = output_lines(page)
+    check(prompt == 'help' and focused == 'input' and gone and stats(page).get('welcomeNote') == 2 and again is False,
+          f'clicking `help` in it closes the note, puts "{prompt}" on the focused prompt ({focused}), and the note is gone '
+          f'from the sill ({gone}), saved as read ({stats(page).get("welcomeNote")}); it is never delivered again '
+          f'({again}); `touch note`: {touched}')
+    problems.extend(pp)
+    page.context.close()
+
+    # rm / touch while it is unread.
+    page, pp = open_page(browser, base, q, problems)
+    page.evaluate('cabin.app.events.welcomeNote()')
+    page.evaluate('cabin.test.advanceTo(30)')
+    removed = (type_command(page, 'rm note'), output_lines(page))[1]
+    page.evaluate('cabin.test.advanceTo(31)')
+    off = not np.any(canvas_pixels(page)[..., :3][box] != capture_at(browser, base, q, 31, problems)[0][..., :3][box])
+    put = (type_command(page, 'touch note'), output_lines(page))[1]
+    page.evaluate('cabin.test.advanceTo(32)')
+    back = bool(np.any(canvas_pixels(page)[..., :3][box] != capture_at(browser, base, q, 32, problems)[0][..., :3][box]))
+    check(off and back and not pp, f'`rm note`: {removed}, the sill is bare there ({off}); `touch note`: {put}, and it is back ({back})')
+    problems.extend(pp)
+    page.context.close()
+
+    # The real thing: a first visit (nothing saved) gets it a moment after opening, by itself.
+    ctx = browser.new_context(viewport={'width': 1366, 'height': 768})
+    page = ctx.new_page()
+    pp = watch_page(page)
+    page.goto(base + 'index.html')
+    page.wait_for_function('window.cabin && window.cabin.app')
+    page.wait_for_timeout(1500)
+    early = stats(page).get('welcomeNote')
+    page.wait_for_timeout(4500)
+    first = stats(page).get('welcomeNote')
+    page.reload()
+    page.wait_for_function('window.cabin && window.cabin.app')
+    type_command(page, 'ls')
+    kept = output_lines(page)
+    # A visitor from before the note existed: saved progress, no note. They never get one.
+    page.evaluate("""() => { const key = Object.keys(localStorage)[0]; const saved = JSON.parse(localStorage.getItem(key));
+                             delete saved.stats.welcomeNote; localStorage.setItem(key, JSON.stringify(saved)); }""")
+    page.reload()
+    page.wait_for_function('window.cabin && window.cabin.app')
+    page.wait_for_timeout(6000)
+    returning = stats(page).get('welcomeNote')
+    check(early is None and first == 1 and 'note' in kept[0].split() and returning is None and not pp,
+          f'a first visit: no note yet at 1.5 s ({early}), left on the sill by 6 s ({first}); after a reload the unread '
+          f'note is still there (`ls`: {kept}); a visitor with progress saved from before never gets one ({returning})')
+    problems.extend(pp)
+    ctx.close()
+
 
 # ── 5d. the coffee mug ───────────────────────────────────────────────────
 def check_mug(browser, base, problems):
@@ -1272,6 +1400,7 @@ def main():
         check_folder(browser, base, problems)
         check_folder_popup(browser, base, problems)
         check_landscape_phone(browser, base, problems)
+        check_welcome_note(browser, base, problems)
         check_cigarette(browser, base, problems)
         check_sill(browser, base, problems)
         check_unlock_bubble(browser, base, problems)

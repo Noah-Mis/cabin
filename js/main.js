@@ -16,6 +16,7 @@ import { runCommand, everyDayCommands } from './commands.js';
 import { createProgress } from './progress.js';
 import { startAchievements, track, resetAchievements, listAchievements, isUnlocked } from './achievements.js';
 import { createUnlockSign } from './unlock-sign.js';
+import { createNotePopup } from './note-popup.js';
 import { createBoardPopup } from './board-popup.js';
 import { loadBoardArt } from './scene/board.js';
 import { startSound, soundLog, soundState, outputLevelDb } from './sound.js';
@@ -96,7 +97,13 @@ async function boot() {
 
   const weather = createWeather(config);
   const timeOfDay = createTimeOfDay(config, testOptions?.time);
-  const layers = buildLayers(assets, { weather, timeOfDay, board: { ...boardArt, popup: boardPopup } });
+  const notePopup = createNotePopup(canvas, {
+    bottomInset: () => document.getElementById('terminal').offsetHeight,
+    onCommand: terminal.prefill,
+  });
+  const layers = buildLayers(assets, {
+    weather, timeOfDay, board: { ...boardArt, popup: boardPopup }, welcome: { progress, popup: notePopup },
+  });
   // The scene's events, plus a spell of weather (the weather isn't a layer).
   const events = { ...collectEvents(layers), weather: weather.startSpell };
   const renderer = createRenderer(canvas, layers);
@@ -146,6 +153,8 @@ async function boot() {
   const scheduler = createScheduler(config.events, events, Math.random, { ...collectRunning(layers), weather: weather.running });
   window.cabin.scheduler = scheduler;
   terminal.print(config.terminal.greeting);
+  // A first visit: a sasquatch leaves a note on the sill once the scene has settled.
+  if (progress.firstVisit()) events.welcomeNote({ afterSec: config.welcomeNote.deliverAfterSec });
 
   let lastFrameMs = performance.now();
   let visibleMs = 0;   // time on the page counts only while the tab is visible

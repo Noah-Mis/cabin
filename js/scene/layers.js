@@ -1,8 +1,9 @@
 // layers.js — the scene, back to front, in the manifest's draw_order.
 // To add a scene element: write its file, import it, and add one line here.
 // Achievement rewards are ordinary elements that draw nothing until earned.
-// Exports: buildLayers(assets, { weather, timeOfDay, board }) -> list of scene elements
+// Exports: buildLayers(assets, { weather, timeOfDay, board, welcome }) -> list of scene elements
 //   board: { layout, images, popup } for the achievement board (see board.js)
+//   welcome: { progress, popup } for the welcome note (see welcomenote.js)
 
 import { createBackground } from './background.js';
 import { createSky } from './sky.js';
@@ -28,9 +29,11 @@ import { createMug } from './mug.js';
 import { createTrophy } from './trophy.js';
 import { createFolder } from './folder.js';
 import { createCigarette } from './cigarette.js';
+import { createWelcomeNote } from './welcomenote.js';
 
-export function buildLayers(assets, { weather, timeOfDay, board }) {
+export function buildLayers(assets, { weather, timeOfDay, board, welcome }) {
   const mug = createMug(assets);
+  const note = createWelcomeNote(assets, { ...welcome, timeOfDay });
   const deer = createDeer(assets, { weather });
   const treeSnow = createTreeSnow(assets, { weather });
   return [
@@ -55,11 +58,13 @@ export function buildLayers(assets, { weather, timeOfDay, board }) {
     treeSnow,                         // snow on the front trees, at the same stage as the far ones
     createTreetops(assets),
     createBird(assets),
+    note.arm,                         // the sasquatch's arm bringing the welcome note, outside the window
     createPrecipitation(assets, weather),
     createWind(assets),
     createWindowFrame(assets),
     createBoard(assets, board),       // hangs on the right-hand log; click it for the achievements
     // ── sill items ──
+    note,                             // the welcome note, left of the others; click it to read
     mug,
     createTrophy(assets),
     createFolder(assets),             // `whoami`; click it to open

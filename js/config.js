@@ -9,6 +9,7 @@ export const config = {
     { dir: 'anim/', manifest: 'manifest.json' },
     { dir: 'anim/smoke/', manifest: 'smoke_manifest.json' },
     { dir: 'anim/folder/', manifest: 'folder_manifest.json' },
+    { dir: 'anim/note/', manifest: 'note_manifest.json' },
     { dir: 'anim/achievements/', manifest: 'achievements.json' },
   ],
   // "<time>" is replaced by morning/day/afternoon/night. (The window frame's
@@ -129,6 +130,18 @@ export const config = {
     // cramped, so a plain single-column panel is shown instead.
     minCssPxPerArtPx: 3,
     fadeMs: 200,
+  },
+
+  // The welcome note: on a first visit a sasquatch leaves it on the sill;
+  // clicking it opens a short note pointing at `help` and `whoami`. Once
+  // read it is gone for good. Its words are in the content file.
+  welcomeNote: {
+    contentFile: 'content/welcome_note.json',
+    deliverAfterSec: 2.5,         // after the page opens, so the scene settles first
+    minCssPxPerArtPx: 3,          // like the folder: plain panel below this
+    fadeMs: 200,
+    size: [112, 64],              // the paper, in art pixels
+    backdrop: 'rgba(20,12,6,0.6)',   // the same dimming as the folder and the board
   },
 
   // The achievement board on the right-hand log, and the pop-up it opens.

@@ -8,7 +8,8 @@
 // goes away after each command, and the prompt rides just above it.
 // Exports: createTerminal(elements, { onCommand, maxHistory, compactLandscape })
 //            compactLandscape: a MediaQueryList (config.compactLandscape.query)
-//          -> { print, say, announce, clear, focus, setTheme }
+//          -> { print, say, announce, clear, focus, setTheme, prefill }
+//   prefill(text) puts text on the prompt, ready to send, and focuses it.
 
 export function createTerminal({ bubble, form, input }, { onCommand, maxHistory, compactLandscape }) {
   const terminal = form.parentElement;
@@ -54,6 +55,12 @@ export function createTerminal({ bubble, form, input }, { onCommand, maxHistory,
 
   function focus() {
     input.focus({ preventScroll: true });
+  }
+
+  function prefill(text) {
+    input.value = text;
+    focus();
+    input.setSelectionRange(text.length, text.length);
   }
 
   function remember(line) {
@@ -119,5 +126,5 @@ export function createTerminal({ bubble, form, input }, { onCommand, maxHistory,
     if (compactLandscape.matches) window.scrollTo(0, 0);
   });
 
-  return { print, say, announce, clear, focus, setTheme };
+  return { print, say, announce, clear, focus, setTheme, prefill };
 }

@@ -1,0 +1,10 @@
+{
+  "label": "A note on the sill",
+  "lines": [
+    "Hey stranger,",
+    "Welcome to the cabin. Looks like you found your way here.",
+    "If you're lost, type `help` in the terminal below. It'll show you around.",
+    "And if you're curious who lives here... try `whoami`."
+  ],
+  "signature": "— S."
+}
