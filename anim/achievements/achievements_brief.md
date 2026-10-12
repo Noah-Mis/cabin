@@ -26,7 +26,6 @@ Before writing code, read the existing site's modules so that what you add follo
 | `bird_watcher` | Clicking 50 birds | Every bird uses the `_shiny` sheets and drops a `sparkle` behind it every few frames |
 | `cryptid_hunter` | Clicking the sasquatch 10 times | About one appearance in five is the yeti (`yeti_peek`, or `yeti_wave` since the first achievement is always earned by then) |
 | `caffeinated` | Clicking the coffee cup 25 times | The cup is drawn with `mug_camp` |
-| `smoke_break` | Letting the full smoking sequence play to its end | `ashtray` sits on the sill |
 | `case_closed` | Opening all four tabs in the folder pop-up | The folder uses the gold-seal art everywhere: `folder_reviewed` at rest, `folder_reviewed_place` when the `whoami` command brings it onto the sill, `folder_reviewed_open` when it opens and `folder_reviewed_close` when it closes |
 | `night_owl` | Being on the site while it is night | `shooting_star` plays at random spots, every 30-90 seconds at night |
 | `around_the_clock` | Having seen all four times of day | `aurora` fades in slowly on roughly one night in three and loops (60 frames, about 10 seconds a cycle) |

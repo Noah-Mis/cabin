@@ -7,7 +7,10 @@
 2. Commands typed into the real terminal, in test mode so each effect can be
    compared pixel for pixel with a page that did not run the command.
    `time X` must end up identical to a page that started at X: proof that
-   every layer swapped palette and nothing was left behind.
+   every layer swapped palette and nothing was left behind. Rain and snow
+   start light and build up (rain a drop at a time, no drop vanishing
+   mid-fall; snow fading in), thin out before they clear, and once that is
+   done match a page that started with them.
 3. Terminal behaviour: focus, history recall, the reply bubble (one at a
    time, replaced by each command, removed by `clear`), unknown / empty /
    repeated input, and that creatures and wind are no longer commands.
@@ -26,7 +29,13 @@
    with no text spilling out of its region, turning the phone with one open,
    the keyboard coming up only from the prompt and going away after a
    command, and a desktop window of the same size left exactly as it was.
-9. No console errors or warnings, no failed requests, anywhere above.
+9. The welcome note: the sasquatch's arm stays behind the window frame,
+   the note lands on the sill pixel-exact, hover and click open the note
+   with every word from content/welcome_note.json, `help` in it goes onto the
+   prompt and the note is gone for good; `rm` / `touch note`; a real first
+   visit gets it by itself, a reload keeps an unread one, and a returning
+   visitor from before never gets one.
+10. No console errors or warnings, no failed requests, anywhere above.
 
 Writes tests/results/behaviour.md and tests/results/screens/.
 Run:  python tests/behaviour.py
@@ -207,18 +216,83 @@ def check_commands(browser, base, problems):
 
     # Snow settles on the trees the longer it falls, so a page that started
     # snowing earlier has more of it: leave those pixels out (check_tree_snow tests them).
+    # Rain and snow take config.precipitation's 20 s to build up or thin out.
     snow_on_trees = tree_snow_mask()
     for target in ('rain', 'snow', 'clear'):
         start = '&weather=rain' if target == 'clear' else ''
-        switched, lines = capture_at(browser, base, q + start, 20, problems, [f'weather {target}'], command_tick=5)
-        fresh, _ = capture_at(browser, base, f'{q}&weather={target}', 20, problems)
+        switched, lines = capture_at(browser, base, q + start, RAMP_TICKS + 10, problems, [f'weather {target}'], command_tick=5)
+        fresh, _ = capture_at(browser, base, f'{q}&weather={target}', RAMP_TICKS + 10, problems)
         save_pair(f'command_weather_{target}.png', fresh, switched)
         if target == 'snow':
             switched, fresh = switched.copy(), fresh.copy()
             switched[snow_on_trees] = fresh[snow_on_trees] = 0
         check(diff_box(switched, fresh)[0] == 0,
-              f'`weather {target}`: identical to a page started with {target}'
+              f'`weather {target}`: once it has built up or thinned out, identical to a page started with {target}'
               f'{" (apart from how much snow has settled on the trees)" if target == "snow" else ""}; terminal said "{lines[-1]}"')
+
+    check_precipitation_ramp(browser, base, problems)
+
+
+RAMP_TICKS = 200   # config.precipitation: 20 s each way, in 100 ms ticks
+
+
+def check_precipitation_ramp(browser, base, problems):
+    """Rain and snow start light and build up, and thin out before they clear."""
+    q = '?test&time=day'
+    # Only the open window (sky, mountains, forest): nothing is drawn over the rain there.
+    window = np.zeros((180, 320), bool)
+    window[28:125, 44:276] = True
+    ys, xs = np.mgrid[0:180, 0:320]
+    line = (2 * xs - 3 * ys) % 64   # a rain drop's line: the sheet moves 24 right, 16 down a frame
+
+    def series(query, commands, ticks):
+        page, pp = open_page(browser, base, query, problems)
+        shots = {}
+        for t in ticks:
+            page.evaluate(f'cabin.test.advanceTo({t})')
+            for at, c in commands:
+                if at == t:
+                    type_command(page, c)
+            shots[t] = canvas_pixels(page)[..., :3].astype(int)
+        problems.extend(pp)
+        page.context.close()
+        return shots
+
+    up = list(range(5, 5 + RAMP_TICKS + 2))
+    clear = series(q, [], up)
+    rain = series(q, [(5, 'weather rain')], up)
+    full = series(f'{q}&weather=rain', [], [6])[6]
+    drawn = lambda shot, t: np.any(shot != clear[t], axis=2) & window
+    lines = {t: set(np.unique(line[drawn(rain[t], t)]).tolist()) for t in up[1:]}
+    first = int(drawn(rain[6], 6).sum())
+    all_drops = int(drawn(full, 6).sum())
+    lost = [t for t in up[2:] if not lines[t - 1] <= lines[t]]
+    grows = len(lines[6]) < len(lines[5 + RAMP_TICKS // 2]) < len(lines[up[-1]])
+    save_pair('weather_rain_starting.png', rain[6].astype(np.uint8), rain[5 + RAMP_TICKS // 2].astype(np.uint8))
+    check(0 < first < all_drops * 0.35 and not lost and grows,
+          f'`weather rain` starts light: {first} rain pixels in the window the moment it starts, against {all_drops} '
+          f'in full rain; drops join a line at a time ({len(lines[6])} lines, then {len(lines[5 + RAMP_TICKS // 2])} '
+          f'10 s in, {len(lines[up[-1]])} at full) and none vanishes on the way (lines lost: {lost or "none"})')
+
+    down = list(range(5, 5 + RAMP_TICKS + 2))
+    clearing = series(f'{q}&weather=rain', [(5, 'weather clear')], down)
+    still = series(f'{q}&weather=rain', [], [5])[5]
+    left = {t: set(np.unique(line[drawn(clearing[t], t)]).tolist()) for t in down[1:]}
+    returned = [t for t in down[2:] if not left[t] <= left[t - 1]]
+    thinning = len(left[6]) > len(left[5 + RAMP_TICKS // 2]) > 0
+    gone = int(drawn(clearing[down[-1]], down[-1]).sum())
+    check(np.array_equal(clearing[5], still) and thinning and not returned and gone == 0,
+          f'`weather clear` thins the rain out: {len(left[6])} lines, {len(left[5 + RAMP_TICKS // 2])} 10 s later, '
+          f'none coming back ({returned or "none"}), and none left after 20 s ({gone} rain pixels)')
+
+    # Snow fades in: how far its pixels have moved from a clear sky only grows.
+    snow = series(q, [(5, 'weather snow')], up)
+    on_trees = tree_snow_mask()
+    strength = {t: int(np.abs(snow[t] - clear[t])[window & ~on_trees].sum()) for t in up[1:]}
+    # Averaged over 2 s at a time: a few faint flakes add up differently frame to frame.
+    averages = [int(np.mean([strength[t] for t in up[1 + i:21 + i]])) for i in range(0, RAMP_TICKS, 20)]
+    check(averages[0] > 0 and all(a < b for a, b in zip(averages, averages[1:])),
+          f'`weather snow` fades in: colour change in the window, averaged over each 2 s, climbs steadily: {averages}')
 
 
 # ── 3. terminal ──────────────────────────────────────────────────────────
@@ -674,6 +748,128 @@ def check_landscape_phone(browser, base, problems):
           f'({refocused}), prompt at 14px ({font})')
     problems.extend(pp)
     page.context.close()
+
+# ── 5e. the welcome note ──────────────────────────────────────────────────
+def check_welcome_note(browser, base, problems):
+    report.append('\n## Welcome note\n')
+    content = json.loads((ROOT / 'content' / 'welcome_note.json').read_text(encoding='utf-8'))
+    note = json.loads((ROOT / 'anim' / 'note' / 'note_manifest.json').read_text())['animations']
+    sill = note['note_sill']
+    left, top = sill['placement']['x'] - sill['anchor'][0], sill['placement']['y'] - sill['anchor'][1]
+    box = (slice(top, top + sill['frame_h']), slice(left, left + sill['frame_w']))
+    opening = json.loads((ROOT / 'anim' / 'manifest.json').read_text())['window_opening']
+    q = '?test&time=day'
+    stats = lambda page: page.evaluate('cabin.app.progressStats().stats')
+
+    def art_point(page, x, y):
+        r = page.evaluate("(() => { const r = document.getElementById('scene').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+        return r[0] + x * r[2] / 320, r[1] + y * r[3] / 180
+
+    page, pp = open_page(browser, base, q, problems, viewport={'width': 1366, 'height': 768})
+    sent = page.evaluate('cabin.app.events.welcomeNote()')
+    # Mid-reach: everything the arm adds is inside the window opening (the frame hides the rest).
+    page.evaluate('cabin.test.advanceTo(8)')
+    reaching = canvas_pixels(page)[..., :3]
+    plain = capture_at(browser, base, q, 8, problems)[0][..., :3]
+    changed = np.any(reaching != plain, axis=2)
+    inside = np.zeros_like(changed)
+    inside[opening['y']:opening['y'] + opening['h'], opening['x']:opening['x'] + opening['w']] = True
+    check(sent and changed.any() and not (changed & ~inside).any(),
+          f'the welcome note comes in on the sasquatch\'s arm ({int(changed.sum())} pixels change mid-reach), all of it '
+          f'inside the window opening: the frame hides where it reaches in from ({int((changed & ~inside).sum())} outside)')
+
+    # Once it is done: only the note on the sill is new, exactly the note_sill art.
+    page.evaluate('cabin.test.advanceTo(30)')
+    rested = canvas_pixels(page)[..., :3]
+    plain = capture_at(browser, base, q, 30, problems)[0][..., :3]
+    changed = np.any(rested != plain, axis=2)
+    outside = changed.copy()
+    outside[box] = False
+    art = np.asarray(Image.open(ROOT / 'anim' / 'note' / 'note_sill_day.png').convert('RGBA'))
+    expected = plain[box].copy()
+    opaque = art[..., 3] == 255
+    expected[opaque] = art[..., :3][opaque]
+    exact = np.array_equal(rested[box], expected)
+    type_command(page, 'ls')
+    listed = output_lines(page)
+    check(not outside.any() and exact and stats(page).get('welcomeNote') == 1 and 'note' in listed[0].split(),
+          f'the note lands on the sill: only its box changes ({int(outside.sum())} pixels elsewhere), pixel-exact against '
+          f'note_sill_day.png ({exact}); saved as left on the sill ({stats(page).get("welcomeNote")}); `ls`: {listed}')
+
+    # Hover, click: it unfolds and the note opens with every word from the content file.
+    page.mouse.move(*art_point(page, sill['placement']['x'], sill['placement']['y'] - 6))
+    cursor = page.evaluate("getComputedStyle(document.getElementById('scene')).cursor")
+    page.mouse.click(*art_point(page, sill['placement']['x'], sill['placement']['y'] - 6))
+    page.evaluate('cabin.test.advanceTo(40)')
+    page.wait_for_selector('.wn-backdrop.is-visible')
+    page.wait_for_timeout(300)
+    text = page.evaluate("document.querySelector('.wn').textContent")
+    words = [w for line in content['lines'] for w in line.replace('`', '').split()] + [content['signature']]
+    missing = [w for w in words if w not in text]
+    commands = page.eval_on_selector_all('.wn-command', 'els => els.map(e => e.textContent)')
+    page.screenshot(path=str(SCREENS / 'welcome_note.png'))
+    check(cursor == 'pointer' and not missing and commands == ['help', 'whoami'],
+          f'hovering the note shows the hand ({cursor}); clicking it opens the note with every word from '
+          f'welcome_note.json (missing: {missing or "none"}) and {commands} as buttons')
+
+    # `help` in the note: the note closes for good and the command waits on the prompt.
+    page.click('.wn-command >> text=help')
+    page.evaluate('cabin.test.advanceTo(50)')
+    page.wait_for_selector('.wn-backdrop', state='hidden')
+    prompt = page.input_value('#input')
+    focused = page.evaluate("document.activeElement.id")
+    gone = np.array_equal(canvas_pixels(page)[..., :3], capture_at(browser, base, q, 50, problems, ['ls'], command_tick=30)[0][..., :3])
+    again = page.evaluate('cabin.app.events.welcomeNote()')
+    page.fill('#input', '')
+    type_command(page, 'touch note')
+    touched = output_lines(page)
+    check(prompt == 'help' and focused == 'input' and gone and stats(page).get('welcomeNote') == 2 and again is False,
+          f'clicking `help` in it closes the note, puts "{prompt}" on the focused prompt ({focused}), and the note is gone '
+          f'from the sill ({gone}), saved as read ({stats(page).get("welcomeNote")}); it is never delivered again '
+          f'({again}); `touch note`: {touched}')
+    problems.extend(pp)
+    page.context.close()
+
+    # rm / touch while it is unread.
+    page, pp = open_page(browser, base, q, problems)
+    page.evaluate('cabin.app.events.welcomeNote()')
+    page.evaluate('cabin.test.advanceTo(30)')
+    removed = (type_command(page, 'rm note'), output_lines(page))[1]
+    page.evaluate('cabin.test.advanceTo(31)')
+    off = not np.any(canvas_pixels(page)[..., :3][box] != capture_at(browser, base, q, 31, problems)[0][..., :3][box])
+    put = (type_command(page, 'touch note'), output_lines(page))[1]
+    page.evaluate('cabin.test.advanceTo(32)')
+    back = bool(np.any(canvas_pixels(page)[..., :3][box] != capture_at(browser, base, q, 32, problems)[0][..., :3][box]))
+    check(off and back and not pp, f'`rm note`: {removed}, the sill is bare there ({off}); `touch note`: {put}, and it is back ({back})')
+    problems.extend(pp)
+    page.context.close()
+
+    # The real thing: a first visit (nothing saved) gets it a moment after opening, by itself.
+    ctx = browser.new_context(viewport={'width': 1366, 'height': 768})
+    page = ctx.new_page()
+    pp = watch_page(page)
+    page.goto(base + 'index.html')
+    page.wait_for_function('window.cabin && window.cabin.app')
+    page.wait_for_timeout(1500)
+    early = stats(page).get('welcomeNote')
+    page.wait_for_timeout(4500)
+    first = stats(page).get('welcomeNote')
+    page.reload()
+    page.wait_for_function('window.cabin && window.cabin.app')
+    type_command(page, 'ls')
+    kept = output_lines(page)
+    # A visitor from before the note existed: saved progress, no note. They never get one.
+    page.evaluate("""() => { const key = Object.keys(localStorage)[0]; const saved = JSON.parse(localStorage.getItem(key));
+                             delete saved.stats.welcomeNote; localStorage.setItem(key, JSON.stringify(saved)); }""")
+    page.reload()
+    page.wait_for_function('window.cabin && window.cabin.app')
+    page.wait_for_timeout(6000)
+    returning = stats(page).get('welcomeNote')
+    check(early is None and first == 1 and 'note' in kept[0].split() and returning is None and not pp,
+          f'a first visit: no note yet at 1.5 s ({early}), left on the sill by 6 s ({first}); after a reload the unread '
+          f'note is still there (`ls`: {kept}); a visitor with progress saved from before never gets one ({returning})')
+    problems.extend(pp)
+    ctx.close()
 
 
 # ── 5d. the coffee mug ───────────────────────────────────────────────────
@@ -1204,6 +1400,7 @@ def main():
         check_folder(browser, base, problems)
         check_folder_popup(browser, base, problems)
         check_landscape_phone(browser, base, problems)
+        check_welcome_note(browser, base, problems)
         check_cigarette(browser, base, problems)
         check_sill(browser, base, problems)
         check_unlock_bubble(browser, base, problems)

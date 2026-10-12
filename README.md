@@ -11,8 +11,8 @@ anim/                 the art: one folder per scene element, plus manifest.json 
   scene/              background, near forest, window frame, sky mask (the static layers)
   waterfall/ stars/ clouds/ rain/ snow/ treetops/ birds/ sasquatch/ mug/ wind/
   tree_snow/          snow settling on the trees in four stages (weather_overlays in manifest.json), and its brief
-  smoke/              the smoke pack with its own smoke_manifest.json (listed in config.assetPacks)
   folder/             the folder pack with its own folder_manifest.json
+  note/               the welcome note pack with its own note_manifest.json, and its brief
   board/              the achievement board and its pop-up: art, board_layout.json (every position), mockups, brief
   achievements/       achievement sprites, badges, sign, and achievements.json (THE LIST OF ACHIEVEMENTS)
     popup/            the folder pop-up art, popup_layout.json (positions, colours), notes, mockups
@@ -27,6 +27,7 @@ js/
   renderer.js         draws the layer list; cross-fades between times of day
   timeofday.js        current time of day, following the clock in "auto"
   weather.js          current weather; spells of rain or snow now and then, on the scheduler
+                      (scene/precipitation.js starts them light and thins them out before they clear)
   scheduler.js        random min/max/chance timers that fire events
   terminal.js         one-line prompt, reply bubble, up/down history; sideways phone: keyboard only from the prompt
   commands.js         the command table
@@ -41,6 +42,7 @@ js/
   pointer.js          mouse hover and click on scene elements, in art pixels
   outline.js          the black hover outline for clickable sill items
   folder-contents.js  what the folder shows when opened: connects it to the pop-up
+  note-popup.js       the welcome note pop-up: a sheet of paper; `help` / `whoami` in it go onto the prompt
   popup-frame.js      what every pop-up shares: backdrop, pixel scale, plain fallback (art kept on a sideways phone),
                       fade, Escape / click-outside
   folder-popup.js     the folder pop-up: folder art at pixel scale, HTML text over its regions, tabs
@@ -55,12 +57,13 @@ js/
     wind.js  windowframe.js  mug.js
     folder.js         `whoami`: the folder on the sill; click to open / close
     board.js          the achievement board on the right-hand log: a pin per achievement; click to open
+    welcomenote.js    first visit: a sasquatch's arm leaves a note on the sill; click to read it
     aurora.js  shootingstars.js  rainbow.js  deer.js  trophy.js   achievement rewards
     sparkles.js       one-shot twinkles (bird trail, clicked stars, trophy)
-    cigarette.js      hidden `cig` easter egg
 sounds/               waterfall.mp3 (loops), bird_flap.wav, wind.wav
 content/
   folder_content.json EVERY WORD IN THE FOLDER POP-UP: card, stamp, sticky note, each tab
+  welcome_note.json   every word in the welcome note (`word` in backticks becomes a command button)
 Noah_Misukonis_2026_Resume.pdf   linked from the pop-up (sticky note and Contact tab)
 tests/                pixel comparison and behaviour checks (not needed by the site)
 ```
@@ -103,7 +106,7 @@ The sun goes in the marked **SUN SLOT** at the top of the sky group in
 
 To make an element clickable, give it
 `pointer: { contains(x, y), setHovered(on), click() }` (art pixels); see
-`js/scene/cigarette.js`. A command with `hidden: true` works but is left out of `help`.
+`js/scene/folder.js`. A command with `hidden: true` works but is left out of `help`.
 
 ## Add a command
 

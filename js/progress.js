@@ -5,16 +5,19 @@
 // Storage can be missing, full, or throw (private windows, blocked cookies);
 // then progress simply lasts for this visit. Missing, malformed or
 // older-version data means a fresh start, never an error.
+// firstVisit() is true when nothing was saved before this page opened.
 // Exports: createProgress({ storageKey, version })
-//   -> { stats(), unlocked(), add, addToSet, setStat, markUnlocked, reset, persistent() }
+//   -> { stats(), unlocked(), add, addToSet, setStat, markUnlocked, reset, persistent(), firstVisit() }
 
 export function createProgress({ storageKey, version }) {
+  let firstVisit = true;
   let state = read();
   let persistent = canWrite();
 
   function read() {
     try {
       const raw = window.localStorage.getItem(storageKey);
+      firstVisit = !raw;
       return raw ? clean(JSON.parse(raw), version) : fresh(version);
     } catch {
       return fresh(version);
@@ -69,6 +72,7 @@ export function createProgress({ storageKey, version }) {
       save();
     },
     persistent: () => persistent,
+    firstVisit: () => firstVisit,
   };
 }
 

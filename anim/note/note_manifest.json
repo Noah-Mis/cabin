@@ -1,0 +1,78 @@
+{
+  "canvas": [
+    320,
+    180
+  ],
+  "note": "The welcome note a sasquatch leaves on the sill on a visitor's first visit (note_brief.md; drawn by anim/scripts/note.py). Sheets are single rows of equal frames. Position each so its anchor point lands on the placement x,y; sheets with anchor [0,0] are placed by their top-left corner.",
+  "animations": {
+    "note_deliver": {
+      "files": [
+        "note_deliver_morning.png",
+        "note_deliver_day.png",
+        "note_deliver_afternoon.png",
+        "note_deliver_night.png"
+      ],
+      "frame_w": 120,
+      "frame_h": 70,
+      "frames": 16,
+      "ms_per_frame": 120,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "x": 18,
+        "y": 86
+      },
+      "release_frame": 11,
+      "note": "First visit only, plays once. A sasquatch arm reaches in from the LEFT at mid-window height, lowers the note to the sill and lets go on release_frame, then pulls back out. Drawn BEFORE cabin_window, so the frame hides where the arm comes in from outside. The note it lets go of is note_sill, drawn after cabin_window from release_frame on (the copy in this sheet lies behind the sill)."
+    },
+    "note_sill": {
+      "files": [
+        "note_sill_morning.png",
+        "note_sill_day.png",
+        "note_sill_afternoon.png",
+        "note_sill_night.png"
+      ],
+      "frame_w": 25,
+      "frame_h": 17,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        11,
+        13
+      ],
+      "placement": {
+        "x": 74,
+        "y": 148,
+        "region": "sill band"
+      },
+      "note": "Static folded note on the sill (with its 2 px shadow). Clickable: opens the welcome note. Gone for good once read."
+    },
+    "note_open": {
+      "files": [
+        "note_open_morning.png",
+        "note_open_day.png",
+        "note_open_afternoon.png",
+        "note_open_night.png"
+      ],
+      "frame_w": 26,
+      "frame_h": 32,
+      "frames": 6,
+      "ms_per_frame": 110,
+      "loop": false,
+      "anchor": [
+        12,
+        29
+      ],
+      "placement": {
+        "x": 74,
+        "y": 148,
+        "region": "sill band"
+      },
+      "note": "The note unfolding before the welcome note opens; replaces note_sill while it plays. Frame 0 is note_sill exactly, so the anchor lines it up on the same spot."
+    }
+  }
+}

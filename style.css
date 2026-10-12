@@ -421,6 +421,64 @@ html, body {
 .ab.is-plain .ab-note { padding: 12px; background: #f4f0e8; display: flex; flex-direction: column; gap: 8px; }
 .ab.is-plain .ab-progress { color: var(--ab-text-on-felt); }
 
+/* ── Welcome note pop-up (js/note-popup.js) ────────────────────────────
+   No art: a sheet of paper drawn here, darker at night (is-night). Its
+   size is a minimum: where the text can't shrink with the scene (small
+   screens) the paper grows to fit it. */
+.wn {
+  height: auto;
+  min-height: calc(var(--h) * var(--u));
+  --wn-paper: #f5efdf;
+  --wn-edge: #a89878;
+  --wn-ink: #3a3028;
+  --wn-faint: #8a7a68;
+  --wn-code: #6a3c22;
+  --wn-code-bg: #e6dabd;
+  padding: calc(var(--u) * 7) calc(var(--u) * 9);
+  background: var(--wn-paper);
+  border: 2px solid var(--wn-edge);
+  box-shadow: calc(var(--u) * 1) calc(var(--u) * 1.5) 0 rgba(0, 0, 0, 0.25);
+  color: var(--wn-ink);
+  line-height: 1.5;
+}
+.wn .popup-art { display: none; }   /* nothing to draw; it would sit over the text */
+.wn.is-night {
+  --wn-paper: #2a2830;
+  --wn-edge: #4a4660;
+  --wn-ink: #b0aab8;
+  --wn-faint: #7a748a;
+  --wn-code: #90c8a0;
+  --wn-code-bg: #1e1c24;
+}
+.wn-body { display: flex; flex-direction: column; gap: 0.75em; }
+.wn-signature { align-self: flex-end; padding-right: 1em; }
+.wn-close {
+  position: absolute;
+  top: calc(var(--u) * 2);
+  right: calc(var(--u) * 3);
+  margin: 0;
+  padding: 0 0.25em;
+  border: 0;
+  background: transparent;
+  color: var(--wn-faint);
+  font: inherit;
+  cursor: pointer;
+}
+.wn-close:hover { color: var(--wn-ink); }
+.wn-command {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.wn-command code { padding: 0 0.3em; background: var(--wn-code-bg); color: var(--wn-code); font: inherit; }
+.wn-command:hover code { text-decoration: underline; }
+.wn-close:focus-visible, .wn-command:focus-visible { outline: 2px solid var(--wn-code); }
+.wn.is-plain .wn-close { top: 8px; right: 10px; }
+.wn.is-plain { margin: 12px; }
+
 /* ── Achievement unlock sign (js/unlock-sign.js) ───────────────────────
    Lined up with the canvas; --u is one art pixel in CSS pixels. It waits
    above the view and slides down while shown. */
