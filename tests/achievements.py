@@ -363,17 +363,19 @@ def earn_each(browser, base):
         for i, y in enumerate((50, 64, 72)):
             v.click(60 + 50 * i + 5, y)        # where each bird is one tick (5 px) later
         real = v.stats()['stats'].get('birdClicks')
-        v.cmd('debug set birdclicks 49')
+        goal = DEFS['bird_watcher']['goal']
+        v.cmd(f'debug set birdclicks {goal - 1}')
         v.cmd('debug event bird x=200 y=60 direction=-1')
         v.to(v.tick + 1)
         v.click(195, 60)
-        return f'3 real bird clicks counted ({real}), set to 49, the 50th clicked for real', real == 3
+        return f'3 real bird clicks counted ({real}), set to {goal - 1}, the {goal}th clicked for real', real == 3
 
     @flow('cryptid_hunter')
     def _(v):
-        v.cmd('debug set sasquatchclicks 9')
+        goal = DEFS['cryptid_hunter']['goal']
+        v.cmd(f'debug set sasquatchclicks {goal - 1}')
         n = click_sasquatch(v, 3)
-        return f'sasquatchClicks 9 -> {n} by clicking the real sasquatch', n == 10
+        return f'sasquatchClicks {goal - 1} -> {n} by clicking the real sasquatch', n == goal
 
     @flow('caffeinated')
     def _(v):
@@ -383,11 +385,12 @@ def earn_each(browser, base):
         v.click(mug['x'], mug['y'] - 10)
         v.click(mug['x'], mug['y'] - 10)      # mid-sip: the cup is in the visitor's hand
         during = v.stats()['stats'].get('mugClicks')
-        for _ in range(24):
+        goal = DEFS['caffeinated']['goal']
+        for _ in range(goal - 1):
             v.to(v.tick + sip_ticks)
             v.click(mug['x'], mug['y'] - 10)
         n = v.stats()['stats'].get('mugClicks')
-        return f'25 real sips from the cup ({n}); a click mid-sip did not count ({during})', n == 25 and during == 1
+        return f'{goal} real sips from the cup ({n}); a click mid-sip did not count ({during})', n == goal and during == 1
 
     @flow('smoke_break')
     def _(v):
@@ -735,10 +738,11 @@ def edges(browser, base):
 
     # Hand-edited or older saved data.
     key = re.search(r"storageKey: '([^']+)'", CONFIG).group(1)
+    SIPS = DEFS['caffeinated']['goal'] - 1   # a kept count that is short of its goal
     cases = {
         'not JSON': '{oops',
         'older version': json.dumps({'version': 0, 'stats': {'birdClicks': 49}, 'unlocked': ['woodsman']}),
-        'wrong types': json.dumps({'version': 1, 'stats': {'birdClicks': 'lots', 'mugClicks': 24, 'tabsSeen': [1, 2],
+        'wrong types': json.dumps({'version': 1, 'stats': {'birdClicks': 'lots', 'mugClicks': SIPS, 'tabsSeen': [1, 2],
                                                           'timesSeen': ['day']}, 'unlocked': 'everything'}),
         'a number': '42',
     }
@@ -751,7 +755,7 @@ def edges(browser, base):
         kept = st['stats'].get('mugClicks')
         ok = not v.problems and st['unlocked'] == [] and 'birdClicks' not in st['stats']
         if label == 'wrong types':
-            ok = ok and kept == 24 and st['stats'].get('timesSeen') == ['day'] and 'tabsSeen' not in st['stats']
+            ok = ok and kept == SIPS and st['stats'].get('timesSeen') == ['day'] and 'tabsSeen' not in st['stats']
         check(ok, f'saved data "{label}": starts cleanly (unlocked {st["unlocked"]}, stats {st["stats"]}), console clean')
         v.close()
 
@@ -1216,20 +1220,22 @@ def check_board(browser, base):
     nothing = (chosen(v), note(v), bar(v))
     v.page.keyboard.press('Escape')
     v.page.wait_for_timeout(300)
-    v.cmd('debug set birdclicks 17')
+    birds = DEFS['bird_watcher']['goal']
+    some = birds // 3
+    v.cmd(f'debug set birdclicks {some}')
     open_board(v)
     v.page.click('.ab-slot >> nth=1')
     partway = note(v)
-    v.cmd('debug set birdclicks 50')
+    v.cmd(f'debug set birdclicks {birds}')
     live = (chosen(v), note(v), bar(v), v.frame(v.tick + 10)[BOARD_BOX])
     _, x, y = spots['bird_watcher']
     pin_lit = not np.array_equal(live[3][y + 1:y + 3, x + 1:x + 3], idle[y + 1:y + 3, x + 1:x + 3])
     check(nothing == (0, '??? | HOW | Not yet discovered. | REWARD | ???', '0 of 13 earned, fill 0px')
-          and partway == '??? | HOW | Click 50 birds | 17 / 50 | REWARD | ???'
-          and live[0] == 1 and live[1].startswith('Bird Watcher | HOW | Click 50 birds | REWARD | All birds')
+          and partway == f'??? | HOW | Click {birds} birds | {some} / {birds} | REWARD | ???'
+          and live[0] == 1 and live[1].startswith(f'Bird Watcher | HOW | Click {birds} birds | REWARD | All birds')
           and live[2] == '1 of 13 earned, fill 10px' and pin_lit,
-          f'nothing earned: slot {nothing[0]}, "{nothing[1]}", {nothing[2]}; 17 of 50 birds: "{partway}"; '
-          f'the 50th while open: slot {live[0]}, "{live[1][:40]}...", {live[2]}, pin lit {pin_lit} (no reopening)')
+          f'nothing earned: slot {nothing[0]}, "{nothing[1]}", {nothing[2]}; {some} of {birds} birds: "{partway}"; '
+          f'the {birds}th while open: slot {live[0]}, "{live[1][:40]}...", {live[2]}, pin lit {pin_lit} (no reopening)')
     v.page.keyboard.press('Escape')
     v.page.wait_for_timeout(300)
     v.cmd('debug unlock all')

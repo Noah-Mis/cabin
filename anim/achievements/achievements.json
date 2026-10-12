@@ -168,9 +168,9 @@
   {
    "id": "bird_watcher",
    "name": "Bird Watcher",
-   "desc": "Click 50 birds",
+   "desc": "Click 15 birds",
    "stat": "birdClicks",
-   "goal": 50,
+   "goal": 15,
    "reward": "All birds turn shiny gold and leave sparkles",
    "assets": [
     "bird_flap_shiny",
@@ -182,9 +182,9 @@
   {
    "id": "cryptid_hunter",
    "name": "Cryptid Hunter",
-   "desc": "Spot the sasquatch 10 times",
+   "desc": "Spot the sasquatch 5 times",
    "stat": "sasquatchClicks",
-   "goal": 10,
+   "goal": 5,
    "reward": "A rare white yeti sometimes peeks instead",
    "assets": [
     "yeti_peek",
@@ -195,9 +195,9 @@
   {
    "id": "caffeinated",
    "name": "Caffeinated",
-   "desc": "Take 25 sips of coffee",
+   "desc": "Take 10 sips of coffee",
    "stat": "mugClicks",
-   "goal": 25,
+   "goal": 10,
    "reward": "The cup becomes an enamel camp mug",
    "assets": [
     "mug_camp"
