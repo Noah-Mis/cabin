@@ -26,6 +26,7 @@ js/
   renderer.js         draws the layer list; cross-fades between times of day
   timeofday.js        current time of day, following the clock in "auto"
   weather.js          current weather; spells of rain or snow now and then, on the scheduler
+                      (scene/precipitation.js starts them light and thins them out before they clear)
   scheduler.js        random min/max/chance timers that fire events
   terminal.js         one-line prompt, reply bubble, up/down history; sideways phone: keyboard only from the prompt
   commands.js         the command table

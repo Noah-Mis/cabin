@@ -43,6 +43,13 @@ export const config = {
     lastsSec: [90, 240],          // how long it rains or snows
     snowShare: 0.35,              // the rest of the spells are rain
   },
+  // Rain and snow start light and build up, and thin out before they clear
+  // (js/scene/precipitation.js): rain a drop at a time, snow by fading.
+  precipitation: {
+    rampUpSec: 20,                // from light to full
+    rampDownSec: 20,              // from full to gone
+    lightShare: 0.15,             // how much shows at the very start (and end)
+  },
   // Snow settling on the trees while it snows (js/scene/treesnow.js): it
   // fades in, builds up a stage at a time, and melts back off when it stops.
   // The stages themselves are in the manifest's weather_overlays.tree_snow.

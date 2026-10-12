@@ -7,7 +7,10 @@
 2. Commands typed into the real terminal, in test mode so each effect can be
    compared pixel for pixel with a page that did not run the command.
    `time X` must end up identical to a page that started at X: proof that
-   every layer swapped palette and nothing was left behind.
+   every layer swapped palette and nothing was left behind. Rain and snow
+   start light and build up (rain a drop at a time, no drop vanishing
+   mid-fall; snow fading in), thin out before they clear, and once that is
+   done match a page that started with them.
 3. Terminal behaviour: focus, history recall, the reply bubble (one at a
    time, replaced by each command, removed by `clear`), unknown / empty /
    repeated input, and that creatures and wind are no longer commands.
@@ -207,18 +210,83 @@ def check_commands(browser, base, problems):
 
     # Snow settles on the trees the longer it falls, so a page that started
     # snowing earlier has more of it: leave those pixels out (check_tree_snow tests them).
+    # Rain and snow take config.precipitation's 20 s to build up or thin out.
     snow_on_trees = tree_snow_mask()
     for target in ('rain', 'snow', 'clear'):
         start = '&weather=rain' if target == 'clear' else ''
-        switched, lines = capture_at(browser, base, q + start, 20, problems, [f'weather {target}'], command_tick=5)
-        fresh, _ = capture_at(browser, base, f'{q}&weather={target}', 20, problems)
+        switched, lines = capture_at(browser, base, q + start, RAMP_TICKS + 10, problems, [f'weather {target}'], command_tick=5)
+        fresh, _ = capture_at(browser, base, f'{q}&weather={target}', RAMP_TICKS + 10, problems)
         save_pair(f'command_weather_{target}.png', fresh, switched)
         if target == 'snow':
             switched, fresh = switched.copy(), fresh.copy()
             switched[snow_on_trees] = fresh[snow_on_trees] = 0
         check(diff_box(switched, fresh)[0] == 0,
-              f'`weather {target}`: identical to a page started with {target}'
+              f'`weather {target}`: once it has built up or thinned out, identical to a page started with {target}'
               f'{" (apart from how much snow has settled on the trees)" if target == "snow" else ""}; terminal said "{lines[-1]}"')
+
+    check_precipitation_ramp(browser, base, problems)
+
+
+RAMP_TICKS = 200   # config.precipitation: 20 s each way, in 100 ms ticks
+
+
+def check_precipitation_ramp(browser, base, problems):
+    """Rain and snow start light and build up, and thin out before they clear."""
+    q = '?test&time=day'
+    # Only the open window (sky, mountains, forest): nothing is drawn over the rain there.
+    window = np.zeros((180, 320), bool)
+    window[28:125, 44:276] = True
+    ys, xs = np.mgrid[0:180, 0:320]
+    line = (2 * xs - 3 * ys) % 64   # a rain drop's line: the sheet moves 24 right, 16 down a frame
+
+    def series(query, commands, ticks):
+        page, pp = open_page(browser, base, query, problems)
+        shots = {}
+        for t in ticks:
+            page.evaluate(f'cabin.test.advanceTo({t})')
+            for at, c in commands:
+                if at == t:
+                    type_command(page, c)
+            shots[t] = canvas_pixels(page)[..., :3].astype(int)
+        problems.extend(pp)
+        page.context.close()
+        return shots
+
+    up = list(range(5, 5 + RAMP_TICKS + 2))
+    clear = series(q, [], up)
+    rain = series(q, [(5, 'weather rain')], up)
+    full = series(f'{q}&weather=rain', [], [6])[6]
+    drawn = lambda shot, t: np.any(shot != clear[t], axis=2) & window
+    lines = {t: set(np.unique(line[drawn(rain[t], t)]).tolist()) for t in up[1:]}
+    first = int(drawn(rain[6], 6).sum())
+    all_drops = int(drawn(full, 6).sum())
+    lost = [t for t in up[2:] if not lines[t - 1] <= lines[t]]
+    grows = len(lines[6]) < len(lines[5 + RAMP_TICKS // 2]) < len(lines[up[-1]])
+    save_pair('weather_rain_starting.png', rain[6].astype(np.uint8), rain[5 + RAMP_TICKS // 2].astype(np.uint8))
+    check(0 < first < all_drops * 0.35 and not lost and grows,
+          f'`weather rain` starts light: {first} rain pixels in the window the moment it starts, against {all_drops} '
+          f'in full rain; drops join a line at a time ({len(lines[6])} lines, then {len(lines[5 + RAMP_TICKS // 2])} '
+          f'10 s in, {len(lines[up[-1]])} at full) and none vanishes on the way (lines lost: {lost or "none"})')
+
+    down = list(range(5, 5 + RAMP_TICKS + 2))
+    clearing = series(f'{q}&weather=rain', [(5, 'weather clear')], down)
+    still = series(f'{q}&weather=rain', [], [5])[5]
+    left = {t: set(np.unique(line[drawn(clearing[t], t)]).tolist()) for t in down[1:]}
+    returned = [t for t in down[2:] if not left[t] <= left[t - 1]]
+    thinning = len(left[6]) > len(left[5 + RAMP_TICKS // 2]) > 0
+    gone = int(drawn(clearing[down[-1]], down[-1]).sum())
+    check(np.array_equal(clearing[5], still) and thinning and not returned and gone == 0,
+          f'`weather clear` thins the rain out: {len(left[6])} lines, {len(left[5 + RAMP_TICKS // 2])} 10 s later, '
+          f'none coming back ({returned or "none"}), and none left after 20 s ({gone} rain pixels)')
+
+    # Snow fades in: how far its pixels have moved from a clear sky only grows.
+    snow = series(q, [(5, 'weather snow')], up)
+    on_trees = tree_snow_mask()
+    strength = {t: int(np.abs(snow[t] - clear[t])[window & ~on_trees].sum()) for t in up[1:]}
+    # Averaged over 2 s at a time: a few faint flakes add up differently frame to frame.
+    averages = [int(np.mean([strength[t] for t in up[1 + i:21 + i]])) for i in range(0, RAMP_TICKS, 20)]
+    check(averages[0] > 0 and all(a < b for a, b in zip(averages, averages[1:])),
+          f'`weather snow` fades in: colour change in the window, averaged over each 2 s, climbs steadily: {averages}')
 
 
 # ── 3. terminal ──────────────────────────────────────────────────────────
