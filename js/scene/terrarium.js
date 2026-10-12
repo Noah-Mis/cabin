@@ -38,6 +38,7 @@ export function createTerrariumPot(assets, { terrarium, journal }) {
 
   return {
     update(dtMs) {
+      journal.update(dtMs);   // its tools' animations
       sinceTickMs += dtMs;
       if (sinceTickMs < config.terrarium.tickSec * 1000) return;
       sinceTickMs = 0;

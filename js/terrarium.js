@@ -146,8 +146,11 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     if (list && !list.length) delete state.seeds[id];
     return genome;
   }
+  // Returns true if the species is new to the codex.
   function discover(id) {
-    if (!state.codex.includes(id)) state.codex.push(id);
+    if (state.codex.includes(id)) return false;
+    state.codex.push(id);
+    return true;
   }
 
   // ── growth ──
@@ -208,7 +211,7 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
   }
 
   function status(pot) {
-    if (!pot) return 'Plant a seed.';
+    if (!pot) return 'Nothing planted.';
     if (pot.dead) return 'Withered.';
     if (now() - saturatedAt < settings.saturatedShowSec * 1000) return 'Saturated!';
     if (pot.wilting) return 'Thirsty. Water me!';
@@ -253,20 +256,22 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
   // Ready: 1-2 seeds (2 at vigor 4+), each a slight variation of the plant,
   // and the species goes in the codex. The very first harvest also turns up
   // one of the flowering starters. Dead: clears the pot, no seeds.
-  // -> { ok, species, seeds, gift, cleared } or { ok: false, reason: 'empty' | 'unripe', growth }
+  // Either way, an empty pot and no seeds left brings the starter set back.
+  // -> { ok, species, seeds, gift, cleared, discovered } or { ok: false, reason: 'empty' | 'unripe', growth }
   function harvest() {
     tick();
     const pot = state.pot;
     if (!pot) return { ok: false, reason: 'empty' };
     if (pot.dead) {
       state.pot = null;
+      restock();
       save();
-      return { ok: true, species: pot.species, seeds: 0, cleared: true };
+      return { ok: true, species: pot.species, seeds: 0, cleared: true, discovered: false };
     }
     if (pot.growth < 1) return { ok: false, reason: 'unripe', species: pot.species, growth: pot.growth };
     const seeds = pot.genome.vigor >= 4 ? 2 : 1;
     for (let i = 0; i < seeds; i++) addSeed(pot.species, crossGenome(pot.genome, pot.genome, pot.species));
-    discover(pot.species);
+    const discovered = discover(pot.species);
     let gift = null;
     if (!state.gifted) {
       const choices = settings.firstHarvestGift;
@@ -276,7 +281,7 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     }
     state.pot = null;
     save();
-    return { ok: true, species: pot.species, seeds, gift, cleared: false };
+    return { ok: true, species: pot.species, seeds, gift, cleared: false, discovered };
   }
 
   // -> { ok, species } or { ok: false, reason: 'occupied' | 'none', species }
@@ -306,7 +311,7 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
 
   // Both seeds are used up and there is always a seed back: the hybrid on a
   // hit, otherwise one of the parents. Misses on a pair raise its chance.
-  // -> { ok, species, hit, hybrid, chance } or { ok: false, reason: 'missing', species }
+  // -> { ok, species, hit, hybrid, chance, discovered } or { ok: false, reason: 'missing', species }
   function cross(a, b) {
     tick();
     for (const id of new Set([a, b])) {
@@ -321,9 +326,9 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     if (hit) delete state.pity[key];
     else if (hybrid) state.pity[key] = (state.pity[key] ?? 0) + 1;
     addSeed(species, crossGenome(ga, gb, species));
-    if (hit) discover(species);
+    const discovered = hit && discover(species);
     save();
-    return { ok: true, species, hit, hybrid, chance };
+    return { ok: true, species, hit, hybrid, chance, discovered };
   }
 
   function count(id) {

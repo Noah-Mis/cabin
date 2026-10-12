@@ -9,9 +9,14 @@
    tiles per stage, saving, and bad saved data starting fresh.
 2. Every string the journal draws fits its line (33 characters from x 12).
 3. The live page: the pot on the wall opens the journal, which is drawn
-   over everything; tabs, planting, the crossing bench and Escape by mouse
-   and keyboard; terminal commands change an open journal without
-   switching its tab; every time of day; the console stays clean.
+   over everything; on the Pot tab, the seed tray and the tool rail
+   (terrarium_tools_plan.md): a seed dragged to the pot is planted, the can
+   picked up with a click and clicked on the pot waters it (the soil
+   darkens with the meter), a drag let go off the pot puts the tool back,
+   the rail shows only tools that would do something, the basket
+   harvests, and the keyboard plays it too; the Seeds tab has no Plant
+   button; the crossing bench; terminal commands change an open journal
+   without switching its tab; every time of day; closing; the console.
 
 Writes tests/results/terrarium.md and screens/terrarium_*.png.
 Run:  python tests/terrarium.py
@@ -215,9 +220,9 @@ def check_rules(page):
           'a withered plant: harvest becomes Clear, empties the pot, no seeds')
     h = r['harvest']
     check(r['unripe']['reason'] == 'unripe' and h['h1']['seeds'] == 1 and h['h2']['seeds'] == 2 and h['h1']['gift'] in ('daisy', 'wildflower', 'mushroom')
-          and h['h2']['gift'] is None and h['codex'][:1] == ['bluebell'] and h['bluebells'] == 3 and h['gifted'],
+          and h['h2']['gift'] is None and h['h1']['discovered'] and not h['h2']['discovered'] and h['codex'][:1] == ['bluebell'] and h['bluebells'] == 3 and h['gifted'],
           f"harvest: refused before 1.0; 1 seed at vigor 3, 2 at vigor 4; a flowering starter ({h['h1']['gift']}) on the first harvest "
-          f"only; codex {h['codex']}")
+          f"only; codex {h['codex']} (the first says it is new, the second not)")
     check(r['readyStack'] == ['stem_leaves', 'full'], f"a ready bluebell with bloom 2: {r['readyStack']}")
     p = r['pity']
     expect = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.40]
@@ -319,28 +324,120 @@ def check_page(browser, base):
         advance()
     over = capture(page, 'over_snow')
     panel = Image.open(ROOT / 'anim' / 'terrarium' / 'terrarium_journal_day.png').convert('RGBA')
-    # Compare the empty strip of paper right of the tabs' content (x 146-149) and the binding margin (x 0-8).
-    probe = [(x, y) for x in list(range(0, 9)) + list(range(146, 150)) for y in range(2, 120) if panel.getpixel((x, y))[3] == 255]
+    # Compare the empty strip of paper before the tabs (x 145-147) and the binding margin (x 0-8).
+    probe = [(x, y) for x in list(range(0, 9)) + list(range(145, 148)) for y in range(2, 120) if panel.getpixel((x, y))[3] == 255]
     covered = sum(over.getpixel((PX + x, PY + y))[:3] == panel.getpixel((x, y))[:3] for x, y in probe)
     check(covered == len(probe), f'the journal is drawn over the snow and everything else ({covered}/{len(probe)} margin pixels exact)')
     page.evaluate("cabin.app.weather.set('clear')")
 
-    # Tabs by mouse; the hand only over things that do something.
+    # Tabs by mouse; the Seeds tab is inventory only now.
     tabs = journal['tab_ys']
+    tab_x = journal['tab_x'] + journal['tab_w'] // 2
     on_paper = hover(PX + 100, PY + 95)
-    click(PX + 157, PY + tabs[1] + 11)
+    click(PX + tab_x, PY + tabs[1] + 11)
     on_tab = page.evaluate(f'{T}.get().tab')
     click(PX + 14 + 8, PY + 26 + 8)          # moss
-    seeds_screen = capture(page, 'seeds')
-    click(PX + 120, PY + 112)                # Plant
+    capture(page, 'seeds')
+    click(PX + 120, PY + 112)                # where the Plant button was
+    nothing = page.evaluate(f'{T}.get().pot') is None
+    check(on_paper == '' and on_tab == 1 and nothing,
+          f'tabs switch on a click (seeds: {on_tab}); the Seeds tab plants nothing ({nothing}); plain paper keeps the arrow ({on_paper!r})')
+
+    # The Pot tab, empty: the strip is a tray of your seeds; drag one to the pot.
+    click(PX + tab_x, PY + tabs[0] + 11)
+    capture(page, 'tray')
+    rail = MANIFEST['terrarium_tools']['rail']
+    slot = lambda i: (PX + rail['x'][i] + 8, PY + rail['y'] + 8)
+    pot_at = (PX + 36, PY + 72)
+    sx, sy = slot(0)
+    page.mouse.move(left + (sx + .5) * scale, top + (sy + .5) * scale)
+    page.mouse.down()
+    advance()
+    for i in range(1, 10):
+        page.mouse.move(left + (sx + .5 + i * 1.5) * scale, top + (sy + .5 - i * 4) * scale)
+        advance()
+    glow_on = hover(*pot_at)
+    capture(page, 'drag_seed')
+    page.mouse.up()
+    for _ in range(7):
+        advance()
     planted = page.evaluate(f'{T}.get().pot && {T}.get().pot.species')
-    back = page.evaluate(f'{T}.get().tab')
-    check(on_paper == '' and on_tab == 1 and planted == 'moss' and back == 0,
-          f'tabs switch on a click (seeds: {on_tab}); picking moss and Plant plants it ({planted}) and turns to the pot ({back}); '
-          f'plain paper keeps the arrow ({on_paper!r})')
+    check(planted == 'moss' and glow_on == 'pointer', f'a seed dragged from the tray to the pot is planted ({planted}); a hand over the pot while carrying ({glow_on})')
+
+    # The rail: only tools that do something. A seedling: just the can.
+    def soil_pane():
+        img = capture(page, 'soil')
+        return img.getpixel((PX + 12 + 24, PY + 54 + 14))[:3]
+    # Click to equip the can (press and release in place), then click the pot.
+    page.evaluate(f'{T}.get().pot.hydration = 0.2')
+    advance()
+    dry = soil_pane()
+    click(*slot(0))
+    hover(PX + 120, PY + 60)
+    held = page.evaluate(f'{T}.get().pot.hydration')
+    click(*pot_at)
+    for _ in range(3):
+        advance()
+    mid = page.evaluate(f'{T}.get().pot.hydration')
+    capture(page, 'pouring')
+    for _ in range(5):
+        advance()
+    wet = page.evaluate(f'{T}.get().pot.hydration')
+    page.evaluate(f'{T}.get().pot.hydration = 0.8')
+    advance()
+    soaked = soil_pane()
+    check(held == 0.2 and mid > 0.2 and abs(wet - 0.45) < 0.01 and dry != soaked,
+          f'the can, clicked then clicked on the pot, waters it on its third droplet frame ({held} -> {mid:.2f}); '
+          f'the soil shows how wet it is ({dry} dry, {soaked} wet)')
+
+    # A drag let go off the pot puts the tool back.
+    sx, sy = slot(0)
+    page.mouse.move(left + (sx + .5) * scale, top + (sy + .5) * scale)
+    page.mouse.down()
+    advance()
+    page.mouse.move(left + (sx + 60.5) * scale, top + (sy - 40.5) * scale)
+    advance()
+    page.mouse.up()
+    advance()
+    click(*pot_at)
+    for _ in range(8):
+        advance()
+    unchanged = page.evaluate(f'{T}.get().pot.hydration')
+    check(abs(unchanged - 0.8) < 0.01, f'a drag let go off the pot puts the can back: a later click on the pot does nothing ({unchanged:.2f})')
+
+    # Ripe: can, shears, basket; the basket harvests and the tray comes back.
+    page.evaluate(f'(() => {{ const p = {T}.get().pot; p.growth = 1; {T}.tick(); }})()')
+    advance()
+    capture(page, 'ripe')
+    click(*slot(2))
+    click(*pot_at)
+    for _ in range(9):
+        advance()
+    harvested = page.evaluate(f'({{ pot: {T}.get().pot, moss: {T}.count("moss"), codex: {T}.get().codex }})')
+    check(harvested['pot'] is None and 'moss' in harvested['codex'],
+          f'the basket, the third tool on a ripe plant, harvests it ({harvested})')
+
+    # The keyboard: Tab to the first tray seed, Enter, Tab round to the pot, Enter.
+    page.focus('#input')
+    page.keyboard.press('Tab')
+    page.keyboard.press('Enter')
+    targets = page.evaluate(f'Object.keys({T}.get().seeds).length') + 1
+    for _ in range(targets - 1):
+        page.keyboard.press('Tab')
+    page.keyboard.press('Enter')
+    for _ in range(7):
+        advance()
+    by_keys = page.evaluate(f'{T}.get().pot && {T}.get().pot.species')
+    typed = page.input_value('#input')
+    check(by_keys is not None and typed == '', f'the keyboard plants a seed: Tab, Enter, Tab to the pot, Enter ({by_keys}); nothing typed on the prompt ({typed!r})')
+    page.evaluate(f'(() => {{ const s = {T}.get(); s.pot = null; }})()')
+    page.evaluate('cabin.app.journal.close()')
+    page.evaluate('cabin.app.journal.open(0)')
+    advance()
 
     # The crossing bench: pick two parents from the seed grid, cross.
-    click(PX + 157, PY + tabs[2] + 11)
+    page.evaluate(f"{T}.plant('moss')")
+    click(PX + tab_x, PY + tabs[2] + 11)
     click(PX + 30, PY + 42)                  # parent A
     picking = capture(page, 'picker')
     click(PX + 14 + 22 + 8, PY + 26 + 8)     # fern
@@ -354,6 +451,7 @@ def check_page(browser, base):
     check(before - after == 1, f'the bench crosses fern x clover: two seeds in, one back ({before} -> {after})')
 
     # The terminal changes the open journal without switching its tab.
+    page.wait_for_timeout(600)   # watering is debounced 500 ms in real time; the can was used moments ago
     page.evaluate("cabin.run('water')")
     advance()
     tab = page.evaluate(f'{T}.get().tab')
@@ -369,7 +467,7 @@ def check_page(browser, base):
         advance()
         capture(page, f'pot_{time}')
     page.evaluate("cabin.app.timeOfDay.set('day', { instant: true })")
-    click(PX + 157, PY + tabs[3] + 11)
+    click(PX + tab_x, PY + tabs[3] + 11)
     click(PX + 13 + 22 * 5 + 8, PY + 26 + 30 + 8)
     capture(page, 'codex')
 

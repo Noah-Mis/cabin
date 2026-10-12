@@ -5,7 +5,8 @@
 // topmost element under the mouse gets the hover and the click, and the
 // cursor becomes a hand over it. Optional, for elements with parts of their
 // own (the terrarium journal): move(x, y) follows the mouse while hovered,
-// and cursor(x, y) picks the cursor there instead of the hand.
+// cursor(x, y) picks the cursor there instead of the hand, and down(x, y) /
+// up(x, y) see presses and releases (for carrying things), before the click.
 // Exports: trackPointer(canvas, layers)
 
 export function trackPointer(canvas, layers) {
@@ -38,6 +39,15 @@ export function trackPointer(canvas, layers) {
     hover(targetAt(point), point);
   });
   canvas.addEventListener('pointerleave', () => hover(null));
+  canvas.addEventListener('pointerdown', (event) => {
+    const point = artPoint(event);
+    hover(targetAt(point), point);   // a touch has no hover before it
+    hovered?.down?.(point.x, point.y);
+  });
+  canvas.addEventListener('pointerup', (event) => {
+    const point = artPoint(event);
+    targetAt(point)?.up?.(point.x, point.y);
+  });
   canvas.addEventListener('click', (event) => {
     const point = artPoint(event);
     targetAt(point)?.click(point.x, point.y);

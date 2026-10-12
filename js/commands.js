@@ -118,13 +118,13 @@ export const commands = {
   // buttons. An open journal shows the change at once, on whatever tab it is.
   terrarium: {
     usage: 'terrarium [status]',
-    about: 'the pot on the wall',
+    about: 'the pot on the wall (or just click it)',
     everyCommand: false,
     run([word], app) {
       if (word === 'status') return printStatus(app);
       if (word) return app.print(`usage: ${commands.terrarium.usage}`);
       app.journal.open(0);
-      app.print('you open the field journal. water, trim, harvest, plant, seeds, cross and codex work here too.');
+      app.print('you open the field journal. pick up a tool and carry it to the pot. (water, trim, harvest, plant, seeds, cross and codex work here too.)');
     },
   },
   water: {
@@ -133,6 +133,7 @@ export const commands = {
     hidden: true,
     everyCommand: false,
     run(args, app) {
+      app.journal.drop();   // a command puts down whatever the journal had in hand
       const result = app.terrarium.water();
       if (result.reason === 'empty') return app.print("there's nothing in the pot to water.");
       if (result.reason === 'dead') return app.print(`the ${nameOf(result.species)} is past watering. "harvest" clears the pot.`);
@@ -148,6 +149,7 @@ export const commands = {
     hidden: true,
     everyCommand: false,
     run(args, app) {
+      app.journal.drop();
       const result = app.terrarium.trim();
       if (result.reason === 'empty') return app.print("there's nothing in the pot to trim.");
       if (result.reason === 'dead') return app.print(`the ${nameOf(result.species)} has withered. "harvest" clears the pot.`);
@@ -161,6 +163,7 @@ export const commands = {
     hidden: true,
     everyCommand: false,
     run(args, app) {
+      app.journal.drop();
       const result = app.terrarium.harvest();
       if (result.reason === 'empty') return app.print('the pot is empty. "plant <seed>" to start something.');
       if (result.reason === 'unripe') {
@@ -178,6 +181,7 @@ export const commands = {
     everyCommand: false,
     run(words, app) {
       if (!words.length) return app.print(`usage: ${commands.plant.usage}`);
+      app.journal.drop();
       const id = app.terrarium.find(words.join(' '));
       if (!id) return app.print(`there's no such seed as "${words.join(' ')}".`);
       const result = app.terrarium.plant(id);

@@ -44,7 +44,7 @@
 - PASS: 60 rapid commands: still one bubble holding only the last reply, scene kept running, no errors
 - PASS: after the last `time day` the scene is day
 - PASS: up/down recall: 'help', 'time day', back to ''
-- PASS: `time auto` returns to the clock (local hour 11 -> day)
+- PASS: `time auto` returns to the clock (local hour 14 -> day)
 - PASS: the `time auto` reply is showing
 - PASS: `clear` removes the bubble
 
@@ -177,14 +177,14 @@
 
 ## Scheduler (real clock, config.js served with short timers)
 
-- PASS: bird fired by itself 22 times in 10 s (8 actually started)
-- PASS: farbird fired by itself 24 times in 10 s (3 actually started)
-- PASS: wind fired by itself 21 times in 10 s (21 actually started)
-- PASS: sasquatch fired by itself 8 times in 10 s (3 actually started)
-- PASS: weather fired by itself 9 times in 10 s (1 actually started)
-  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 8
+- PASS: bird fired by itself 23 times in 10 s (8 actually started)
+- PASS: farbird fired by itself 22 times in 10 s (3 actually started)
+- PASS: wind fired by itself 20 times in 10 s (20 actually started)
+- PASS: sasquatch fired by itself 5 times in 10 s (2 actually started)
+- PASS: weather fired by itself 11 times in 10 s (1 actually started)
+  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 5
 - PASS: no console problems on the live (non-test) page: []
-- PASS: front trees: 49 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.1-14.7 s (config [7, 15])
+- PASS: front trees: 49 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.1-14.8 s (config [7, 15])
 - PASS: sasquatch timer over 20,000 seeded rolls: fired 30.6% of the time (config 30%), waits between 181 s and 600 s (config 180-600 s)
 
 ## Console

@@ -313,6 +313,9 @@ html, body {
 /* Narrow screens: the same content as one plain column, same colours. */
 .fp.is-plain { background: var(--fp-tan); }
 .fp.is-plain .fp-photo { display: none; }
+/* The terrarium journal: carrying a tool to the pot is a drag, so no touch
+   scrolling or long-press menu on the scene while it is open. */
+body.terrarium-open #scene { touch-action: none; -webkit-touch-callout: none; user-select: none; }
 /* The photo fills the blue slot inside the frame's grey mat (--inset art px). */
 .fp-photo img {
   position: absolute;

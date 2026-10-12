@@ -6,15 +6,21 @@
 // terrarium_journal. The sprites are chrome, the words are drawn here.
 // It reads the state every frame, so anything the terminal changes shows at
 // once, on whatever tab is open.
+// The Pot tab is played with your hands (js/terrarium-tools.js): tools and
+// seeds carried to the pot, per anim/terrarium/terrarium_tools_plan.md.
+// Text sits between the paper's ruled lines (brief §3a, baseline grid).
 // Hover swaps a slot or button to its hover frame; nothing moves.
-// Closing: Escape, a click outside the panel (the pot on the wall included).
+// Closing: Escape (once anything held is put down), a click outside the
+// panel (the pot on the wall included).
 // Exports: createJournal(assets, terrarium) -> { open(tab), close(), isOpen(),
-//            draw(ctx, time), pointer: { contains, setHovered, move, click, cursor } }
+//            drop(), update(dtMs), draw(ctx, time),
+//            pointer: { contains, setHovered, move, down, up, click, cursor } }
 
 import { config } from './config.js';
 import { inRect } from './geometry.js';
 import { SPECIES, CROSSES, speciesIndex } from './terrarium-species.js';
 import { TRAITS } from './terrarium.js';
+import { createTools } from './terrarium-tools.js';
 
 const settings = config.terrarium;
 const words = settings.words;
@@ -24,6 +30,8 @@ const BLOOM_STAGE = { bud: 0, opening: 1, full: 2 };
 const DEAD_STALK_TOP = 4;   // the first row of the withered tile's stalk
 const SLOT = { empty: 0, hover: 1, filled: 2, locked: 3 };
 const BUTTON = { normal: 0, hover: 1, disabled: 2 };
+const POT_TAB = 0, CODEX_TAB = 3;
+const ICON_X = 151;   // tab icons, whatever the tab's width
 
 // Brief §3, panel-local.
 const POT = { x: 12, y: 54 };                  // both pot halves
@@ -35,11 +43,12 @@ const BENCH = [{ x: 20, y: 32, w: 20, h: 20 }, { x: 60, y: 32, w: 20, h: 20 }, {
 export function createJournal(assets, terrarium) {
   const sheet = (name) => assets.animation(`terrarium_${name}`);
   const art = Object.fromEntries(['journal', 'tab_active', 'tabicons', 'seeds', 'codex', 'slot_sm', 'slot_lg', 'meter',
-    'btn_sm', 'btn_lg', 'traits', 'stars', 'plants', 'blooms', 'pot_back', 'pot_front', 'font'].map((n) => [n, sheet(n)]));
+    'btn_sm', 'btn_lg', 'traits', 'stars', 'plants', 'blooms', 'pot_back', 'pot_front', 'pot_glow', 'tools', 'fx', 'font']
+    .map((n) => [n, sheet(n)]));
   const panelInfo = art.journal.info;
   const PX = panelInfo.placement.x, PY = panelInfo.placement.y;
   const panel = { x: PX, y: PY, w: panelInfo.frame_w, h: panelInfo.frame_h };
-  const tabs = panelInfo.tab_ys.map((y) => ({ x: panelInfo.paper_w, y, w: panelInfo.tab_w, h: panelInfo.tab_h }));
+  const tabs = panelInfo.tab_ys.map((y) => ({ x: panelInfo.tab_x, y, w: panelInfo.tab_w, h: panelInfo.tab_h }));
   const font = { charset: art.font.info.charset, w: art.font.info.frame_w, h: art.font.info.frame_h, advance: art.font.info.advance };
   const potInfo = art.pot_back.info;
 
@@ -50,20 +59,40 @@ export function createJournal(assets, terrarium) {
   let parents = [null, null];  // the crossing bench
   let picking = -1;            // 0 or 1 while choosing a parent from the seed grid
   let lastCross = null;        // the last roll, until the parents change
+  let codexNew = false;        // a dot on the codex tab until it is opened
 
+  const tools = createTools({ art, terrarium, draw: { frame, text, plantTop } });
+  tools.onDiscover(() => { codexNew = true; });
+
+  // Capture phase: the prompt keeps focus, and Enter there would send a line.
   document.addEventListener('keydown', (event) => {
-    if (open && event.key === 'Escape') close();
-  });
+    if (!open) return;
+    if (terrarium.get().tab === POT_TAB && tools.key(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.key === 'Escape') close();
+  }, true);
 
+  function setTab(i) {
+    tools.drop();   // nothing is carried onto another tab
+    picking = -1;
+    if (i === CODEX_TAB) codexNew = false;
+    terrarium.setTab(i);
+  }
   function openAt(tab = terrarium.get().tab) {
     terrarium.tick();
-    terrarium.setTab(tab);
-    picking = -1;
+    tools.reset();
+    setTab(tab);
     open = true;
+    document.body.classList.add('terrarium-open');   // no touch scrolling or long-press menu while carrying
   }
   function close() {
     open = false;
     picking = -1;
+    tools.reset();
+    document.body.classList.remove('terrarium-open');
   }
 
   // ── drawing helpers (ctx is already translated to the panel) ──
@@ -175,47 +204,68 @@ export function createJournal(assets, terrarium) {
     return stemSets.get(row);
   }
 
-  function drawPlant(ctx, time, pot) {
-    const row = speciesIndex(pot.species);
+  // Where each tile of the stack goes: [{ tile, x, y }], bottom to top.
+  function plantLayout(pot) {
     const t = art.plants.info.frame_w;
+    const bh = art.blooms.info.frame_h;
     const x = POT.x + potInfo.centre_x - t / 2;           // stem columns 7-8 land on the pot's centre
     let top = POT.y + potInfo.soil_line - (t - 1);       // the bottom tile's last row is the soil line
+    const tiles = [];
     for (const [i, tile] of pot.stack.entries()) {
       if (tile in BLOOM_STAGE) {
-        const { frame_w: bw, frame_h: bh } = art.blooms.info;
-        ctx.drawImage(bloomTile(time, row, BLOOM_STAGE[tile], pot.genome.hue), x - 4, top + t - bh, bw, bh);
+        tiles.push({ tile, x: x - 4, y: top + t - bh });
         break;
       }
-      ctx.drawImage(art.plants.imageFor(time), TILE_COLUMN[tile] * t, row * t, t, t, x, top, t, t);
+      tiles.push({ tile, x, y: top });
       if (i < pot.stack.length - 1) top -= tile === 'dead' ? t - DEAD_STALK_TOP : t;
+    }
+    return tiles;
+  }
+  // The top of the plant's highest tile, for placing tools beside it.
+  function plantTop(pot) {
+    return Math.min(...plantLayout(pot).map((p) => p.y));
+  }
+
+  function drawPlant(ctx, time, pot, { hideBloom = false } = {}) {
+    const row = speciesIndex(pot.species);
+    const t = art.plants.info.frame_w;
+    for (const { tile, x, y } of plantLayout(pot)) {
+      if (!(tile in BLOOM_STAGE)) ctx.drawImage(art.plants.imageFor(time), TILE_COLUMN[tile] * t, row * t, t, t, x, y, t, t);
+      else if (!hideBloom) ctx.drawImage(bloomTile(time, row, BLOOM_STAGE[tile], pot.genome.hue), x, y);
     }
   }
 
   // ── tabs ──
   // Each returns its clickable parts for this frame: [{ rect, action }].
+  // The soil shows how wet it is: three panes of the back half, by hydration.
+  function soilPane(pot) {
+    const h = pot?.hydration ?? 0;
+    return h < 0.33 ? 0 : h < 0.66 ? 1 : 2;
+  }
+
+  // The Pot tab: everything clickable here is the tools' (down / up), so it
+  // has no parts of its own.
   function drawPotTab(ctx, time, colours) {
     const pot = terrarium.get().pot;
-    frame(ctx, time, 'pot_back', 0, POT.x, POT.y);
-    if (pot) drawPlant(ctx, time, pot);
+    const { frame_w: pw, frame_h: ph } = potInfo;
+    ctx.drawImage(art.pot_back.imageFor(time), 0, soilPane(pot) * ph, pw, ph, POT.x, POT.y, pw, ph);
+    if (tools.glowing()) ctx.drawImage(art.pot_glow.imageFor(time), POT.x, POT.y);
+    if (pot) drawPlant(ctx, time, pot, { hideBloom: tools.hideBloom() });
     frame(ctx, time, 'pot_front', 0, POT.x, POT.y);
 
     const species = pot && SPECIES[speciesIndex(pot.species)];
     text(ctx, species ? species.name : 'Empty pot', 66, 21, colours.text);
     if (species) stars(ctx, time, species.rarity, 66, 30);
-    text(ctx, terrarium.status(pot), 66, 41, colours.text_d);
+    text(ctx, tools.status() ?? terrarium.status(pot), 66, 41, colours.text_d);
     text(ctx, 'Water', 66, 50, colours.text_d);
     meterRow(ctx, time, pot ? Math.min(4, Math.ceil(pot.hydration * 4)) : 0, 66, 58);
     text(ctx, 'Growth', 66, 68, colours.text_d);
     meterRow(ctx, time, 5 + (pot ? Math.min(4, Math.floor(pot.growth * 4)) : 0), 66, 76);
+    text(ctx, tools.hint(), 66, 88, colours.text_d);
 
-    const alive = pot && !pot.dead;
-    const buttons = [
-      button(12, 'Water', !!alive, () => terrarium.water()),
-      button(56, 'Trim', !!alive && pot.growth >= settings.trimFrom, () => terrarium.trim()),
-      button(100, pot?.dead ? 'Clear' : 'Harvest', !!pot && (pot.dead || pot.growth >= 1), () => terrarium.harvest()),
-    ];
-    for (const b of buttons) drawButton(ctx, time, colours, b);
-    return buttons.filter((b) => b.enabled);
+    tools.drawStrip(ctx, time, colours);
+    tools.drawUsing(ctx, time);
+    return [];
   }
 
   // The seed grid: slot i is species i; owned kinds show their seed and how
@@ -241,23 +291,18 @@ export function createJournal(assets, terrarium) {
     stars(ctx, time, species.rarity, Math.max(starsX, x + textWidth(species.name) + 4), y - 1);
   }
 
+  // Inventory and detail only: seeds are planted from the Pot tab's tray.
   function drawSeedsTab(ctx, time, colours) {
     const parts = drawSeedGrid(ctx, time, colours, seedPick, terrarium.count, (i) => { seedPick = i; });
     const species = SPECIES[seedPick];
     if (species && terrarium.count(species.id)) {
-      nameAndStars(ctx, time, colours, species, 13, 76, 40);
-      text(ctx, species.blurb, 13, 86, colours.text_d);
+      nameAndStars(ctx, time, colours, species, 13, 77, 40);
+      text(ctx, species.blurb, 13, 87, colours.text_d);
     } else {
-      text(ctx, 'Pick a seed to plant.', 13, 76, colours.text_d);
+      text(ctx, 'Pick a seed to read about it.', 13, 77, colours.text_d);
     }
-    const pot = terrarium.get().pot;
-    const canPlant = !!species && terrarium.count(species.id) > 0 && !pot;
-    const plant = button(100, 'Plant', canPlant, () => {
-      if (terrarium.plant(species.id).ok) terrarium.setTab(0);
-    });
-    drawButton(ctx, time, colours, plant);
-    if (pot && species) text(ctx, 'The pot is in use.', 13, 108, colours.text_d);
-    return canPlant ? [...parts, plant] : parts;
+    text(ctx, 'Plant from the pot tab.', 13, 110, colours.text_d);
+    return parts;
   }
 
   // How many of a kind the bench may still take for parent `which`.
@@ -273,8 +318,8 @@ export function createJournal(assets, terrarium) {
         lastCross = null;
         picking = -1;
       });
-      text(ctx, `Choose parent ${picking ? 'B' : 'A'}.`, 13, 76, colours.text);
-      text(ctx, 'Click the page to cancel.', 13, 86, colours.text_d);
+      text(ctx, `Choose parent ${picking ? 'B' : 'A'}.`, 13, 77, colours.text);
+      text(ctx, 'Click the page to cancel.', 13, 87, colours.text_d);
       // The page under the grid cancels; parts later in the list win a click.
       return [{ rect: { x: 0, y: 0, w: panelInfo.paper_w, h: panel.h }, action: () => { picking = -1; } }, ...parts];
     }
@@ -293,7 +338,7 @@ export function createJournal(assets, terrarium) {
       if (id) frame(ctx, time, 'seeds', speciesIndex(id), rect.x + 6, rect.y + 6);
       if (id) {
         const species = SPECIES[speciesIndex(id)];
-        centred(ctx, species.short ?? species.name, rect.x + 10, 55, colours.text);
+        centred(ctx, species.short ?? species.name, rect.x + 10, 57, colours.text);
       }
       if (isParent) parts.push({ rect, action: () => { picking = slot; } });
     });
@@ -314,12 +359,13 @@ export function createJournal(assets, terrarium) {
     if (lastCross) line = lastCross.line;
     else if (prediction?.hybrid) line = `Chance ${Math.round(prediction.chance * 100)}% - new species`;
     else if (prediction) line = 'No new species from this pair';
-    text(ctx, line, 13, 84, colours.text_d);
+    text(ctx, line, 13, 87, colours.text_d);
 
     const go = button(52, 'Cross', !!prediction, () => {
       const result = terrarium.cross(a, b);
       if (!result.ok) return;
       const name = SPECIES[speciesIndex(result.species)].name;
+      if (result.discovered) codexNew = true;
       lastCross = {
         species: result.species,
         genome: terrarium.get().seeds[result.species].at(-1),
@@ -373,32 +419,59 @@ export function createJournal(assets, terrarium) {
     ctx.translate(PX, PY);
     ctx.drawImage(art.journal.imageFor(time), 0, 0);
     ctx.drawImage(art.tab_active.imageFor(time), tabs[tab].x, tabs[tab].y);
-    tabs.forEach((t, i) => frame(ctx, time, 'tabicons', i, t.x + 1, t.y + 6));
+    tabs.forEach((t, i) => frame(ctx, time, 'tabicons', i, ICON_X, t.y + 6));
+    if (codexNew) {   // something new in the codex: a dot on its tab
+      ctx.fillStyle = colours.accent;
+      ctx.fillRect(ICON_X + 9, tabs[CODEX_TAB].y + 4, 2, 2);
+    }
     text(ctx, words.titles[tab], 13, 7, colours.accent);
     parts = TAB_DRAW[tab](ctx, time, colours);
-    tabs.forEach((rect, i) => parts.push({ rect, action: () => { terrarium.setTab(i); picking = -1; } }));
+    tabs.forEach((rect, i) => parts.push({ rect, action: () => setTab(i) }));
+    if (tab === POT_TAB) tools.drawHeld(ctx, time);   // in hand, over everything
   }
 
   // The topmost part under a panel-local point.
   const partAt = (x, y) => [...parts].reverse().find((p) => inRect(x, y, p.rect)) ?? null;
+  const onPotTab = () => terrarium.get().tab === POT_TAB;
+  const onTab = (x, y) => tabs.some((t) => inRect(x - PX, y - PY, t));
 
   return {
     open: openAt,
     close,
     isOpen: () => open,
+    drop: () => tools.drop(),
+    update(dtMs) {
+      if (open) tools.update(dtMs);
+    },
     draw,
     pointer: {
       // While open it takes every click: outside the panel closes it.
       contains: () => open,
-      setHovered(on) { if (!on) mouse = null; },
-      move(x, y) { mouse = { x, y }; },
+      setHovered(on) {
+        if (on) return;
+        mouse = null;
+        tools.leave();
+      },
+      move(x, y) {
+        mouse = { x, y };
+        tools.move(x - PX, y - PY);
+      },
+      // On the Pot tab presses and releases drive the tools; tabs still click.
+      down(x, y) {
+        if (open && onPotTab() && inRect(x, y, panel) && !onTab(x, y)) tools.down(x - PX, y - PY);
+      },
+      up(x, y) {
+        if (open && onPotTab()) tools.up(x - PX, y - PY);
+      },
       click(x, y) {
         mouse = { x, y };
         if (!inRect(x, y, panel)) return close();
         partAt(x - PX, y - PY)?.action();
       },
       cursor(x, y) {
-        return inRect(x, y, panel) && partAt(x - PX, y - PY) ? 'pointer' : '';
+        if (!inRect(x, y, panel)) return '';
+        if (onPotTab() && !onTab(x, y)) return tools.cursor(x - PX, y - PY) ? 'pointer' : '';
+        return partAt(x - PX, y - PY) ? 'pointer' : '';
       },
     },
   };

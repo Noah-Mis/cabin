@@ -41,7 +41,9 @@ W_CANVAS, H_CANVAS = 320, 180
 # ── Panel geometry ────────────────────────────────────────────────────
 PANEL_W, PANEL_H = 164, 124
 PAPER_W = 150                      # paper ends here; tabs protrude right
-TAB_W, TAB_H = 14, 22
+TAB_W, TAB_H = 16, 22    # 16 = PANEL_W - (PAPER_W - 2); the active
+                         # overlay must match the baked tab exactly or the
+                         # inactive tab shows through on the right
 TAB_YS = [10, 36, 62, 88]          # four tab top-edges
 PANEL_X, PANEL_Y = 78, 28          # centered on canvas
 
@@ -181,18 +183,24 @@ def draw_journal(t):
     p = PAPER[t]
     c = Canvas(PANEL_W, PANEL_H)
 
-    # Tabs first, so the paper body overlaps their left edge cleanly
+    # Tabs first, so the paper body overlaps their left edge cleanly.
+    # These must reach PANEL_W - 1. Stopping at PANEL_W - 2 leaves column 163
+    # never written — a 1px transparent strip down the whole right edge that
+    # shows the scene through the panel.
     for ty in TAB_YS:
-        c.rect(PAPER_W - 2, ty + 1, PANEL_W - 3, ty + TAB_H - 2, p['tab'])
-        c.rect(PANEL_W - 2, ty + 3, PANEL_W - 2, ty + TAB_H - 4, p['tab_d'])
-        c.frame(PAPER_W - 2, ty, PANEL_W - 2, ty + TAB_H - 1, p['border_d'])
-        for corner in [(PANEL_W-2, ty), (PANEL_W-2, ty+TAB_H-1)]:
+        c.rect(PAPER_W - 2, ty + 1, PANEL_W - 2, ty + TAB_H - 2, p['tab'])
+        c.rect(PANEL_W - 1, ty + 3, PANEL_W - 1, ty + TAB_H - 4, p['tab_d'])
+        c.frame(PAPER_W - 2, ty, PANEL_W - 1, ty + TAB_H - 1, p['border_d'])
+        for corner in [(PANEL_W-1, ty), (PANEL_W-1, ty+TAB_H-1)]:
             c.put(corner[0], corner[1], (0,0,0,0))
 
-    # Paper body + subtle fibre texture
-    c.rect(2, 2, PAPER_W - 3, PANEL_H - 3, p['bg'])
+    # Paper body + subtle fibre texture. This has to reach PAPER_W - 2: the
+    # tabs attach at that column, so stopping a pixel short leaves a 1px
+    # transparent seam between tabs, walled in by paper on one side and the
+    # right border on the other.
+    c.rect(2, 2, PAPER_W - 2, PANEL_H - 3, p['bg'])
     for y in range(2, PANEL_H - 2):
-        for x in range(2, PAPER_W - 2):
+        for x in range(2, PAPER_W - 1):
             if (x * 3 + y * 7) % 23 == 0:
                 c.put(x, y, p['bg_d'])
 
@@ -604,13 +612,13 @@ def body_hw(ny):
     return int(round(RX_OUT - tt * 7))
 
 
-def _rim_ring(c, tp, dy_from, dy_to):
+def _rim_ring(c, tp, dy_from, dy_to, oy=0):
     """Draw the elliptical rim ring for rows dy_from..dy_to (relative to the
     opening centre). The ring is everything inside the outer ellipse and
     outside the opening."""
     cx = POT_CX
     for dy in range(dy_from, dy_to + 1):
-        ny = OPEN_CY + dy
+        ny = OPEN_CY + dy + oy
         ho = ehw(RX_OUT, RY_OUT, dy)
         if ho < 0:
             continue
@@ -642,36 +650,74 @@ def _rim_ring(c, tp, dy_from, dy_to):
                 c.put(x, ny, tp['edge'])
 
 
-def draw_pot_back(t):
-    """Behind the plant: the rim's far arc and the elliptical soil bed."""
-    tp = TERRA[t]
-    c = Canvas(POTPANEL_W, POTPANEL_H)
+WET_STATES = ('dry', 'moist', 'wet')
+WET_SCALE = {'dry': 1.24, 'moist': 1.0, 'wet': 0.72}
+
+
+def soil_ramp(tp, state):
+    """Shift the whole soil ramp by wetness. Watering has to be visible in
+    the pot itself, not just in a meter, or the can feels inert."""
+    k = WET_SCALE[state]
+    return {key: tuple(_c(v * k) for v in tp[key])
+            for key in ('soil_wet', 'soil_mid', 'soil_dry', 'soil_top')}
+
+
+def _pot_back_pane(c, tp, oy, state):
     cx = POT_CX
-
-    _rim_ring(c, tp, -RIM_DY, 0)
-
+    _rim_ring(c, tp, -RIM_DY, 0, oy)
+    sr = soil_ramp(tp, state)
     # Soil — fills the opening ellipse. Light comes from the front, so the bed
     # is brightest at the near edge and falls into shadow under the back rim.
     for dy in range(-IN_DY, IN_DY + 1):
-        ny = OPEN_CY + dy
+        ny = OPEN_CY + dy + oy
         hi = ehw(RX_IN, RY_IN, dy)
         if hi < 0:
             continue
         for nx in range(-hi, hi + 1):
             x = cx + nx
-            speck = ((nx * 7 + ny * 13) % 11) < 2
+            speck = ((nx * 7 + (ny - oy) * 13) % 11) < 2
             rim_shadow = abs(nx) >= hi - 1          # soil meeting the wall
             if dy <= -IN_DY + 1 or rim_shadow:
-                c.put(x, ny, tp['soil_wet'])        # under the back rim
+                c.put(x, ny, sr['soil_wet'])        # under the back rim
             elif dy <= -1:
-                c.put(x, ny, tp['soil_mid'] if speck else tp['soil_wet'])
+                c.put(x, ny, sr['soil_mid'] if speck else sr['soil_wet'])
             elif dy == 0:
-                c.put(x, ny, tp['soil_dry'] if speck else tp['soil_mid'])
+                c.put(x, ny, sr['soil_dry'] if speck else sr['soil_mid'])
             elif dy == 1:
-                c.put(x, ny, tp['soil_mid'] if speck else tp['soil_dry'])
+                c.put(x, ny, sr['soil_mid'] if speck else sr['soil_dry'])
             else:
-                c.put(x, ny, tp['soil_dry'] if speck else tp['soil_top'])
+                c.put(x, ny, sr['soil_dry'] if speck else sr['soil_top'])
+
+
+def draw_pot_back(t):
+    """Behind the plant: the rim's far arc and the soil bed, at three wetness
+    levels stacked vertically (dry / moist / wet)."""
+    tp = TERRA[t]
+    c = Canvas(POTPANEL_W, POTPANEL_H * len(WET_STATES))
+    for i, state in enumerate(WET_STATES):
+        _pot_back_pane(c, tp, i * POTPANEL_H, state)
     return c.save(f"anim/terrarium_pot_back_{t}.png")
+
+
+def draw_pot_glow(t):
+    """Drop-target highlight: the mouth ellipse traced in a warm outline,
+    drawn over pot_back while a tool hovers the pot."""
+    p = PAPER[t]
+    c = Canvas(POTPANEL_W, POTPANEL_H)
+    cx = POT_CX
+    glow = tint_ui((255, 236, 170), t) if t != 'night' else (150, 134, 92)
+    for dy in range(-RY_OUT, RY_OUT + 1):
+        ho = ehw(RX_OUT, RY_OUT, dy)
+        if ho < 1:
+            continue
+        ny = OPEN_CY + dy
+        for nx in (-ho, -ho + 1, ho - 1, ho):
+            c.put(cx + nx, ny, glow)
+    for dy in (-RY_OUT, RY_OUT):
+        ho = ehw(RX_OUT, RY_OUT, dy)
+        for nx in range(-ho, ho + 1):
+            c.put(cx + nx, OPEN_CY + dy, glow)
+    return c.save(f"anim/terrarium_pot_glow_{t}.png")
 
 
 def draw_pot_front(t):
@@ -759,7 +805,7 @@ for t in TIMES:
     draw_journal(t); draw_tab_active(t); draw_tab_icons(t)
     draw_seeds(t);   draw_codex(t);      draw_slots(t)
     draw_meter(t);   draw_buttons(t);    draw_traits(t)
-    draw_stars(t);   draw_pot_panel(t)
+    draw_stars(t);   draw_pot_panel(t);  draw_pot_glow(t)
     print(f"  {t:<10} journal+tabs, seeds({NSPEC}), codex({NSPEC}), slots, meters, buttons, traits, stars, pot")
 
 print(f"\n{len(TIMES) * 11} files written to anim/")
