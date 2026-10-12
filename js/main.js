@@ -19,6 +19,8 @@ import { createUnlockSign } from './unlock-sign.js';
 import { createNotePopup } from './note-popup.js';
 import { createBoardPopup } from './board-popup.js';
 import { loadBoardArt } from './scene/board.js';
+import { createTerrarium } from './terrarium.js';
+import { createJournal } from './terrarium-journal.js';
 import { startSound, soundLog, soundState, outputLevelDb } from './sound.js';
 import { trackPointer } from './pointer.js';
 import { buildLayers, collectEvents, collectRunning } from './scene/layers.js';
@@ -54,17 +56,21 @@ async function boot() {
   else assets.slowDown(config.animationSlowdown);
   if (testOptions) useTestSettings(config);
 
-  // The window opening down to the bottom of the sill, and the achievement
-  // board on the log beside it (with its hover outline), must always be in
-  // view. The board's side is mirrored onto the left log, so the area is
-  // centred on the canvas: the picture stays centred instead of sliding
-  // toward the board (a smaller scale wins where both don't fit).
+  // The window opening down to the bottom of the sill, the achievement
+  // board on the log beside it and the terrarium pot on the other wall (with
+  // their hover outlines), and the terrarium journal must always be in view.
+  // The two sides are mirrored, so the area is centred on the canvas: the
+  // picture stays centred instead of sliding toward one of them (a smaller
+  // scale wins where they don't all fit).
   const { window_opening: opening, sill_band: sill } = assets.manifest;
   const { board } = boardArt.layout;
+  const potShelf = assets.animation('terrarium_potshelf').info;
+  const journalInfo = assets.animation('terrarium_journal').info;
   const right = Math.max(opening.x + opening.w, board.canvas_x + board.w + 1);
-  const left = Math.min(opening.x, board.canvas_x - 1, canvas.width - right);
+  const left = Math.min(opening.x, board.canvas_x - 1, potShelf.placement.x - 1, canvas.width - right);
+  const bottom = Math.max(sill.y1 + 1, journalInfo.placement.y + journalInfo.frame_h);
   const display = fitCanvasToStage(canvas, document.getElementById('stage'), {
-    keepVisible: { x: left, y: opening.y, w: right - left, h: sill.y1 + 1 - opening.y },
+    keepVisible: { x: left, y: opening.y, w: canvas.width - 2 * left, h: bottom - opening.y },
     bottomInset: () => document.getElementById('terminal').offsetHeight,
   });
 
@@ -101,8 +107,11 @@ async function boot() {
     bottomInset: () => document.getElementById('terminal').offsetHeight,
     onCommand: terminal.prefill,
   });
+  const terrarium = createTerrarium(config.terrarium);
+  const journal = createJournal(assets, terrarium);
   const layers = buildLayers(assets, {
     weather, timeOfDay, board: { ...boardArt, popup: boardPopup }, welcome: { progress, popup: notePopup },
+    terrarium: { terrarium, journal },
   });
   // The scene's events, plus a spell of weather (the weather isn't a layer).
   const events = { ...collectEvents(layers), weather: weather.startSpell };
@@ -110,10 +119,11 @@ async function boot() {
 
   trackPointer(canvas, layers);
 
-  // Back to a first visit: no progress, wood terminal, and whatever is on
-  // screen right now counts as seen again.
+  // Back to a first visit: no progress, a fresh terrarium, wood terminal,
+  // and whatever is on screen right now counts as seen again.
   function resetProgress() {
     resetAchievements();
+    terrarium.reset();
     sign.clear();
     boardPopup.refresh();
     terminal.setTheme(null);
@@ -122,7 +132,7 @@ async function boot() {
   }
 
   app = {
-    events, timeOfDay, weather, debug, resetProgress,
+    events, timeOfDay, weather, debug, resetProgress, terrarium, journal,
     print: terminal.print, clearOutput: terminal.clear, setTheme: terminal.setTheme,
     theme: { green: achievementData.terminal_theme_green },
     progressStats: () => ({ stats: progress.stats(), unlocked: progress.unlocked(), saved: progress.persistent() }),

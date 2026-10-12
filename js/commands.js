@@ -1,7 +1,7 @@
 // commands.js — the terminal's command table and the code that runs a line.
 // To add a command, add one entry to `commands`. Each entry gets the words
 // after the command name and the app: { events, timeOfDay, weather, print,
-// clearOutput, setTheme, resetProgress, debug, theme }. Whatever a command
+// clearOutput, setTheme, resetProgress, debug, theme, terrarium, journal }. Whatever a command
 // prints appears together in one speech bubble. Creatures and wind are not
 // commands; they only come on their timers.
 //
@@ -16,7 +16,8 @@
 // So `reset` doesn't count (it would wipe the very progress it completes);
 // `sound` doesn't (muting shouldn't be a chore); `theme` doesn't (it only
 // appears once the achievement is earned); `badges` no longer does (the board
-// by the window replaced it). The hidden sill commands (`ls`, `rm`, `touch`) don't. The rule only asks that every listed command
+// by the window replaced it). The hidden sill commands (`ls`, `rm`, `touch`) don't,
+// and neither do the terrarium's (`terrarium` is listed, the rest are hidden). The rule only asks that every listed command
 // was used, so retiring a command never sets anyone back: an old mark for it
 // is simply ignored. everyDayCommands() below computes the list.
 //
@@ -25,6 +26,7 @@
 import { track, isUnlocked, listAchievements, debugSetStat, debugUnlock } from './achievements.js';
 import { setMuted, isMuted, soundState, outputLevelDb, soundLog } from './sound.js';
 import { sillItems, putAway, findSillItem, putOnSill, takeOffSill } from './sill.js';
+import { SPECIES, speciesIndex } from './terrarium-species.js';
 
 export const commands = {
   help: {
@@ -112,6 +114,114 @@ export const commands = {
       app.print(`you put the ${name} on the sill.`);
     },
   },
+  // The terrarium (js/terrarium.js): the same actions as the journal's
+  // buttons. An open journal shows the change at once, on whatever tab it is.
+  terrarium: {
+    usage: 'terrarium [status]',
+    about: 'the pot on the wall',
+    everyCommand: false,
+    run([word], app) {
+      if (word === 'status') return printStatus(app);
+      if (word) return app.print(`usage: ${commands.terrarium.usage}`);
+      app.journal.open(0);
+      app.print('you open the field journal. water, trim, harvest, plant, seeds, cross and codex work here too.');
+    },
+  },
+  water: {
+    usage: 'water',
+    about: 'water the terrarium pot',
+    hidden: true,
+    everyCommand: false,
+    run(args, app) {
+      const result = app.terrarium.water();
+      if (result.reason === 'empty') return app.print("there's nothing in the pot to water.");
+      if (result.reason === 'dead') return app.print(`the ${nameOf(result.species)} is past watering. "harvest" clears the pot.`);
+      if (result.reason === 'wait') return app.print('give it a moment to soak in.');
+      app.print(result.saturated
+        ? `you water the ${nameOf(result.species)}. the soil is saturated; the extra drains away.`
+        : `you water the ${nameOf(result.species)}.`);
+    },
+  },
+  trim: {
+    usage: 'trim',
+    about: 'trim the plant in the pot',
+    hidden: true,
+    everyCommand: false,
+    run(args, app) {
+      const result = app.terrarium.trim();
+      if (result.reason === 'empty') return app.print("there's nothing in the pot to trim.");
+      if (result.reason === 'dead') return app.print(`the ${nameOf(result.species)} has withered. "harvest" clears the pot.`);
+      if (result.reason === 'small') return app.print(`the ${nameOf(result.species)} is too small to trim yet.`);
+      app.print(`you trim the ${nameOf(result.species)} back. it looks healthier.`);
+    },
+  },
+  harvest: {
+    usage: 'harvest',
+    about: 'harvest the plant for seeds',
+    hidden: true,
+    everyCommand: false,
+    run(args, app) {
+      const result = app.terrarium.harvest();
+      if (result.reason === 'empty') return app.print('the pot is empty. "plant <seed>" to start something.');
+      if (result.reason === 'unripe') {
+        return app.print(`the ${nameOf(result.species)} isn't ready yet (growth ${percent(result.growth)}).`);
+      }
+      if (result.cleared) return app.print(`you clear out the withered ${nameOf(result.species)}. the pot is empty.`);
+      app.print(`you harvest the ${nameOf(result.species)}: ${result.seeds} seed${result.seeds > 1 ? 's' : ''}.`);
+      if (result.gift) app.print(`${aOrAn(nameOf(result.gift))} seed was tucked in the soil, too.`);
+    },
+  },
+  plant: {
+    usage: 'plant <seed>',
+    about: 'plant a seed in the pot',
+    hidden: true,
+    everyCommand: false,
+    run(words, app) {
+      if (!words.length) return app.print(`usage: ${commands.plant.usage}`);
+      const id = app.terrarium.find(words.join(' '));
+      if (!id) return app.print(`there's no such seed as "${words.join(' ')}".`);
+      const result = app.terrarium.plant(id);
+      if (result.reason === 'occupied') return app.print(`the pot's already got ${aOrAn(nameOf(result.species))} in it.`);
+      if (result.reason === 'none') return app.print(`you don't have any ${nameOf(id)} seeds.`);
+      app.print(`you plant ${aOrAn(nameOf(id))} seed. water it now and then.`);
+    },
+  },
+  seeds: {
+    usage: 'seeds',
+    about: 'list your seeds',
+    hidden: true,
+    everyCommand: false,
+    run(args, app) {
+      const owned = SPECIES.filter((s) => app.terrarium.count(s.id)).map((s) => `${nameOf(s.id)} ${app.terrarium.count(s.id)}`);
+      app.print(owned.length ? owned.join('  ') : 'you have no seeds.');
+    },
+  },
+  cross: {
+    usage: 'cross <seed> <seed>',
+    about: 'cross two seeds for a new one',
+    hidden: true,
+    everyCommand: false,
+    run(words, app) {
+      const [a, b] = splitPair(words, app.terrarium.find);
+      if (!a || !b) return app.print(`usage: ${commands.cross.usage}`);
+      const result = app.terrarium.cross(a, b);
+      if (!result.ok) return app.print(`you need ${a === b ? `two ${nameOf(a)} seeds` : `${aOrAn(nameOf(result.species))} seed`} for that.`);
+      const odds = result.hybrid ? `chance ${percent(result.chance)} - new species.` : 'no new species from this pair.';
+      app.print(result.hit ? `${odds} new species: ${nameOf(result.species)}!` : `${odds} you got ${aOrAn(nameOf(result.species))} seed.`);
+    },
+  },
+  codex: {
+    usage: 'codex',
+    about: 'which species you have found',
+    hidden: true,
+    everyCommand: false,
+    run(args, app) {
+      const found = app.terrarium.get().codex;
+      app.print(`${found.length} / ${SPECIES.length} discovered.`);
+      const missing = SPECIES.filter((s) => !found.includes(s.id)).map((s) => nameOf(s.id));
+      if (missing.length) app.print(`missing: ${missing.join(', ')}`);
+    },
+  },
   // Retired: the achievement board on the window's right-hand log replaced
   // it. Old habits and old screenshots still send people here.
   badges: {
@@ -195,6 +305,39 @@ export const commands = {
     },
   },
 };
+
+// ── terrarium helpers ──
+function nameOf(id) {
+  return SPECIES[speciesIndex(id)].name.toLowerCase();
+}
+
+function aOrAn(word) {
+  return `${/^[aeiou]/i.test(word) ? 'an' : 'a'} ${word}`;
+}
+
+function percent(fraction) {
+  return `${Math.round(fraction * 100)}%`;
+}
+
+function printStatus(app) {
+  const { terrarium } = app;
+  terrarium.tick();
+  const pot = terrarium.get().pot;
+  if (!pot) return app.print('the pot is empty. "seeds" lists what you can plant.');
+  const stage = pot.dead ? 'withered' : pot.wilting ? 'wilting' : terrarium.stage(pot);
+  app.print(`${nameOf(pot.species)}: ${stage}. water ${percent(pot.hydration)}, growth ${percent(pot.growth)}.`);
+}
+
+// Two species from the words after `cross`, names of two words included
+// ("cross aurora bloom fern"): the first split where both halves are seeds.
+function splitPair(words, find) {
+  for (let i = 1; i < words.length; i++) {
+    const a = find(words.slice(0, i).join(' '));
+    const b = find(words.slice(i).join(' '));
+    if (a && b) return [a, b];
+  }
+  return [null, null];
+}
 
 // Commands arrive lower-cased; event options that aren't single words.
 const CAMEL_CASE_OPTIONS = { spotindex: 'spotIndex', speedpxpersec: 'speedPxPerSec' };

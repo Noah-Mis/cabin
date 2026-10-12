@@ -35,7 +35,7 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).parent))
-from harness import ROOT, RESULTS, BOARD, serve_site, open_browser, watch_page, canvas_pixels, add_board, add_pond_bank
+from harness import ROOT, RESULTS, BOARD, serve_site, open_browser, watch_page, canvas_pixels, add_board, add_terrarium_pot, add_pond_bank
 
 ANIM = ROOT / 'anim'
 ACH_DIR = ANIM / 'achievements'
@@ -191,6 +191,7 @@ def reference(time, layers):
     window = 'cabin_window_night.png' if time == 'night' else 'cabin_window.png'   # manifest "window" entry
     c.alpha_composite(Image.open(ANIM / 'scene' / window).convert('RGBA'))
     add_board(c, time)   # empty: unlocks also light pins there, which check_board() covers
+    add_terrarium_pot(c, time)
     for im, pos in sill:
         c.alpha_composite(im, pos)
     return np.asarray(c)

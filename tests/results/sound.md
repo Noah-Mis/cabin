@@ -1,12 +1,12 @@
 # Sound checks
 - PASS: waterfall loop over 60 s: level stays within 0.6 dB (-49.5 to -48.9 dBFS in half-second steps), no gaps; looping the whole file instead would swing 6.8 dB every 10 s
 - PASS: waterfall plays at -49.1 dBFS on average (quiet; full scale is 0)
-- PASS: waterfall sounds distant: the crisp top end (above 4 kHz) is 19.5 dB quieter, close-up rumble (below 100 Hz) 11.7 dB quieter; stereo narrower (left/right correlation 0.48 -> 0.80); a soft echo lingers after it stops (-21 dB vs -inf dB without); overall -2.5 dB from the effect
+- PASS: waterfall sounds distant: the crisp top end (above 4 kHz) is 19.6 dB quieter, close-up rumble (below 100 Hz) 11.5 dB quieter; stereo narrower (left/right correlation 0.48 -> 0.81); a soft echo lingers after it stops (-21 dB vs -inf dB without); overall -2.5 dB from the effect
 - PASS: before any click: audio 'not started', nothing played (0), console clean ([])
 - PASS: first click starts the waterfall loop (state running, at -17 dB)
 - PASS: the live page really outputs the waterfall: -52.4 dBFS (median over 3 s, lowest -61.9); silence would read about -120
-- PASS: a gust rises 8.5 dB above the waterfall at its loudest (-43.9 dBFS), so it is heard over it
-- PASS: `debug sound` reports what is playing: "sound running, output -51.8 dBFS, played: waterfall, wind"
+- PASS: a gust rises 8.7 dB above the waterfall at its loudest (-43.6 dBFS), so it is heard over it
+- PASS: `debug sound` reports what is playing: "sound running, output -52.0 dBFS, played: waterfall, wind"
 - PASS: a bird entering from the left is heard on the left (pan -0.6), from the right on the right (0.6), once each; the far-off bird makes no sound (0)
 - PASS: a gust plays the wind once, sweeping -0.4 -> 0.4 over 5 s (the file's silent start and end trimmed)
 - PASS: `sound off`: audio suspended, a bird spawned silently; `sound on` resumes

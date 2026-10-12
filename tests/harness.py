@@ -12,6 +12,8 @@ Exports:
     add_board(image, time, unlocked=()) -> image with the achievement board drawn
         where the site hangs it, over the window frame, with a pin (or the
         star) for each achievement id in `unlocked`
+    add_terrarium_pot(image, time) -> image with the terrarium pot on its shelf on
+        the left wall, drawn right after the board
     add_pond_bank(image, time) -> image with the grassy bank by the pool (scenery,
         drawn right after the waterfall)
     tree_snow(time, amount) -> (far, near) RGBA layers of snow on the trees, as
@@ -27,6 +29,13 @@ ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / 'tests' / 'results'
 BOARD = json.loads((ROOT / 'anim' / 'board' / 'board_layout.json').read_text())['board']
 ACHIEVEMENT_IDS = [a['id'] for a in json.loads((ROOT / 'anim' / 'achievements' / 'achievements.json').read_text())['achievements']]
+
+
+def add_terrarium_pot(image, time):
+    info = json.loads((ROOT / 'anim' / 'terrarium' / 'terrarium_manifest.json').read_text(encoding='utf-8'))['animations']['terrarium_potshelf']
+    pot = Image.open(ROOT / 'anim' / 'terrarium' / f'terrarium_potshelf_{time}.png').convert('RGBA')
+    image.alpha_composite(pot, (info['placement']['x'], info['placement']['y']))
+    return image
 
 
 def add_pond_bank(image, time):

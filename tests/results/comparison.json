@@ -1758,7 +1758,7 @@
    },
    {
     "tick": 3,
-    "differing_pixels": 603,
+    "differing_pixels": 602,
     "max_channel_delta": 1
    },
    {
@@ -1778,7 +1778,7 @@
    },
    {
     "tick": 7,
-    "differing_pixels": 606,
+    "differing_pixels": 605,
     "max_channel_delta": 1
    },
    {
@@ -1798,7 +1798,7 @@
    },
    {
     "tick": 11,
-    "differing_pixels": 598,
+    "differing_pixels": 597,
     "max_channel_delta": 1
    },
    {
@@ -1818,7 +1818,7 @@
    },
    {
     "tick": 15,
-    "differing_pixels": 594,
+    "differing_pixels": 593,
     "max_channel_delta": 1
    },
    {
@@ -1838,7 +1838,7 @@
    },
    {
     "tick": 19,
-    "differing_pixels": 603,
+    "differing_pixels": 602,
     "max_channel_delta": 1
    },
    {
@@ -1858,7 +1858,7 @@
    },
    {
     "tick": 23,
-    "differing_pixels": 592,
+    "differing_pixels": 591,
     "max_channel_delta": 1
    },
    {
@@ -1878,7 +1878,7 @@
    },
    {
     "tick": 27,
-    "differing_pixels": 591,
+    "differing_pixels": 590,
     "max_channel_delta": 1
    },
    {
@@ -1898,7 +1898,7 @@
    },
    {
     "tick": 31,
-    "differing_pixels": 599,
+    "differing_pixels": 598,
     "max_channel_delta": 1
    },
    {
@@ -1918,7 +1918,7 @@
    },
    {
     "tick": 35,
-    "differing_pixels": 600,
+    "differing_pixels": 599,
     "max_channel_delta": 1
    },
    {
@@ -1938,7 +1938,7 @@
    },
    {
     "tick": 39,
-    "differing_pixels": 596,
+    "differing_pixels": 595,
     "max_channel_delta": 1
    },
    {
@@ -1958,7 +1958,7 @@
    },
    {
     "tick": 43,
-    "differing_pixels": 605,
+    "differing_pixels": 604,
     "max_channel_delta": 1
    },
    {
@@ -1978,7 +1978,7 @@
    },
    {
     "tick": 47,
-    "differing_pixels": 605,
+    "differing_pixels": 604,
     "max_channel_delta": 1
    }
   ]
@@ -4734,7 +4734,7 @@
    },
    {
     "tick": 3,
-    "differing_pixels": 639,
+    "differing_pixels": 638,
     "max_channel_delta": 1
    },
    {
@@ -4749,7 +4749,7 @@
    },
    {
     "tick": 6,
-    "differing_pixels": 643,
+    "differing_pixels": 642,
     "max_channel_delta": 1
    },
    {
@@ -4769,7 +4769,7 @@
    },
    {
     "tick": 10,
-    "differing_pixels": 637,
+    "differing_pixels": 636,
     "max_channel_delta": 1
    },
    {
@@ -4784,7 +4784,7 @@
    },
    {
     "tick": 13,
-    "differing_pixels": 632,
+    "differing_pixels": 631,
     "max_channel_delta": 1
    },
    {
@@ -4799,7 +4799,7 @@
    },
    {
     "tick": 16,
-    "differing_pixels": 631,
+    "differing_pixels": 630,
     "max_channel_delta": 1
    },
    {
@@ -4819,7 +4819,7 @@
    },
    {
     "tick": 20,
-    "differing_pixels": 634,
+    "differing_pixels": 633,
     "max_channel_delta": 1
    },
    {
@@ -4834,7 +4834,7 @@
    },
    {
     "tick": 23,
-    "differing_pixels": 629,
+    "differing_pixels": 628,
     "max_channel_delta": 1
    },
    {
@@ -4869,7 +4869,7 @@
    },
    {
     "tick": 30,
-    "differing_pixels": 632,
+    "differing_pixels": 631,
     "max_channel_delta": 1
    },
    {
@@ -4884,7 +4884,7 @@
    },
    {
     "tick": 33,
-    "differing_pixels": 634,
+    "differing_pixels": 633,
     "max_channel_delta": 1
    },
    {
@@ -4919,7 +4919,7 @@
    },
    {
     "tick": 40,
-    "differing_pixels": 635,
+    "differing_pixels": 634,
     "max_channel_delta": 1
    },
    {
@@ -4934,7 +4934,7 @@
    },
    {
     "tick": 43,
-    "differing_pixels": 643,
+    "differing_pixels": 642,
     "max_channel_delta": 1
    },
    {
@@ -4954,7 +4954,7 @@
    },
    {
     "tick": 47,
-    "differing_pixels": 646,
+    "differing_pixels": 645,
     "max_channel_delta": 1
    }
   ]
