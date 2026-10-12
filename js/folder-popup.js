@@ -57,6 +57,13 @@ function fillFrame({ backdrop, popup, art, requestClose: onClose }, layout, cont
 
   const { regions } = layout;
   const photo = placed(el('div', 'fp-region fp-photo'), regions.photo);
+  if (regions.photo.file) {
+    const picture = document.createElement('img');
+    picture.src = dir + regions.photo.file;
+    picture.alt = 'Pole vaulting, clearing the bar';
+    photo.style.setProperty('--inset', regions.photo.inset ?? 0);
+    photo.append(picture);
+  }
   const card = placed(buildCard(content.card), regions.card);
   const sticky = placed(buildSticky(content.sticky), regions.sticky);
   const stamp = placed(el('div', 'fp-region fp-stamp', content.stamp), regions.stamp);

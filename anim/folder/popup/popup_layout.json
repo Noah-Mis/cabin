@@ -52,7 +52,10 @@
       "x": 18,
       "y": 30,
       "w": 36,
-      "h": 36
+      "h": 36,
+      "file": "photo.jpg",
+      "inset": 1,
+      "note": "The photo covers the blue slot only: inset 1 px inside the region, so the grey mat around it shows."
     },
     "card": {
       "x": 69,

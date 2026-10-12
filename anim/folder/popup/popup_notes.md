@@ -30,4 +30,4 @@ On narrow screens where the scaled folder would be too small to read, show the s
 
 ## Content
 
-`folder_content.json` holds all the words, taken from the owner's resume: the index card, stamp, sticky note, and the sections for each tab. Render from this file and do not hard-code or reword any of it. Sections can contain `text` (paragraphs), `items` (a title, a muted `meta` line, and bullet `points`), `bullets`, `tags`, and `links`. The resume PDF linked from the sticky note and the Contact tab is supplied separately by the owner. The photo region has no image yet; leave the placeholder until the owner provides one.
+`folder_content.json` holds all the words, taken from the owner's resume: the index card, stamp, sticky note, and the sections for each tab. Render from this file and do not hard-code or reword any of it. Sections can contain `text` (paragraphs), `items` (a title, a muted `meta` line, and bullet `points`), `bullets`, `tags`, and `links`. The resume PDF linked from the sticky note and the Contact tab is supplied separately by the owner. The photo is `photo.jpg` (the layout's `photo.file`), drawn inside the region's grey mat.
