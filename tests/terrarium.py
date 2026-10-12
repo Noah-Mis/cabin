@@ -17,6 +17,8 @@
    harvests, and the keyboard plays it too; the Seeds tab has no Plant
    button; the crossing bench; terminal commands change an open journal
    without switching its tab; every time of day; closing; the console.
+   The journal's hints show on a first visit and each goes once its step
+   has been done, for good (they are saved).
 
 Writes tests/results/terrarium.md and screens/terrarium_*.png.
 Run:  python tests/terrarium.py
@@ -365,7 +367,12 @@ def check_page(browser, base):
 
     # The Pot tab, empty: the strip is a tray of your seeds; drag one to the pot.
     click(PX + tab_x, PY + tabs[0] + 11)
-    capture(page, 'tray')
+    tray = capture(page, 'tray')
+    # The hint line under the meters (panel x 66-145, y 88-92): blank is the paper's own pixels.
+    paper = Image.open(ROOT / 'anim' / 'terrarium' / 'terrarium_journal_day.png').convert('RGBA')
+    hint_line = lambda img: img.crop((PX + 66, PY + 88, PX + 146, PY + 93)).tobytes()
+    hint_blank = lambda img: hint_line(img) == paper.crop((66, 88, 146, 93)).tobytes()
+    first_hint = not hint_blank(tray)
     rail = MANIFEST['terrarium_tools']['rail']
     slot = lambda i: (PX + rail['x'][i] + 8, PY + rail['y'] + 8)
     pot_at = (PX + 36, PY + 72)
@@ -382,7 +389,14 @@ def check_page(browser, base):
     for _ in range(7):
         advance()
     planted = page.evaluate(f'{T}.get().pot && {T}.get().pot.species')
-    check(planted == 'moss' and glow_on == 'pointer', f'a seed dragged from the tray to the pot is planted ({planted}); a hand over the pot while carrying ({glow_on})')
+    check(planted == 'moss' and glow_on == 'grabbing', f'a seed dragged from the tray to the pot is planted ({planted}); a closed hand while dragging ({glow_on})')
+    for _ in range(25):   # past the "Planted" status line
+        advance()
+    after_hint = capture(page, 'hint_gone')
+    learned = page.evaluate(f'{T}.get().hints')
+    check(first_hint and hint_blank(after_hint) and {'pot-pickup', 'pot-use', 'seeds-pick', 'seeds-plant'} <= set(learned),
+          f'hints teach each step once: the Pot tab says what to do on a first visit ({first_hint}), and is quiet once a seed '
+          f'has been picked up and planted ({hint_blank(after_hint)}); learned: {sorted(learned)}')
 
     # The rail: only tools that do something. A seedling: just the can.
     def soil_pane():
@@ -469,6 +483,13 @@ def check_page(browser, base):
     after = page.evaluate(f'({T}.count("fern") + {T}.count("clover") + {T}.count("ivy"))')
     capture(page, 'crossed')
     check(before - after == 1, f'the bench crosses fern x clover: two seeds in, one back ({before} -> {after})')
+    page.reload()
+    page.wait_for_function('window.cabin && window.cabin.test')
+    kept = page.evaluate(f'{T}.get().hints')
+    page.evaluate('cabin.app.journal.open(2)')
+    advance()
+    check({'cross-pick', 'cross-cancel', 'cross-go'} <= set(kept) and set(learned) <= set(kept),
+          f'the crossing bench hints are learned by using it, and every learned hint stays learned after a reload ({sorted(kept)})')
 
     # The terminal changes the open journal without switching its tab.
     page.wait_for_timeout(600)   # watering is debounced 500 ms in real time; the can was used moments ago

@@ -24,13 +24,15 @@
 - PASS: the pot is on the left wall as drawn (True), shows a hand (pointer), and a click opens the journal (True)
 - PASS: the journal is drawn over the snow and everything else (1362/1362 margin pixels exact)
 - PASS: tabs switch on a click (seeds: 1); the Seeds tab plants nothing (True); plain paper keeps the arrow ('')
-- PASS: a seed dragged from the tray to the pot is planted (moss); a hand over the pot while carrying (pointer)
+- PASS: a seed dragged from the tray to the pot is planted (moss); a closed hand while dragging (grabbing)
+- PASS: hints teach each step once: the Pot tab says what to do on a first visit (True), and is quiet once a seed has been picked up and planted (True); learned: ['pot-pickup', 'pot-use', 'seeds-pick', 'seeds-plant']
 - PASS: the can, clicked then clicked on the pot, waters it on its third droplet frame (0.2 -> 0.45); the soil shows how wet it is ((84, 64, 45) dry, (49, 37, 26) wet)
 - PASS: a drag let go off the pot puts the can back: a later click on the pot does nothing (0.80)
-- PASS: the basket, the third tool on a ripe plant, harvests it ({'pot': None, 'moss': 3, 'codex': ['moss']})
+- PASS: the basket, the third tool on a ripe plant, harvests it ({'pot': None, 'moss': 4, 'codex': ['moss']})
 - PASS: the keyboard plants a seed: Tab, Enter, Tab to the pot, Enter (moss); nothing typed on the prompt ('')
 - PASS: the bench crosses fern x clover: two seeds in, one back (4 -> 3)
+- PASS: the crossing bench hints are learned by using it, and every learned hint stays learned after a reload (['cross-cancel', 'cross-go', 'cross-pick', 'pot-pickup', 'pot-use', 'seeds-pick', 'seeds-plant'])
 - PASS: `water` with the journal open: the pot is watered (0.75), the tab stays (2)
 - PASS: closes on a click outside (True), on the pot (True), on Escape (True); the Terrarium button opens it (True)
-- PASS: commands answer in character: {'terrarium status': 'aurora bloom: ready. water 100%, growth 100%.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 1  fern 2  clover 1  mushroom 1', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, ivy, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
+- PASS: commands answer in character: {'terrarium status': 'aurora bloom: ready. water 100%, growth 100%.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 2  fern 1  clover 2  mushroom 1', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, ivy, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
 - PASS: no console problems ([])

@@ -10,7 +10,7 @@
 // Saved under its own localStorage key (config.terrarium.storageKey), apart
 // from the achievements in js/progress.js, as one object:
 //   { version, pot, seeds: { id: [genome] }, codex: [ids], pity: { pairKey: n },
-//     gifted, lastTick, lastWater, tab }
+//     gifted, lastTick, lastWater, tab, hints: [ids of the journal's hints already learned] }
 //   pot: null or { species, genome, hydration, growth, health, wilting, dead,
 //                  dryMs, plantedAt, stack }
 //   genome: { height 1-5, bloom 0-2, vigor 1-5, hue 1-5, hardiness 1-5 }
@@ -20,7 +20,8 @@
 //
 // Exports: createTerrarium(settings, { now, random }) -> {
 //   get(), tick(), water(), trim(), harvest(), plant(id), cross(a, b), predict(a, b),
-//   count(id), stage(pot), status(pot), find(word), setTab(i), reset() }
+//   count(id), stage(pot), status(pot), find(word), setTab(i), reset(),
+//   hintSeen(id), learnHint(id) }   the journal's one-time hints
 //   Actions return { ok, ... } with a reason when not ok; see each one.
 //   stage(pot) -> 'seed' | 'sprout' | 'young' | 'mature' | 'flowering' | 'ready'
 //   STAGES: growth thresholds; TRAITS: genome keys in trait-icon order.
@@ -74,7 +75,7 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
 
   function fresh() {
     return { version: settings.storageVersion, pot: null, seeds: {}, codex: [], pity: {}, gifted: false,
-      lastTick: now(), lastWater: 0, tab: 0 };
+      lastTick: now(), lastWater: 0, tab: 0, hints: [] };
   }
 
   // Keeps stored data only if every part is well-formed; otherwise null.
@@ -101,7 +102,8 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     const time = (v) => (Number.isFinite(v) ? v : 0);
     return { version: settings.storageVersion, pot, seeds, codex, pity, gifted: !!data.gifted,
       lastTick: Math.min(time(data.lastTick) || now(), now()), lastWater: time(data.lastWater),
-      tab: Number.isInteger(data.tab) && data.tab >= 0 && data.tab < 4 ? data.tab : 0 };
+      tab: Number.isInteger(data.tab) && data.tab >= 0 && data.tab < 4 ? data.tab : 0,
+      hints: Array.isArray(data.hints) ? [...new Set(data.hints.filter((h) => typeof h === 'string'))] : [] };
   }
 
   // Out of seeds with nothing growing: the starter set again, so nobody
@@ -347,6 +349,12 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     get: () => state,   // read-only by agreement: change it through the actions
     tick, water, trim, harvest, plant, cross, predict, count, stage, status, find,
     setTab(i) { state.tab = i; save(); },
+    hintSeen: (id) => state.hints.includes(id),
+    learnHint(id) {
+      if (state.hints.includes(id)) return;
+      state.hints.push(id);
+      save();
+    },
     reset() {
       state = fresh();
       saturatedAt = -Infinity;

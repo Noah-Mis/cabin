@@ -69,7 +69,7 @@ export const config = {
     bird:      { minWaitSec: 20,  maxWaitSec: 60,  chance: 1.0 },
     farbird:   { minWaitSec: 30,  maxWaitSec: 90,  chance: 1.0 },
     wind:      { minWaitSec: 40,  maxWaitSec: 120, chance: 1.0 },
-    sasquatch: { minWaitSec: 180, maxWaitSec: 600, chance: 0.3, skipWhile: ['deer'] },   // they share the forest
+    sasquatch: { minWaitSec: 180, maxWaitSec: 300, chance: 0.3, skipWhile: ['deer'] },   // they share the forest
     // Achievement rewards: these only do anything once earned (and, for
     // shooting stars, at night).
     shootingstar: { minWaitSec: 30, maxWaitSec: 90, chance: 1.0 },
@@ -80,7 +80,7 @@ export const config = {
 
   // ── Moving things ────────────────────────────────────────────────────
   bird: {
-    speedPxPerSec: 50,          // manifest suggests 4-6 px per 100 ms frame
+    speedPxPerSec: 50,
     flightHeightPx: [40, 80],   // range of y (anchor) values in the sky
     bobAmplitudePx: 4,
     bobRadPerSec: 3,
@@ -105,7 +105,7 @@ export const config = {
     { sprite: 'cloud_d', x: 236, y: 70, speedPxPerSec: 2.5 },
   ],
 
-  // Clickable sill items (the folder, the cigarette pack) get this outline on hover.
+  // Clickable sill items get this outline on hover.
   hoverOutlineColour: '#000000',
 
   // A phone held sideways: a touch screen, wider than tall, and short. It
@@ -231,12 +231,13 @@ export const config = {
     pityCap: 0.25,
     starterSeeds: { moss: 3, fern: 2, clover: 2 },
     firstHarvestGift: ['daisy', 'wildflower', 'mushroom'],   // one of these, once
-    // Text colours on the paper, per time of day (the font is white).
+    // Colours on the paper, per time of day: text (the font is white), and
+    // `target`, the gold outline round the pot while a tool or seed is carried.
     colours: {
-      morning:   { text: '#382A20', text_d: '#645040', accent: '#90542C' },
-      day:       { text: '#342C22', text_d: '#605444', accent: '#8C5830' },
-      afternoon: { text: '#362E20', text_d: '#625642', accent: '#925C2E' },
-      night:     { text: '#A09888', text_d: '#645E56', accent: '#584834' },
+      morning:   { text: '#382A20', text_d: '#645040', accent: '#90542C', target: '#E7A84F' },
+      day:       { text: '#342C22', text_d: '#605444', accent: '#8C5830', target: '#E2B244' },
+      afternoon: { text: '#362E20', text_d: '#625642', accent: '#925C2E', target: '#F1B03C' },
+      night:     { text: '#A09888', text_d: '#645E56', accent: '#584834', target: '#B08A3A' },
     },
     words: {
       label: 'Terrarium',

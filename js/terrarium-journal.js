@@ -9,6 +9,9 @@
 // The Pot tab is played with your hands (js/terrarium-tools.js): tools and
 // seeds carried to the pot, per anim/terrarium/terrarium_tools_plan.md.
 // Text sits between the paper's ruled lines (brief §3a, baseline grid).
+// Instructions are taught once: each hint shows until its step is first done
+// (saved with the game, so a returning player isn't told again); news and
+// odds are not hints and always show.
 // Hover swaps a slot or button to its hover frame; nothing moves.
 // Closing: Escape (once anything held is put down), a click outside the
 // panel (the pot on the wall included).
@@ -237,6 +240,58 @@ export function createJournal(assets, terrarium) {
 
   // ── tabs ──
   // Each returns its clickable parts for this frame: [{ rect, action }].
+  // The pot as a drop target: a ring 1 or 2 px wide round its silhouette (both
+  // halves; every pane and time has the same shape), in a given colour.
+  const RING = 2;   // the widest ring, and the margin round the pot it needs
+  const ringMask = (() => {
+    const { frame_w: w, frame_h: h } = potInfo;
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const cx = c.getContext('2d', { willReadFrequently: true });
+    cx.drawImage(art.pot_back.imageFor('day'), 0, 0, w, h, 0, 0, w, h);
+    cx.drawImage(art.pot_front.imageFor('day'), 0, 0);
+    const alpha = cx.getImageData(0, 0, w, h).data;
+    const W = w + 2 * RING, H = h + 2 * RING;
+    const distance = new Uint8Array(W * H);   // 0 = the pot, n = n px out, 255 = further
+    distance.fill(255);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (alpha[(y * w + x) * 4 + 3]) distance[(y + RING) * W + x + RING] = 0;
+    for (let n = 1; n <= RING; n++) {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (distance[y * W + x] !== 255) continue;
+          const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => distance[(y + dy) * W + x + dx] === n - 1);
+          if (near) distance[y * W + x] = n;
+        }
+      }
+    }
+    return { W, H, distance };
+  })();
+  const rings = new Map();
+  function ring(colour, width) {
+    const key = `${colour}|${width}`;
+    if (!rings.has(key)) {
+      const { W, H, distance } = ringMask;
+      const c = document.createElement('canvas');
+      c.width = W;
+      c.height = H;
+      const cx = c.getContext('2d');
+      cx.fillStyle = colour;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (distance[y * W + x] >= 1 && distance[y * W + x] <= width) cx.fillRect(x, y, 1, 1);
+      rings.set(key, c);
+    }
+    return rings.get(key);
+  }
+  // Carrying something: the outline beats to say "bring it here"; over the
+  // pot it holds solid and thicker, and the mouth glows: "let go here".
+  function drawTarget(ctx, time, colours) {
+    const state = tools.target();
+    if (!state) return;
+    ctx.globalAlpha = state === 'over' ? 1 : 0.3 + 0.7 * tools.pulse();
+    ctx.drawImage(ring(colours.target, state === 'over' ? 2 : 1), POT.x - RING, POT.y - RING);
+    ctx.globalAlpha = 1;
+  }
+
   // The soil shows how wet it is: three panes of the back half, by hydration.
   function soilPane(pot) {
     const h = pot?.hydration ?? 0;
@@ -248,8 +303,9 @@ export function createJournal(assets, terrarium) {
   function drawPotTab(ctx, time, colours) {
     const pot = terrarium.get().pot;
     const { frame_w: pw, frame_h: ph } = potInfo;
+    drawTarget(ctx, time, colours);
     ctx.drawImage(art.pot_back.imageFor(time), 0, soilPane(pot) * ph, pw, ph, POT.x, POT.y, pw, ph);
-    if (tools.glowing()) ctx.drawImage(art.pot_glow.imageFor(time), POT.x, POT.y);
+    if (tools.target() === 'over') ctx.drawImage(art.pot_glow.imageFor(time), POT.x, POT.y);
     if (pot) drawPlant(ctx, time, pot, { hideBloom: tools.hideBloom() });
     frame(ctx, time, 'pot_front', 0, POT.x, POT.y);
 
@@ -291,17 +347,21 @@ export function createJournal(assets, terrarium) {
     stars(ctx, time, species.rarity, Math.max(starsX, x + textWidth(species.name) + 4), y - 1);
   }
 
+  // A hint's text until its step has been done once, then nothing.
+  const once = (id, line) => (terrarium.hintSeen(id) ? '' : line);
+  const learn = (id) => terrarium.learnHint(id);
+
   // Inventory and detail only: seeds are planted from the Pot tab's tray.
   function drawSeedsTab(ctx, time, colours) {
-    const parts = drawSeedGrid(ctx, time, colours, seedPick, terrarium.count, (i) => { seedPick = i; });
+    const parts = drawSeedGrid(ctx, time, colours, seedPick, terrarium.count, (i) => { seedPick = i; learn('seeds-pick'); });
     const species = SPECIES[seedPick];
     if (species && terrarium.count(species.id)) {
       nameAndStars(ctx, time, colours, species, 13, 77, 40);
       text(ctx, species.blurb, 13, 87, colours.text_d);
     } else {
-      text(ctx, 'Pick a seed to read about it.', 13, 77, colours.text_d);
+      text(ctx, once('seeds-pick', 'Pick a seed to read about it.'), 13, 77, colours.text_d);
     }
-    text(ctx, 'Plant from the pot tab.', 13, 110, colours.text_d);
+    text(ctx, once('seeds-plant', 'Plant from the pot tab.'), 13, 110, colours.text_d);
     return parts;
   }
 
@@ -317,11 +377,14 @@ export function createJournal(assets, terrarium) {
         parents[picking] = SPECIES[i].id;
         lastCross = null;
         picking = -1;
+        learn('cross-pick');
+        learn('cross-cancel');
       });
       text(ctx, `Choose parent ${picking ? 'B' : 'A'}.`, 13, 77, colours.text);
-      text(ctx, 'Click the page to cancel.', 13, 87, colours.text_d);
+      text(ctx, once('cross-cancel', 'Click the page to cancel.'), 13, 87, colours.text_d);
       // The page under the grid cancels; parts later in the list win a click.
-      return [{ rect: { x: 0, y: 0, w: panelInfo.paper_w, h: panel.h }, action: () => { picking = -1; } }, ...parts];
+      const cancel = () => { picking = -1; learn('cross-cancel'); };
+      return [{ rect: { x: 0, y: 0, w: panelInfo.paper_w, h: panel.h }, action: cancel }, ...parts];
     }
 
     // A parent you no longer have enough of drops off the bench.
@@ -355,15 +418,17 @@ export function createJournal(assets, terrarium) {
       text(ctx, value, x + 9, 68, colours.text);
     });
 
-    let line = 'Pick two seeds to cross.';
+    let line = once('cross-pick', 'Pick two seeds to cross.');
     if (lastCross) line = lastCross.line;
     else if (prediction?.hybrid) line = `Chance ${Math.round(prediction.chance * 100)}% - new species`;
     else if (prediction) line = 'No new species from this pair';
     text(ctx, line, 13, 87, colours.text_d);
+    if (prediction && !lastCross) text(ctx, once('cross-go', 'Click cross to breed them.'), 13, 77, colours.text_d);
 
     const go = button(52, 'Cross', !!prediction, () => {
       const result = terrarium.cross(a, b);
       if (!result.ok) return;
+      learn('cross-go');
       const name = SPECIES[speciesIndex(result.species)].name;
       if (result.discovered) codexNew = true;
       lastCross = {
@@ -384,7 +449,7 @@ export function createJournal(assets, terrarium) {
       const known = found.has(species.id);
       frame(ctx, time, 'slot_sm', known ? (i === codexPick || over(rect) ? SLOT.hover : SLOT.filled) : SLOT.locked, rect.x, rect.y);
       if (known) frame(ctx, time, 'codex', i, rect.x, rect.y);
-      parts.push({ rect, action: () => { codexPick = i; } });
+      parts.push({ rect, action: () => { codexPick = i; learn('codex-pick'); } });
     });
     text(ctx, `${found.size} / ${SPECIES.length} discovered`, 13, 80, colours.text);
     const species = SPECIES[codexPick];
@@ -393,6 +458,7 @@ export function createJournal(assets, terrarium) {
       text(ctx, species.flavour, 13, 112, colours.text_d);
     } else {
       if (species) text(ctx, '???', 13, 90, colours.text);
+      else text(ctx, once('codex-pick', 'Click a page to read it.'), 13, 90, colours.text_d);
       const line = species ? hint(species, found)
         : found.size === 0 ? 'Harvest a plant to start it.'
         : found.size === SPECIES.length ? 'Every species found.' : 'Cross seeds to find the rest';
@@ -470,7 +536,7 @@ export function createJournal(assets, terrarium) {
       },
       cursor(x, y) {
         if (!inRect(x, y, panel)) return '';
-        if (onPotTab() && !onTab(x, y)) return tools.cursor(x - PX, y - PY) ? 'pointer' : '';
+        if (onPotTab() && !onTab(x, y)) return tools.cursor(x - PX, y - PY);
         return partAt(x - PX, y - PY) ? 'pointer' : '';
       },
     },
