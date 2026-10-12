@@ -13,8 +13,9 @@
 // (saved with the game, so a returning player isn't told again); news and
 // odds are not hints and always show.
 // Hover swaps a slot or button to its hover frame; nothing moves.
-// Closing: Escape (once anything held is put down), a click outside the
-// panel (the pot on the wall included).
+// Closing: the red X at its top right (the same one the folder has), Escape
+// (once anything held is put down), or a click outside the panel (the pot
+// on the wall included).
 // Exports: createJournal(assets, terrarium) -> { open(tab), close(), isOpen(),
 //            drop(), update(dtMs), draw(ctx, time),
 //            pointer: { contains, setHovered, move, down, up, click, cursor } }
@@ -46,12 +47,14 @@ const BENCH = [{ x: 20, y: 32, w: 20, h: 20 }, { x: 60, y: 32, w: 20, h: 20 }, {
 export function createJournal(assets, terrarium) {
   const sheet = (name) => assets.animation(`terrarium_${name}`);
   const art = Object.fromEntries(['journal', 'tab_active', 'tabicons', 'seeds', 'codex', 'slot_sm', 'slot_lg', 'meter',
-    'btn_sm', 'btn_lg', 'traits', 'stars', 'plants', 'blooms', 'pot_back', 'pot_front', 'pot_glow', 'tools', 'fx', 'font']
+    'btn_sm', 'btn_lg', 'traits', 'stars', 'plants', 'blooms', 'pot_back', 'pot_front', 'pot_glow', 'tools', 'fx', 'close', 'font']
     .map((n) => [n, sheet(n)]));
   const panelInfo = art.journal.info;
   const PX = panelInfo.placement.x, PY = panelInfo.placement.y;
   const panel = { x: PX, y: PY, w: panelInfo.frame_w, h: panelInfo.frame_h };
   const tabs = panelInfo.tab_ys.map((y) => ({ x: panelInfo.tab_x, y, w: panelInfo.tab_w, h: panelInfo.tab_h }));
+  const closeInfo = art.close.info;
+  const closeRect = { x: closeInfo.placement.x, y: closeInfo.placement.y, w: closeInfo.frame_w, h: closeInfo.frame_h };
   const font = { charset: art.font.info.charset, w: art.font.info.frame_w, h: art.font.info.frame_h, advance: art.font.info.advance };
   const potInfo = art.pot_back.info;
 
@@ -493,13 +496,26 @@ export function createJournal(assets, terrarium) {
     text(ctx, words.titles[tab], 13, 7, colours.accent);
     parts = TAB_DRAW[tab](ctx, time, colours);
     tabs.forEach((rect, i) => parts.push({ rect, action: () => setTab(i) }));
+    drawClose(ctx, time, colours);
+    parts.push({ rect: closeRect, action: close });   // last, so it wins over anything under it
     if (tab === POT_TAB) tools.drawHeld(ctx, time);   // in hand, over everything
+  }
+
+  // The close button, outlined while the mouse is on it.
+  function drawClose(ctx, time, colours) {
+    const { x, y, w, h } = closeRect;
+    if (over(closeRect)) {
+      ctx.fillStyle = colours.text;
+      ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+    }
+    ctx.drawImage(art.close.imageFor(time), x, y);
   }
 
   // The topmost part under a panel-local point.
   const partAt = (x, y) => [...parts].reverse().find((p) => inRect(x, y, p.rect)) ?? null;
   const onPotTab = () => terrarium.get().tab === POT_TAB;
-  const onTab = (x, y) => tabs.some((t) => inRect(x - PX, y - PY, t));
+  // The journal's own controls (tabs, close), which work the same on every tab.
+  const onChrome = (x, y) => [...tabs, closeRect].some((r) => inRect(x - PX, y - PY, r));
 
   return {
     open: openAt,
@@ -524,7 +540,7 @@ export function createJournal(assets, terrarium) {
       },
       // On the Pot tab presses and releases drive the tools; tabs still click.
       down(x, y) {
-        if (open && onPotTab() && inRect(x, y, panel) && !onTab(x, y)) tools.down(x - PX, y - PY);
+        if (open && onPotTab() && inRect(x, y, panel) && !onChrome(x, y)) tools.down(x - PX, y - PY);
       },
       up(x, y) {
         if (open && onPotTab()) tools.up(x - PX, y - PY);
@@ -536,7 +552,7 @@ export function createJournal(assets, terrarium) {
       },
       cursor(x, y) {
         if (!inRect(x, y, panel)) return '';
-        if (onPotTab() && !onTab(x, y)) return tools.cursor(x - PX, y - PY);
+        if (onPotTab() && !onChrome(x, y)) return tools.cursor(x - PX, y - PY);
         return partAt(x - PX, y - PY) ? 'pointer' : '';
       },
     },

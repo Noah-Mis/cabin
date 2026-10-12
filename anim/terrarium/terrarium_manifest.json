@@ -481,6 +481,27 @@
         "y": 54
       },
       "note": "The pot mouth traced in a warm outline: drawn over pot_back while a tool or seed hovers the pot. Same x/y as pot_back."
+    },
+    "terrarium_close": {
+      "files": [
+        "terrarium_close.png",
+        "terrarium_close_night.png"
+      ],
+      "frame_w": 11,
+      "frame_h": 11,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "relative_to": "terrarium_journal",
+        "x": 134,
+        "y": 3
+      },
+      "note": "The journal's close button: the same red X as the folder pop-up's (cropped from anim/folder/popup/popup_folder.png), dimmed at night. Top right of the paper, above the first rule."
     }
   }
 }

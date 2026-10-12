@@ -168,7 +168,8 @@ plant up to 10 for Aurora Bloom, quicker with more vigor (it grows while the
 page is closed). It is played by hand: drag a seed from the tray to the empty pot,
 and carry the watering can, shears or basket from the rail to the pot (click a
 tool to pick it up and click the pot, or drag; Tab / Enter / Escape on the
-keyboard). The rail only shows tools that would do something. Crossing two seeds on the journal's bench gives a seed back every
+keyboard). The rail only shows tools that would do something. Close it with the red X
+at its top right (like the folder's), Escape, or a click outside it. Crossing two seeds on the journal's bench gives a seed back every
 time, and sometimes a new species; the codex fills up as you go, and Aurora
 Bloom is four crosses deep. `terrarium status`, `water`, `trim`, `harvest`,
 `plant <seed>`, `seeds`, `cross <seed> <seed>` and `codex` work from the

@@ -525,6 +525,16 @@ def check_page(browser, base):
     page.keyboard.press('Escape')
     advance()
     escaped = not is_open()
+    # The red X at the top right, on every tab.
+    close = MANIFEST['terrarium_close']['placement']
+    by_x = []
+    for t in range(4):
+        page.evaluate(f'cabin.app.journal.open({t})')
+        advance()
+        cursor_x = hover(PX + close['x'] + 5, PY + close['y'] + 5)
+        click(PX + close['x'] + 5, PY + close['y'] + 5)
+        by_x.append(not is_open() and cursor_x == 'pointer')
+    check(all(by_x), f'the close button at the top right shows a hand and closes the journal on every tab ({by_x})')
     check(outside and pot_again and by_key and escaped,
           f'closes on a click outside ({outside}), on the pot ({pot_again}), on Escape ({escaped}); the Terrarium button opens it ({by_key})')
 
