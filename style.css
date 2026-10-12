@@ -214,6 +214,10 @@ html, body {
 }
 .popup.is-plain .popup-art { display: none; }
 
+/* A phone held sideways: the art at a small scale, so the text is set a
+   little larger than the art's own proportion, but no smaller than 8px. */
+.popup.is-compact { --body: max(8px, calc(var(--u) * 4.4)); }
+
 /* ── Folder pop-up (js/folder-popup.js) ─────────────────────────────────
    Colours (--fp-*) come from the layout file and config. */
 .fp { color: var(--fp-ink); }
@@ -256,12 +260,18 @@ html, body {
 .fp-card-name, .fp-card-line { align-self: end; padding-bottom: calc(var(--u) * 0.75); white-space: nowrap; }
 .fp-card-name { color: var(--fp-ink-dark); font-size: calc(var(--body) * 1.15); font-weight: bold; }
 .fp-card-line { font-size: calc(var(--body) * 0.92); }
+/* A sideways phone: a line too long for the card shrinks to its width
+   (--chars is its length; a monospace character is about 0.62em wide). */
+.fp.is-compact .fp-card-name, .fp.is-compact .fp-card-line { overflow: hidden; text-overflow: ellipsis; --fit: calc(var(--rw) * var(--u) / (var(--chars) * 0.62)); }
+.fp.is-compact .fp-card-name { font-size: min(calc(var(--body) * 1.15), var(--fit)); }
+.fp.is-compact .fp-card-line { font-size: min(calc(var(--body) * 0.92), var(--fit)); }
 
 .fp-sticky { padding-top: calc(var(--u) * 1); color: var(--fp-ink-dark); font-size: calc(var(--body) * 0.88); }
 .fp-sticky-title { font-weight: bold; margin-bottom: 0.5em !important; }
 .fp-sticky-links li { margin-bottom: 0.5em; }
 .fp-sticky .fp-link { color: inherit; text-decoration: none; }
 .fp-sticky .fp-link:hover { text-decoration: underline; }
+.fp.is-compact .fp-sticky-links li { font-size: min(1em, calc(var(--rw) * var(--u) / (var(--chars) * 0.62))); }
 
 .fp-stamp {
   display: flex;
@@ -272,6 +282,7 @@ html, body {
   font-weight: bold;
   letter-spacing: 0.04em;
 }
+.fp.is-compact .fp-stamp { white-space: nowrap; }
 
 /* The page: the selected tab's content, scrolling when it is long. */
 .fp-page {

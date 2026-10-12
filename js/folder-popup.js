@@ -96,6 +96,8 @@ function buildCard({ header, name, lines }) {
   const card = el('div', 'fp-region fp-card');
   card.append(el('p', 'fp-card-header', header), el('p', 'fp-card-name', name));
   for (const line of lines) card.append(el('p', 'fp-card-line', line));
+  // Each line's length: on a sideways phone a long line shrinks to fit (style.css).
+  for (const node of card.querySelectorAll('.fp-card-name, .fp-card-line')) node.style.setProperty('--chars', node.textContent.length);
   return card;
 }
 
@@ -106,6 +108,10 @@ function buildSticky({ title, links }) {
   for (const link of links) {
     const item = document.createElement('li');
     item.append(renderLink(link));
+    // Its longest unbreakable run (a line may wrap after a space or a hyphen):
+    // on a sideways phone the link shrinks until that fits (style.css).
+    const runs = item.textContent.split(/(?<=[\s-])/).map((run) => run.trim().length);
+    item.style.setProperty('--chars', Math.max(...runs));
     list.append(item);
   }
   sticky.append(list);
