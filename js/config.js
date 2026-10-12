@@ -214,7 +214,10 @@ export const config = {
     // as time away: the plant dries out but can't die of it.
     watchedGapSec: 300,
     evapPerHour: 0.08,            // divided by (0.6 + hardiness * 0.15)
-    growthPerHour: 0.035,         // times (0.8 + vigor * 0.1) times health
+    // Hours from seed to ready, by rarity (1 to 5 stars), for the slowest
+    // seed (vigor 1); more vigor is faster: times (0.8 + vigor * 0.1) / 0.9,
+    // so vigor 5 takes about 70% as long. Wilting halves it until trimmed.
+    growHoursByRarity: [4, 5.5, 7, 8.5, 10],
     wiltBelow: 0.10,              // at or under this hydration: no growth, wilting
     wiltHealth: 0.5,              // growth rate once it has wilted, until trimmed
     deadAfterDryHours: 24,        // bone dry this long, while visited

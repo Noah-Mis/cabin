@@ -226,8 +226,17 @@ lowercase set without re-checking every width below.
 
 ### Baseline grid — text must not sit on a ruled line
 
-The paper's ruled lines fall at **`y % 10 == 6`** (rows 26, 36, 46 … 106), and a
-glyph is 5 rows tall. So a baseline `y` is safe only when:
+The paper carries **nine evenly spaced rules at y = 16, 26, 36 … 86, plus a
+solid section divider at y = 96** — every one at `y % 10 == 6`, every one
+spanning the full `x 12..143`. There is no separate header rule and nothing is
+drawn below the divider, so the button/rail strip is clean paper.
+
+> Earlier revisions had a half-width header rule that stopped mid-page at x 91,
+> and a divider at y 100 sitting 4px from the rule at 96 with a further stray
+> rule at 106 behind the buttons. If you regenerate the panel, keep the run
+> evenly spaced and keep the divider one full 10px step below the last rule.
+
+A glyph is 5 rows tall, so a baseline `y` is safe only when:
 
 ```
 y % 10  in  {7, 8, 9, 0, 1}
@@ -235,13 +244,13 @@ y % 10  in  {7, 8, 9, 0, 1}
 
 Anything else puts a rule straight through the letterforms. `y % 10 == 9` is the
 best of them — it centres the text in the band with two clear rows above and
-below. Outside the ruled region (`y > 106`, the button/rail strip) any baseline
-is fine.
+below. Below the divider (`y > 96`, the button/rail strip) there are no rules, so
+any baseline is fine there.
 
 Every position in §3 satisfies this. If you add a label, check it:
 
 ```js
-const onRule = y => y >= 26 && y <= 106 && [2,3,4,5,6].includes(y % 10);
+const onRule = y => y >= 16 && y <= 96 && [2,3,4,5,6].includes(y % 10);
 ```
 
 Sprites are exempt — slots, meters and buttons are opaque and simply cover the

@@ -163,8 +163,9 @@ and `debug stats` work in the terminal. Without `?debug` the command doesn't exi
 
 The clay pot on the left wall is a slow plant-breeding game; click it (or type
 `terrarium`) for the field journal. One pot: plant a seed, water it now and then,
-and harvest it for seeds about a day later in real time (it grows while the page
-is closed). It is played by hand: drag a seed from the tray to the empty pot,
+and harvest it for seeds a few hours later in real time: 4 hours for a common
+plant up to 10 for Aurora Bloom, quicker with more vigor (it grows while the
+page is closed). It is played by hand: drag a seed from the tray to the empty pot,
 and carry the watering can, shears or basket from the rail to the pot (click a
 tool to pick it up and click the pot, or drag; Tab / Enter / Escape on the
 keyboard). The rail only shows tools that would do something. Crossing two seeds on the journal's bench gives a seed back every
@@ -180,7 +181,8 @@ in `js/terrarium-species.js`. The game saves under its own key
 testing, `cabin.app.terrarium.get()` is the live state (set `pot.growth` and
 call `cabin.app.terrarium.tick()`).
 
-Where this differs from the brief: a plant only dies of thirst while the page is
+Where this differs from the brief: growing takes hours, not a day and a half,
+and rarer species take longer (`growHoursByRarity`); a plant only dies of thirst while the page is
 open (time away dries it out, never kills it, per its edge cases); wilting halves
 growth until the next trim, which is what Trim is for; harvested and bred
 species fill the codex; dead tiles overlap 4px so the withered stalk has no gaps.

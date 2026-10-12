@@ -60,17 +60,18 @@ RULES = """async () => {
   out.fresh = { seeds: Object.fromEntries(Object.entries(s().seeds).map(([k, v]) => [k, v.length])), codex: [...s().codex], pot: s().pot,
     hues: Object.values(s().seeds).flat().map((g) => g.hue) };
 
-  // Growth: vigor 3, hardiness 3, watered to full, 10 hours.
+  // Growth: a daisy (two stars), vigor 3, hardiness 3, watered to full, 2 hours.
   s().seeds.daisy = [genome()];
   t.plant('daisy');
   s().pot.hydration = 1;
+  clock.t += 2 * HOUR;
+  t.tick();
+  out.grow2h = { growth: s().pot.growth, hydration: s().pot.hydration, stage: t.stage(s().pot), stack: s().pot.stack };
+  // Water runs out partway through 10 more hours: growth only while above wiltBelow.
+  s().pot.hydration = 0.2;
   clock.t += 10 * HOUR;
   t.tick();
-  out.grow10h = { growth: s().pot.growth, hydration: s().pot.hydration, stage: t.stage(s().pot), stack: s().pot.stack };
-  // Water runs out partway: growth only for the hours above wiltBelow.
-  clock.t += 10 * HOUR;
-  t.tick();
-  out.grow20h = { growth: s().pot.growth, hydration: s().pot.hydration, wilting: s().pot.wilting, health: s().pot.health, stack: s().pot.stack };
+  out.grow12h = { growth: s().pot.growth, hydration: s().pot.hydration, wilting: s().pot.wilting, health: s().pot.health, stack: s().pot.stack };
   // Water: clears wilting at once, debounced, health stays until a trim.
   const w1 = t.water();
   const w2 = t.water();
@@ -149,6 +150,21 @@ RULES = """async () => {
     stacks[id] = [0, 0.2, 0.4, 0.7, 0.86, 0.95, 1].map((g) => { s().pot.growth = g; clock.t += 1; t.tick(); return s().pot.stack.join(' '); });
   }
   out.stacks = stacks;
+  // Time to full by rarity, for the slowest seed (vigor 1), kept wet.
+  const fullAfter = (id) => {
+    s().pot = null;
+    s().seeds[id] = [genome({ vigor: 1, hardiness: 5 })];
+    t.plant(id);
+    s().pot.hydration = 1;
+    const hours = config.terrarium.growHoursByRarity[{ moss: 0, aurora: 4 }[id]];
+    clock.t += (hours - 0.1) * HOUR;
+    t.tick();
+    const before = s().pot.growth;
+    clock.t += 0.1 * HOUR + 1000;
+    t.tick();
+    return { hours, before, after: s().pot.growth };
+  };
+  out.fullTime = { moss: fullAfter('moss'), aurora: fullAfter('aurora') };
   out.sameDraw = (() => { const a = s().pot.stack.join(); s().pot.growth = 0.7; t.tick(); const b = s().pot.stack.join(); t.tick(); return b === s().pot.stack.join() && !!a; })();
 
   // Saved: a new instance reads the same state back.
@@ -187,17 +203,21 @@ def check_rules(page):
           and set(r['fresh']['hues']) == {3},
           f"a fresh start: 3 moss, 2 fern, 2 clover, hue 3, empty codex and pot ({r['fresh']['seeds']})")
     evap = 0.08 / (0.6 + 3 * 0.15)
-    rate = 0.035 * (0.8 + 0.3)
-    g = r['grow10h']
-    check(approx(g['growth'], 10 * rate) and approx(g['hydration'], 1 - 10 * evap) and g['stage'] == 'young',
-          f"10 hours at vigor 3 / hardiness 3: growth {g['growth']:.4f} (expect {10 * rate:.4f}), "
-          f"water {g['hydration']:.4f} (expect {1 - 10 * evap:.4f}), stage {g['stage']} {g['stack']}")
-    wet = (1 - 0.10) / evap
-    g = r['grow20h']
-    check(approx(g['growth'], wet * rate) and g['hydration'] == 0 and g['wilting'] and g['health'] == 0.5
+    rate = (1 / 5.5) * (0.8 + 0.3) / 0.9   # a daisy (two stars) at vigor 3
+    g = r['grow2h']
+    check(approx(g['growth'], 2 * rate) and approx(g['hydration'], 1 - 2 * evap) and g['stage'] == 'young',
+          f"2 hours, a daisy at vigor 3 / hardiness 3: growth {g['growth']:.4f} (expect {2 * rate:.4f}), "
+          f"water {g['hydration']:.4f} (expect {1 - 2 * evap:.4f}), stage {g['stage']} {g['stack']}")
+    wet = (0.2 - 0.10) / evap
+    g = r['grow12h']
+    check(approx(g['growth'], (2 + wet) * rate) and g['hydration'] == 0 and g['wilting'] and g['health'] == 0.5
           and g['stack'][0] == 'wilt',
-          f"20 hours: grew only the {wet:.1f} h the soil stayed above 10% ({g['growth']:.4f}), dry and wilting at health 0.5, "
-          f"wilt tiles {g['stack']}")
+          f"10 more hours from 20% water: grew only the {wet:.2f} h the soil stayed above 10% ({g['growth']:.4f}), "
+          f"dry and wilting at health 0.5, wilt tiles {g['stack']}")
+    ft = r['fullTime']
+    check(all(ft[k]['before'] < 1 and ft[k]['after'] == 1 for k in ft) and ft['moss']['hours'] == 4 and ft['aurora']['hours'] == 10,
+          f"growth time scales with rarity: the slowest moss is ready at {ft['moss']['hours']} h, the slowest aurora bloom at "
+          f"{ft['aurora']['hours']} h, not before ({ft})")
     w = r['water']
     check(w['w1']['ok'] and w['w2'] == {'ok': False, 'reason': 'wait'} and w['w3']['ok'] and not w['wilting']
           and w['health'] == 0.5 and approx(w['hydration'], 0.5, 1e-3),
