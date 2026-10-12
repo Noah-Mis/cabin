@@ -28,7 +28,13 @@
       "draw_layer": "after_cabin_window",
       "clickable": true,
       "click_action": "terrarium:open",
-      "note": "Pot + shelf on the left interior wall. Click target for the journal."
+      "note": "Pot + shelf on the left interior wall. Click target for the journal.",
+      "plant": {
+        "x": 8,
+        "y": -12,
+        "rim_rows": 4,
+        "note": "The growing plant, shown in the wall pot: the species' codex portrait (16x16) drawn BEFORE the pot at this offset from its top-left, so its bottom rim_rows rows are behind the rim. It is revealed from the bottom up as the plant grows (nothing at the seed stage, all of it once in bloom)."
+      }
     },
     "terrarium_journal": {
       "files": [
