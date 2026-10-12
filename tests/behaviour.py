@@ -937,6 +937,29 @@ def check_sill(browser, base, problems):
     page.context.close()
 
 
+def check_unlock_bubble(browser, base, problems):
+    """An unlock replaces the bubble left by anything earlier; during a command it joins that reply."""
+    report.append('\n## Unlock lines in the bubble (test mode)\n')
+    page, pp = open_page(browser, base, '?test&debug&time=day', problems)
+    mug = __import__('json').loads((ROOT / 'anim' / 'manifest.json').read_text())['animations']['mug']
+    type_command(page, 'debug set mugclicks 24')
+    before = output_lines(page)
+    page.mouse.click(*page.evaluate(f"""(() => {{ const r = document.getElementById('scene').getBoundingClientRect();
+        return [r.left + {mug['placement']['x'] - 2} * r.width / 320, r.top + {mug['placement']['y'] - 4} * r.height / 180]; }})()"""))
+    page.evaluate('cabin.test.advanceTo(2)')
+    after_sip = output_lines(page)
+    type_command(page, 'weather rain')
+    type_command(page, 'weather snow')
+    during = output_lines(page)
+    check(before == ['mugClicks = 24'] and len(after_sip) == 1 and after_sip[0].startswith('achievement unlocked: Caffeinated.')
+          and len(during) == 2 and during[0].startswith('achievement unlocked: Storm Chaser.') and during[1] == 'it starts to snow.'
+          and page.evaluate("document.querySelectorAll('#bubble').length") == 1 and not pp,
+          f'the 25th sip replaces the bubble {before} with {after_sip}; an unlock during `weather snow` shares '
+          f'its reply: {during}')
+    problems.extend(pp)
+    page.context.close()
+
+
 def main():
     SCREENS.mkdir(parents=True, exist_ok=True)
     base, stop = serve_site()
@@ -951,6 +974,7 @@ def main():
         check_folder_popup(browser, base, problems)
         check_cigarette(browser, base, problems)
         check_sill(browser, base, problems)
+        check_unlock_bubble(browser, base, problems)
         check_scheduler(browser, base, problems)
         browser.close()
     stop()

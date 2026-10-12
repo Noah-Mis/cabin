@@ -124,15 +124,19 @@
 - PASS: before Woodsman: `touch trophy` ["touch: cannot touch 'trophy': you don't have one"], `rm trophy` ["rm: cannot remove 'trophy': not on the sill"] (as for `rm sofa`: ["rm: cannot remove 'sofa': not on the sill"]); earning everything: `ls` ['mug  folder  trophy  ashtray']; after `rm` of both: ['mug  folder', 'put away: trophy  ashtray']; after `reset yes`: ['mug  folder']
 - PASS: trophy and ashtray put away: the scene matches a visitor without them (0 px differ, board aside); the pack before `cig`: ["touch: cannot touch 'pack': you don't have one"]; after: `ls` ['mug  pack', 'put away: folder']; `rm cigarettes`: ['you take the pack off the sill.'] (then 0 px differ from a page without it); `touch cig`: ['you put the pack on the sill.'], and it slides back in (0 px differ from a page that only ran `cig`)
 
+## Unlock lines in the bubble (test mode)
+
+- PASS: the 25th sip replaces the bubble ['mugClicks = 24'] with ['achievement unlocked: Caffeinated. The cup becomes an enamel camp mug.']; an unlock during `weather snow` shares its reply: ['achievement unlocked: Storm Chaser. A rainbow shows over the falls after rain.', 'it starts to snow.']
+
 ## Scheduler (real clock, config.js served with short timers)
 
-- PASS: bird fired by itself 21 times in 10 s (8 actually started)
-- PASS: farbird fired by itself 20 times in 10 s (3 actually started)
-- PASS: wind fired by itself 23 times in 10 s (23 actually started)
-- PASS: sasquatch fired by itself 12 times in 10 s (3 actually started)
-  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 12
+- PASS: bird fired by itself 22 times in 10 s (8 actually started)
+- PASS: farbird fired by itself 22 times in 10 s (3 actually started)
+- PASS: wind fired by itself 24 times in 10 s (24 actually started)
+- PASS: sasquatch fired by itself 4 times in 10 s (3 actually started)
+  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 4
 - PASS: no console problems on the live (non-test) page: []
-- PASS: front trees: 49 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.0-14.8 s (config [7, 15])
+- PASS: front trees: 52 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.2-15.0 s (config [7, 15])
 - PASS: sasquatch timer over 20,000 seeded rolls: fired 30.6% of the time (config 30%), waits between 181 s and 600 s (config 180-600 s)
 
 ## Console

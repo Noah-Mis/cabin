@@ -81,10 +81,14 @@ async function boot() {
     progress,
     universes: { commandsUsed: everyDayCommands() },
     onUnlock(earned) {
-      for (const definition of earned) {
+      // A fresh bubble, replacing the one left by anything earlier (during a
+      // command it joins that command's reply); unlocks that come together share it.
+      earned.forEach((definition, i) => {
         sign.show(definition);
-        terminal.print(`achievement unlocked: ${definition.name}. ${definition.reward}.`);
-      }
+        const line = `achievement unlocked: ${definition.name}. ${definition.reward}.`;
+        if (i === 0) terminal.announce(line);
+        else terminal.print(line);
+      });
       if (boardPopup.isShown()) boardPopup.refresh(earned.at(-1).id);   // the board's pins update themselves
     },
   });
