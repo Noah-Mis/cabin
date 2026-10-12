@@ -8,6 +8,10 @@ Sheets produced (x4 time-of-day):
   terrarium_tools_<t>.png   48x48   3 tools x 3 states, 16x16 tiles
   terrarium_fx_<t>.png      48x48   3 effects x 3 frames, 16x16 tiles
 
+The basket's `active` frame is an EMPTY basket. The harvested species' token is
+drawn BEFORE the basket at BASKET_TOKEN_ANCHOR, so the rim and weave occlude its
+lower half and the flower reads as sitting in the basket rather than on it.
+
 Tool rows:   0 watering can   1 shears   2 basket
              (planting has no tool — you pick a seed straight out of the
               seed tray on the Pot tab, see the plan doc)
@@ -215,9 +219,28 @@ def basket(p, full=False):
     for a, b in zip(arc, arc[1:]):                      # handle, unbroken
         _line(p, a[0], a[1], b[0], b[1], P['wick_d'])
     if full:
-        for dx, dy in [(-2, 7), (0, 7), (2, 8), (-1, 8), (1, 7)]:
-            p(8 + dx, dy, P['seedc'])
-        p(8, 6, PAL['spark_hi'])
+        # Deliberately empty. The species' harvest token (plants.py,
+        # terrarium_harvest_<t>.png) is composited into the basket at the
+        # interior anchor below, so one basket sprite serves all 12 species
+        # instead of needing a baked variant each.
+        for x in range(4, 13):               # inner shadow so the token reads
+            p(x, 7, PAL['wick_d'])           # as sitting *in* the basket
+        p(3, 8, PAL['wick_d']); p(13, 8, PAL['wick_d'])
+
+
+# Where the harvest token is drawn, relative to the basket tile's top-left.
+#
+# DRAW THE TOKEN FIRST, THEN THE BASKET OVER IT. The basket has no hollow
+# interior to drop something into — its body is solid from the rim down — so
+# containment is sold by occlusion: the flower head clears the rim and the stem
+# disappears behind the weave. Composite the token last and it just sits on top
+# of the basket like a sticker.
+#
+# y is +1 so the head lands in the basket's opening — the band between the
+# handle (top at row 2, sides rows 3-5) and the rim (rows 6-8). Tokens all put
+# their head in rows 0..4 and their stem in 5..7, so one anchor suits all
+# twelve: head visible rows 1..5, stem hidden behind the rim.
+BASKET_TOKEN_ANCHOR = (4, 1)
 
 
 # ── Effects ───────────────────────────────────────────────────────────

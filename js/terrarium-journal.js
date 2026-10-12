@@ -47,7 +47,7 @@ const BENCH = [{ x: 20, y: 32, w: 20, h: 20 }, { x: 60, y: 32, w: 20, h: 20 }, {
 export function createJournal(assets, terrarium) {
   const sheet = (name) => assets.animation(`terrarium_${name}`);
   const art = Object.fromEntries(['journal', 'tab_active', 'tabicons', 'seeds', 'codex', 'slot_sm', 'slot_lg', 'meter',
-    'btn_sm', 'btn_lg', 'traits', 'stars', 'plants', 'blooms', 'pot_back', 'pot_front', 'pot_glow', 'tools', 'fx', 'close', 'font']
+    'btn_sm', 'btn_lg', 'traits', 'stars', 'plants', 'blooms', 'pot_back', 'pot_front', 'pot_glow', 'tools', 'fx', 'harvest', 'close', 'font']
     .map((n) => [n, sheet(n)]));
   const panelInfo = art.journal.info;
   const PX = panelInfo.placement.x, PY = panelInfo.placement.y;
@@ -67,7 +67,7 @@ export function createJournal(assets, terrarium) {
   let lastCross = null;        // the last roll, until the parents change
   let codexNew = false;        // a dot on the codex tab until it is opened
 
-  const tools = createTools({ art, terrarium, draw: { frame, text, plantTop } });
+  const tools = createTools({ art, terrarium, draw: { frame, text, plantTop, plantCrown } });
   tools.onDiscover(() => { codexNew = true; });
 
   // Capture phase: the prompt keeps focus, and Enter there would send a line.
@@ -232,12 +232,24 @@ export function createJournal(assets, terrarium) {
     return Math.min(...plantLayout(pot).map((p) => p.y));
   }
 
-  function drawPlant(ctx, time, pot, { hideBloom = false } = {}) {
+  // The plant's top tile (its bloom, or its crown), and the stem tile's x,
+  // for the harvest: where the basket waits and the token falls from.
+  function plantCrown(pot) {
+    const tiles = plantLayout(pot);
+    const top = tiles.at(-1);
+    const size = top.tile in BLOOM_STAGE ? art.blooms.info.frame_w : art.plants.info.frame_w;
+    return { x: top.x, y: top.y, w: size, h: size, stemTileX: tiles[0].x };
+  }
+
+  // hideTop: leave off the top tile (picked: it is falling into the basket).
+  function drawPlant(ctx, time, pot, { hideTop = false } = {}) {
     const row = speciesIndex(pot.species);
     const t = art.plants.info.frame_w;
-    for (const { tile, x, y } of plantLayout(pot)) {
+    const tiles = plantLayout(pot);
+    for (const [i, { tile, x, y }] of tiles.entries()) {
+      if (hideTop && i === tiles.length - 1 && tiles.length > 1) continue;
       if (!(tile in BLOOM_STAGE)) ctx.drawImage(art.plants.imageFor(time), TILE_COLUMN[tile] * t, row * t, t, t, x, y, t, t);
-      else if (!hideBloom) ctx.drawImage(bloomTile(time, row, BLOOM_STAGE[tile], pot.genome.hue), x, y);
+      else ctx.drawImage(bloomTile(time, row, BLOOM_STAGE[tile], pot.genome.hue), x, y);
     }
   }
 
@@ -304,12 +316,12 @@ export function createJournal(assets, terrarium) {
   // The Pot tab: everything clickable here is the tools' (down / up), so it
   // has no parts of its own.
   function drawPotTab(ctx, time, colours) {
-    const pot = terrarium.get().pot;
+    const pot = tools.shownPot();   // during a harvest, the picked plant until it is done
     const { frame_w: pw, frame_h: ph } = potInfo;
     drawTarget(ctx, time, colours);
     ctx.drawImage(art.pot_back.imageFor(time), 0, soilPane(pot) * ph, pw, ph, POT.x, POT.y, pw, ph);
     if (tools.target() === 'over') ctx.drawImage(art.pot_glow.imageFor(time), POT.x, POT.y);
-    if (pot) drawPlant(ctx, time, pot, { hideBloom: tools.hideBloom() });
+    if (pot) drawPlant(ctx, time, pot, { hideTop: tools.hideTop() });
     frame(ctx, time, 'pot_front', 0, POT.x, POT.y);
 
     const species = pot && SPECIES[speciesIndex(pot.species)];
@@ -368,9 +380,10 @@ export function createJournal(assets, terrarium) {
     return parts;
   }
 
-  // How many of a kind the bench may still take for parent `which`.
+  // How many of a kind the bench may still take for parent `which`: the
+  // spares (a starter's last seed stays for planting), less the other parent.
   function benchAvailable(which) {
-    return (id) => terrarium.count(id) - (parents[1 - which] === id ? 1 : 0);
+    return (id) => terrarium.spare(id) - (parents[1 - which] === id ? 1 : 0);
   }
 
   function drawCrossTab(ctx, time, colours) {

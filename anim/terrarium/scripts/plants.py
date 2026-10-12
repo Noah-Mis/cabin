@@ -585,6 +585,155 @@ def draw_bloom_tile(put, sp, t, stage):
         bloom_stub(put, sp, t, stub_from + 2)      # redraw over petal spill
 
 
+# ── Harvest tokens ────────────────────────────────────────────────────
+# One 8x8 miniature per species: the thing you actually picked. Drawn into
+# the basket during the harvest animation, so a bluebell harvest really does
+# drop a bluebell in. Twelve of these is one 96x8 sheet — far cheaper than
+# twelve basket sprites, and the basket stays a single asset.
+TOKEN = 8
+
+
+def _tok_disc(p, sp, t):
+    b, bd = tint_bloom(sp['bloom'], t), tint_bloom(sp['bloom_d'], t)
+    cen = tint_bloom(sp['center'], t)
+    st = tint(sp['stem'], t)
+    for x, y in [(3,0),(4,0),(1,1),(2,1),(5,1),(6,1),(0,2),(1,2),(6,2),(7,2),
+                 (1,3),(2,3),(5,3),(6,3),(3,4),(4,4)]:
+        p(x, y, b)
+    for x, y in [(2,0),(5,0),(0,3),(7,3),(2,4),(5,4)]:
+        p(x, y, bd)
+    for x, y in [(3,1),(4,1),(3,2),(4,2)]:
+        p(x, y, cen)
+    p(3, 5, st); p(4, 5, st); p(3, 6, st); p(4, 6, st); p(3, 7, st)
+
+
+def _tok_bell(p, sp, t):
+    """Bells sit two rows higher than the first pass so the head ends on row 4
+    like every other token. Tokens share that contract — head rows 0..4, stem
+    rows 5..7 — which is what lets one basket anchor suit all twelve."""
+    b, bd = tint_bloom(sp['bloom'], t), tint_bloom(sp['bloom_d'], t)
+    st = tint(sp['stem'], t)
+    p(3, 0, st)
+    for bx, d in ((1, -1), (5, 1)):
+        p(3 + d, 0, st); p(bx, 0, st)        # short arm out to each pedicel
+        p(bx, 1, st)
+        for y in (2, 3):
+            for dx in (-1, 0, 1):
+                p(bx + dx, y, b if dx <= 0 else bd)
+        for dx in (-1, 0, 1):
+            p(bx + dx, 4, bd)
+    for y in (5, 6, 7):
+        p(3, y, st)
+
+
+def _tok_cap(p, sp, t):
+    b, bd = tint_bloom(sp['bloom'], t), tint_bloom(sp['bloom_d'], t)
+    hi = tint_bloom(sp['bloom_hi'], t)
+    stipe = tint(sp['stem'], t)
+    for x in range(1, 7):
+        p(x, 2, b if x < 4 else bd)
+    for x in range(0, 8):
+        p(x, 3, b if x < 4 else bd)
+    p(1, 2, hi); p(2, 1, b); p(3, 1, b); p(4, 1, bd); p(5, 2, bd)
+    for x in range(0, 8):
+        p(x, 4, bd)
+    for y in range(5, 8):
+        p(3, y, stipe); p(4, y, stipe)
+
+
+def _tok_tuft(p, sp, t):
+    b, bd = tint_bloom(sp['bloom'], t), tint_bloom(sp['bloom_d'], t)
+    hi = tint_bloom(sp['bloom_hi'], t)
+    lf, lfd = tint(sp['leaf'], t), tint(sp['leaf_d'], t)
+    for x, y in [(1,0),(3,0),(5,0),(0,1),(2,1),(4,1),(6,1)]:
+        p(x, y, hi)
+    for x in range(1, 7):
+        p(x, 2, b if x % 2 else bd)
+    for x in range(1, 7):
+        p(x, 3, lf if x < 4 else lfd)
+    for x in range(2, 6):
+        p(x, 4, lfd)
+    p(3, 5, tint(sp['stem'], t)); p(3, 6, tint(sp['stem'], t)); p(3, 7, tint(sp['stem'], t))
+
+
+def _tok_aurora(p, sp, t):
+    b, bd = tint_bloom(sp['bloom'], t), tint_bloom(sp['bloom_d'], t)
+    cen = tint_bloom(sp['center'], t)
+    st = tint(sp['stem'], t)
+    for x, y in [(3,0),(4,0),(0,2),(7,2),(0,3),(7,3),(3,5),(4,5)]:
+        p(x, y, bd)
+    for x, y in [(2,1),(5,1),(1,2),(6,2),(1,3),(6,3),(2,4),(5,4)]:
+        p(x, y, b)
+    for x, y in [(3,1),(4,1),(2,2),(5,2),(2,3),(5,3),(3,4),(4,4)]:
+        p(x, y, b)
+    for x, y in [(3,2),(4,2),(3,3),(4,3)]:
+        p(x, y, cen)
+    p(3, 6, st); p(4, 6, st); p(3, 7, st)
+
+
+def _tok_sprig(p, sp, t):
+    """Species that never flower — you harvest a cutting, not a bloom. The
+    shape follows the species' foliage style, otherwise moss, fern, clover and
+    ivy all come back as the same anonymous green sprig."""
+    lf, lfd = tint(sp['leaf'], t), tint(sp['leaf_d'], t)
+    hi = tint(sp['leaf_hi'], t)
+    st, std = tint(sp['stem'], t), tint(sp['stem_d'], t)
+    style = sp['foliage']
+
+    if style == 'mat':                       # moss — a low speckled cushion
+        for y in range(2, 6):
+            for x in range(1, 7):
+                if (x * 5 + y * 3) % 4 == 0:
+                    continue
+                p(x, y, hi if (x + y) % 5 == 0 else (lfd if y > 4 else lf))
+        for x in (2, 4, 5):
+            p(x, 1, lf)
+        for x in range(1, 7):
+            p(x, 6, lfd)
+
+    elif style == 'frond':                   # fern — rib with leaflets
+        for y in range(1, 8):
+            p(3, y, st)
+        for i, y in enumerate((1, 3, 5)):
+            w = 2 - (i == 0)
+            for d in range(1, w + 2):
+                p(3 - d, y + (d > 1), lf if d < w + 1 else lfd)
+                p(3 + d, y + (d > 1), lf if d < w + 1 else lfd)
+        p(3, 0, hi)
+
+    elif style == 'trefoil':                 # clover — three round lobes
+        for y in range(4, 8):
+            p(3, y, st); p(4, y, std)
+        for cx_, cy_ in ((1, 2), (6, 2), (3, 0)):
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    if abs(dx) + abs(dy) <= 1:
+                        p(cx_ + dx, cy_ + dy,
+                          hi if (dx, dy) == (-1, -1) else (lfd if dy > 0 else lf))
+
+    else:                                    # ivy — two lobed leaves
+        for y in range(3, 8):
+            p(3, y, st); p(4, y, std)
+        for ox, d in ((2, -1), (5, 1)):
+            for px_, py_ in [(0, 0), (1, -1), (1, 0), (1, 1), (2, 0), (2, 1), (0, 1)]:
+                p(ox + d * px_, 2 + py_, lf if py_ <= 0 else lfd)
+            p(ox + d * 1, 1, hi)
+
+
+_TOK = {'disc': _tok_disc, 'bell': _tok_bell, 'cap': _tok_cap,
+        'tuft': _tok_tuft, 'aurora': _tok_aurora, 'none': _tok_sprig}
+
+
+def draw_harvest(t):
+    c = Canvas(TOKEN * NSPEC, TOKEN)
+    for i, sp in enumerate(SPECIES):
+        ox = i * TOKEN
+        put = lambda x, y, col, ox=ox: (
+            c.put(ox + x, y, col) if 0 <= x < TOKEN and 0 <= y < TOKEN else None)
+        _TOK[sp['bloom_style']](put, sp, t)
+    return c.save(f"anim/terrarium_harvest_{t}.png")
+
+
 # ── Generate ──────────────────────────────────────────────────────────
 def generate():
     for t in TIMES:
@@ -607,6 +756,7 @@ def generate():
                     sheet_put(bl, ox, oy, x, y, c))
                 draw_bloom_tile(put, sp, t, stage)
         bl.save(f"anim/terrarium_blooms_{t}.png")
+        draw_harvest(t)
     return True
 
 

@@ -17,7 +17,7 @@
 // `sound` doesn't (muting shouldn't be a chore); `theme` doesn't (it only
 // appears once the achievement is earned); `badges` no longer does (the board
 // by the window replaced it). The hidden sill commands (`ls`, `rm`, `touch`) don't,
-// and neither do the terrarium's (`terrarium` is listed, the rest are hidden). The rule only asks that every listed command
+// and neither do the terrarium's (all hidden: the pot on the wall opens it). The rule only asks that every listed command
 // was used, so retiring a command never sets anyone back: an old mark for it
 // is simply ignored. everyDayCommands() below computes the list.
 //
@@ -114,19 +114,9 @@ export const commands = {
       app.print(`you put the ${name} on the sill.`);
     },
   },
-  // The terrarium (js/terrarium.js): the same actions as the journal's
-  // buttons. An open journal shows the change at once, on whatever tab it is.
-  terrarium: {
-    usage: 'terrarium [status]',
-    about: 'the pot on the wall (or just click it)',
-    everyCommand: false,
-    run([word], app) {
-      if (word === 'status') return printStatus(app);
-      if (word) return app.print(`usage: ${commands.terrarium.usage}`);
-      app.journal.open(0);
-      app.print('you open the field journal. pick up a tool and carry it to the pot. (water, trim, harvest, plant, seeds, cross and codex work here too.)');
-    },
-  },
+  // The terrarium (js/terrarium.js): the journal's actions without a pointer.
+  // The pot on the wall opens the journal; an open journal shows the change at
+  // once, on whatever tab it is.
   water: {
     usage: 'water',
     about: 'water the terrarium pot',
@@ -153,7 +143,7 @@ export const commands = {
       const result = app.terrarium.trim();
       if (result.reason === 'empty') return app.print("there's nothing in the pot to trim.");
       if (result.reason === 'dead') return app.print(`the ${nameOf(result.species)} has withered. "harvest" clears the pot.`);
-      if (result.reason === 'small') return app.print(`the ${nameOf(result.species)} is too small to trim yet.`);
+      if (result.reason === 'healthy') return app.print(`the ${nameOf(result.species)} doesn't need trimming. trim a plant that has wilted to get it growing at full speed again.`);
       app.print(`you trim the ${nameOf(result.species)} back. it looks healthier.`);
     },
   },
@@ -171,7 +161,6 @@ export const commands = {
       }
       if (result.cleared) return app.print(`you clear out the withered ${nameOf(result.species)}. the pot is empty.`);
       app.print(`you harvest the ${nameOf(result.species)}: ${result.seeds} seed${result.seeds > 1 ? 's' : ''}.`);
-      if (result.gift) app.print(`${aOrAn(nameOf(result.gift))} seed was tucked in the soil, too.`);
     },
   },
   plant: {
@@ -209,6 +198,10 @@ export const commands = {
       const [a, b] = splitPair(words, app.terrarium.find);
       if (!a || !b) return app.print(`usage: ${commands.cross.usage}`);
       const result = app.terrarium.cross(a, b);
+      if (result.reason === 'last') {
+        const two = a === b;
+        return app.print(`your last ${nameOf(result.species)} seed stays for planting. you need ${two ? 'two spare ones' : 'a spare one'} to cross.`);
+      }
       if (!result.ok) return app.print(`you need ${a === b ? `two ${nameOf(a)} seeds` : `${aOrAn(nameOf(result.species))} seed`} for that.`);
       const odds = result.hybrid ? `chance ${percent(result.chance)} - new species.` : 'no new species from this pair.';
       app.print(result.hit ? `${odds} new species: ${nameOf(result.species)}!` : `${odds} you got ${aOrAn(nameOf(result.species))} seed.`);
@@ -321,15 +314,6 @@ function aOrAn(word) {
 
 function percent(fraction) {
   return `${Math.round(fraction * 100)}%`;
-}
-
-function printStatus(app) {
-  const { terrarium } = app;
-  terrarium.tick();
-  const pot = terrarium.get().pot;
-  if (!pot) return app.print('the pot is empty. "seeds" lists what you can plant.');
-  const stage = pot.dead ? 'withered' : pot.wilting ? 'wilting' : terrarium.stage(pot);
-  app.print(`${nameOf(pot.species)}: ${stage}. water ${percent(pot.hydration)}, growth ${percent(pot.growth)}.`);
 }
 
 // Two species from the words after `cross`, names of two words included

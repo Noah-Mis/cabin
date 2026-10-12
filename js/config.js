@@ -219,18 +219,22 @@ export const config = {
     // so vigor 5 takes about 70% as long. Wilting halves it until trimmed.
     growHoursByRarity: [4, 5.5, 7, 8.5, 10],
     wiltBelow: 0.10,              // at or under this hydration: no growth, wilting
-    wiltHealth: 0.5,              // growth rate once it has wilted, until trimmed
+    wiltHealth: 0.5,              // growth rate once it has wilted, until trimmed (the shears show only then)
     deadAfterDryHours: 24,        // bone dry this long, while visited
     plantHydration: 0.5,          // a freshly planted seed's soil
     waterAmount: 0.25,
     waterDebounceMs: 500,
     saturatedShowSec: 4,          // "Saturated!" after watering past full
-    trimFrom: 0.35,               // Trim is disabled below this growth
     trimGrowth: 0.05,             // what a trim costs
     pityStep: 0.05,               // each failed try on a pair adds this to its chance
     pityCap: 0.25,
+    // A new player's seeds. These three are the only starters: every other
+    // species is bred. A starter never runs out: the last one of each can
+    // always be planted (it stays), and only the ones above it can be crossed.
     starterSeeds: { moss: 3, fern: 2, clover: 2 },
-    firstHarvestGift: ['daisy', 'wildflower', 'mushroom'],   // one of these, once
+    // Seeds a harvest gives, [fewest, most] by rarity (1 to 5 stars), all of
+    // the plant's own species. Vigor 4+ rolls twice and keeps the better.
+    harvestSeedsByRarity: [[2, 4], [2, 3], [2, 3], [2, 3], [2, 2]],
     // Colours on the paper, per time of day: text (the font is white), and
     // `target`, the gold outline round the pot while a tool or seed is carried.
     colours: {

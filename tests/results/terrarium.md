@@ -4,22 +4,24 @@
 - PASS: 10 more hours from 20% water: grew only the 1.31 h the soil stayed above 10% (0.7361), dry and wilting at health 0.5, wilt tiles ['wilt', 'wilt', 'crown']
 - PASS: growth time scales with rarity: the slowest moss is ready at 4 h, the slowest aurora bloom at 10 h, not before ({'moss': {'hours': 4, 'before': 0.975, 'after': 1}, 'aurora': {'hours': 10, 'before': 0.9900000000000001, 'after': 1}})
 - PASS: watering clears wilting at once, +25% each, a second within 500 ms is ignored ({'ok': False, 'reason': 'wait'}); health waits for a trim
-- PASS: watering past full: capped at 100%, "Saturated!" for a moment, then "Filling out."
-- PASS: trim: -0.05 growth (0.050), health back to 1
+- PASS: watering past full: capped at 100%, "Saturated!" for a moment, then "Overgrown. Trim it."
+- PASS: a watered plant that had wilted needs trimming ("Overgrown. Trim it."); a trim costs 0.050 growth and restores full health; a healthy plant can't be trimmed (healthy)
 - PASS: a week away counts as 48 h: thirsty and wilting, not dead, no dry time counted ({'dead': False, 'wilting': True, 'hydration': 0, 'dryMs': 0})
 - PASS: bone dry while visited: alive at 23 h, withered past 24 h (['dead', 'dead']), water refused
 - PASS: a withered plant: harvest becomes Clear, empties the pot, no seeds
-- PASS: harvest: refused before 1.0; 1 seed at vigor 3, 2 at vigor 4; a flowering starter (wildflower) on the first harvest only; codex ['bluebell', 'aurora'] (the first says it is new, the second not)
+- PASS: harvest: refused before 1.0; a bluebell gives 3 then 3 bluebell seeds and nothing else (kinds now ['bluebell', 'clover', 'fern', 'moss']); codex ['bluebell', 'moss', 'daisy', 'thistle', 'aurora'] (the first says it is new, the second not)
+- PASS: seeds per harvest scale down with rarity: moss@3 2-4, moss@5 2-4, daisy@3 2-3, daisy@5 2-3, bluebell@3 2-3, bluebell@5 2-3, thistle@3 2-3, thistle@5 2-3, aurora@3 2-2, aurora@5 2-2; vigor 5 averages more (True); a legendary always 2
+- PASS: starters never run out: the last moss plants and is still there (1), can't be crossed (last), a spare one can (moss x clover -> daisy, moss left 1); a bred species' last seed can be crossed (1)
 - PASS: a ready bluebell with bloom 2: ['stem_leaves', 'full']
 - PASS: failed crosses raise the chance 5 points each, capped at +25: [0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.4]
 - PASS: a hit gives the hybrid, puts it in the codex and resets the pity
 - PASS: a pair with no hybrid still crosses and gives a parent back (daisy)
 - PASS: the same species twice needs two seeds, and gives that species back (a non-flowering one keeps bloom 0)
-- PASS: a flowering hybrid gets a bloom gene even from bloom-0 parents (aurora bloom 1)
+- PASS: a flowering hybrid gets a bloom gene even from bloom-0 parents (aurora bloom 2)
 - PASS: tile stacks by stage, always ending in a crown or bloom: bluebell ['seed', 'sprout', 'stem_leaves crown', 'stem_leaves stem_leaf_l crown', 'stem_leaves bud', 'stem_leaves opening', 'stem_leaves full']; fern ends 'stem_leaves stem_leaf_l crown'; the same every redraw
 - PASS: a new page reads the same state back
 - PASS: unreadable data, another version, or a malformed seed: a fresh start with the starter seeds
-- PASS: no seeds and an empty pot on load: the starter set again ({'moss': 3, 'fern': 2, 'clover': 2})
+- PASS: a save without starters gets one of each on load, keeping the rest ({'ivy': 1, 'moss': 1, 'fern': 1, 'clover': 1})
 - PASS: every journal string fits its line (33 characters, 19 beside the pot; bench names 39 px): all fit
 - PASS: the pot is on the left wall as drawn (True), shows a hand (pointer), and a click opens the journal (True)
 - PASS: the journal is drawn over the snow and everything else (1362/1362 margin pixels exact)
@@ -28,12 +30,13 @@
 - PASS: hints teach each step once: the Pot tab says what to do on a first visit (True), and is quiet once a seed has been picked up and planted (True); learned: ['pot-pickup', 'pot-use', 'seeds-pick', 'seeds-plant']
 - PASS: the can, clicked then clicked on the pot, waters it on its third droplet frame (0.2 -> 0.45); the soil shows how wet it is ((84, 64, 45) dry, (49, 37, 26) wet)
 - PASS: a drag let go off the pot puts the can back: a later click on the pot does nothing (0.80)
-- PASS: the basket, the third tool on a ripe plant, harvests it ({'pot': None, 'moss': 3, 'codex': ['moss']})
+- PASS: a healthy ripe plant gets no shears (True); once it has wilted they appear, and trimming with them restores its health (1)
+- PASS: the basket, beside the can on a healthy ripe plant, harvests it ({'pot': None, 'moss': 4, 'codex': ['moss']})
 - PASS: the keyboard plants a seed: Tab, Enter, Tab to the pot, Enter (moss); nothing typed on the prompt ('')
 - PASS: the bench crosses fern x clover: two seeds in, one back (4 -> 3)
-- PASS: the crossing bench hints are learned by using it, and every learned hint stays learned after a reload (['cross-cancel', 'cross-go', 'cross-pick', 'pot-pickup', 'pot-use', 'seeds-pick', 'seeds-plant'])
+- PASS: the crossing bench hints are learned by using it, and every learned hint stays learned after a reload (['cross-cancel', 'cross-go', 'cross-pick', 'pot-pickup', 'pot-trim', 'pot-use', 'seeds-pick', 'seeds-plant'])
 - PASS: `water` with the journal open: the pot is watered (0.75), the tab stays (2)
 - PASS: the close button at the top right shows a hand and closes the journal on every tab ([True, True, True, True])
 - PASS: closes on a click outside (True), on the pot (True), on Escape (True); the Terrarium button opens it (True)
-- PASS: commands answer in character: {'terrarium status': 'aurora bloom: ready. water 100%, growth 100%.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 1  fern 1  clover 1  daisy 1  ivy 1', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
+- PASS: commands answer in character: {'terrarium': 'no such command "terrarium". type "help" to see what you can do.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 2  fern 1  clover 2', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, ivy, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
 - PASS: no console problems ([])

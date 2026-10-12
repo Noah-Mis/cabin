@@ -432,7 +432,7 @@
         48,
         30
       ],
-      "note": "Pot-tab hand tools (terrarium_tools_plan.md). Row = tool: 0 watering can, 1 shears, 2 basket. Column = state: 0 idle (in a rail slot), 1 held (centred on the pointer), 2 active (pouring / blades open / full of seeds). The pouring can is the idle can turned 90 degrees, spout tip at local (5, 14).",
+      "note": "Pot-tab hand tools (terrarium_tools_plan.md). Row = tool: 0 watering can, 1 shears, 2 basket. Column = state: 0 idle (in a rail slot), 1 held (centred on the pointer), 2 active (pouring / blades open / an EMPTY basket, which the harvest token sits in). The pouring can is the idle can turned 90 degrees, spout tip at local (5, 14).",
       "tray": {
         "x": 14,
         "step": 22,
@@ -502,6 +502,28 @@
         "y": 3
       },
       "note": "The journal's close button: the same red X as the folder pop-up's (cropped from anim/folder/popup/popup_folder.png), dimmed at night. Top right of the paper, above the first rule."
+    },
+    "terrarium_harvest": {
+      "files": [
+        "terrarium_harvest_morning.png",
+        "terrarium_harvest_day.png",
+        "terrarium_harvest_afternoon.png",
+        "terrarium_harvest_night.png"
+      ],
+      "frame_w": 8,
+      "frame_h": 8,
+      "frames": 12,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "basket_anchor": [
+        4,
+        1
+      ],
+      "note": "What a harvest picks, one 8x8 token per species (species order): the bloom, or a cutting for non-flowering species. Head in rows 0-4, stem in 5-7. In the basket it is drawn BEFORE the basket at basket_anchor (relative to the basket tile), so the rim hides the stem and the head shows in the opening; while falling it is drawn in front."
     }
   }
 }

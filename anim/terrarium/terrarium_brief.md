@@ -45,6 +45,7 @@ All files are in `anim/`, four time-of-day variants each
 | `terrarium_meter_<t>.png` | 50×60 | 10 × 50×6 | Rows 0–4 = water 0/25/50/75/100%, rows 5–9 = growth |
 | `terrarium_btn_sm_<t>.png` | 120×16 | 3 × 40×16 | Button: normal, hover, disabled |
 | `terrarium_btn_lg_<t>.png` | 144×16 | 3 × 48×16 | Wide button: normal, hover, disabled |
+| `terrarium_harvest_<t>.png` | 96×8 | 12 × 8×8 | Harvest tokens — the picked item, shown in the basket. Same species order |
 | `terrarium_traits_<t>.png` | 48×8 | 6 × 8×8 | height, bloom, vigor, hue, hardiness, rarity |
 | `terrarium_stars_<t>.png` | 14×7 | 2 × 7×7 | Rarity star: empty, filled |
 | `terrarium_pot_back_<t>.png` | 48×40 | 1 | Zoomed pot, **back half**: rim's far edge, inner wall, soil bed. Drawn *behind* the plant |

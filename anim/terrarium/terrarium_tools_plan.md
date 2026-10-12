@@ -109,6 +109,7 @@ New, and already generated:
 | `terrarium_tools_<t>.png` | 48×48 | 3 rows (can, shears, basket) × 3 cols (idle, held, active), 16×16 |
 | `terrarium_fx_<t>.png` | 48×48 | 3 rows (droplets, clippings, sparkle) × 3 frames, 16×16 |
 | `terrarium_pot_glow_<t>.png` | 48×40 | mouth ellipse traced in warm outline; drawn over `pot_back` while a tool hovers |
+| `terrarium_harvest_<t>.png` | 96×8 | 12 species tokens, 8×8 — what you actually picked (§5) |
 
 Changed:
 
@@ -166,13 +167,66 @@ Debounce 500ms. Watering at full reads `SATURATED!` and changes nothing.
 2. `fx` row 1 (clippings) falls past the pot, frames 0→2.
 3. Apply trim. Status: `TRIMMED`.
 
-### Basket — ~700ms
-1. Basket moves under the bloom.
-2. `fx` row 2 (sparkle) plays on the bloom, frames 0→2.
-3. The bloom sprite is removed, basket swaps to `active` (seeds inside).
-4. Pot empties, seeds land in inventory, species marked in the codex.
-5. Status: `+2 BLUEBELL SEEDS`. If the species was new, follow with
-   `NEW SPECIES RECORDED` — the codex tab icon gets a dot until opened.
+### Basket — ~1100ms, and it holds the real thing
+
+The basket does not fill with generic seeds. The bloom **detaches from the stem,
+falls, and lands in the basket as that species' own token** — harvest a bluebell
+and there is a bluebell in the basket.
+
+This costs one 96×8 sheet, not twelve basket sprites. `terrarium_harvest_<t>.png`
+holds a 8×8 token per species, indexed the same as every other species sheet
+(row order from §4 of the brief). The basket's `active` frame is a deliberately
+**empty** basket, and the token composites in at
+
+```js
+const BASKET_TOKEN_ANCHOR = [4, 1];   // relative to the 16×16 basket tile
+
+// ONCE LANDED, DRAW THE TOKEN FIRST AND THE BASKET OVER IT:
+ctx.drawImage(token,  bx + 4, by - 1);
+ctx.drawImage(basket, bx,     by);
+```
+
+The order matters more than the anchor. The basket has no hollow interior —
+its body is solid from the rim down — so containment is sold entirely by
+occlusion: the flower head clears the rim while the stem disappears behind the
+weave. Composite the token last and it sits on the basket like a sticker
+instead of in it.
+
+While the token is still *falling* it draws in front, since it is above the
+basket anyway; it swaps behind on the frame it lands.
+
+The `+1` lands the head in the basket's **opening** — the band between the
+handle (top edge on row 2, sides on rows 3–5) and the rim (rows 6–8). Every
+token is drawn to the same contract to make that single anchor work:
+
+```
+token rows 0..4   the head        (what identifies the species)
+token rows 5..7   the stem        (hidden behind the rim)
+```
+
+The two bell species originally sat two rows lower than the rest and had to be
+raised to match; the moss cushion likewise. Without that contract each species
+would need its own anchor.
+
+So one basket sprite serves all twelve species, and the motion is pure code.
+
+| Frame | ms | What |
+|---|---|---|
+| 0 | 500 | Basket settles under the bloom. `fx` sparkle frame 0 shimmers on the ripe flower. Status `READY TO PICK` |
+| 1 | 130 | Bloom sprite is removed from the stem; the token appears at the bloom's centre and begins to fall |
+| 2 | 130 | Token continues down — lerp from the bloom centre to `basket + ANCHOR` |
+| 3 | 160 | Token lands and swaps BEHIND the basket. `fx` sparkle frame 1 at the mouth. Basket swaps to `active` |
+| 4 | 400 | `fx` sparkle frame 2. Status flips to `+2 BLUEBELL SEEDS` |
+| 5 | 700 | Basket settles 1px, token resting inside. Pot is now empty |
+
+The stem stays in the pot through the fall and only clears on completion — the
+plant visibly loses its flower before the pot resets, which is what makes it
+read as picking rather than deleting.
+
+Non-flowering species (moss, fern, clover, ivy) have tokens too: a cutting in
+the species' own foliage style — a moss cushion, a fern frond, a clover trefoil,
+an ivy leaf pair. Without that they all came back as the same anonymous green
+sprig.
 
 ### Planting — see §6
 
