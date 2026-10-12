@@ -91,6 +91,7 @@ def save_pair(name, before, after):
 # ── 1. layout ─────────────────────────────────────────────────────────────
 SIZES = [
     ('desktop_1920x1080', dict(viewport={'width': 1920, 'height': 1080}, device_scale_factor=1)),
+    ('fullscreen_1920x1200', dict(viewport={'width': 1920, 'height': 1200}, device_scale_factor=1)),   # 16:10
     ('laptop_1366x768', dict(viewport={'width': 1366, 'height': 768}, device_scale_factor=1)),
     ('hidpi_1440x900_dpr2', dict(viewport={'width': 1440, 'height': 900}, device_scale_factor=2)),
     ('odd_1000x700_dpr1.25', dict(viewport={'width': 1000, 'height': 700}, device_scale_factor=1.25)),
@@ -129,6 +130,10 @@ def check_layout(browser, base, problems):
         bx0 = g['c'][0] + (BOARD['canvas_x'] - 1) * scale / dpr; bx1 = g['c'][0] + (BOARD['canvas_x'] + BOARD['w'] + 1) * scale / dpr
         by1 = g['c'][1] + (BOARD['canvas_y'] + BOARD['h'] + 1) * scale / dpr
         board_visible = bx0 >= -0.01 and bx1 <= g['vw'] + 0.01 and by1 <= g['t'][1] + 0.01
+        # The window stays centred left to right (the board never pulls the picture
+        # sideways): its middle is within a device pixel of the screen's.
+        off_centre = (kx0 + kx1) / 2 - g['vw'] / 2
+        centred = abs(off_centre) * dpr <= 1
         one_line = g['t'][3] <= 40   # the prompt is a single line
         page.screenshot(path=str(SCREENS / f'layout_{name}.png'))
         # Crispness: everything visible above the prompt must be exactly the
@@ -145,8 +150,9 @@ def check_layout(browser, base, problems):
         # (a tall phone; some sizes since the board, like 1000x700 at 1.25x).
         cover = math.ceil(max(g['vw'] * dpr / 320, g['vh'] * dpr / 180) - 1e-9)
         expect_fill = scale >= cover
-        check(whole and window_visible and board_visible and one_line and crisp and fills == expect_fill and not pp,
+        check(whole and window_visible and board_visible and centred and one_line and crisp and fills == expect_fill and not pp,
               f'{name}: scale {scale} (filling needs {cover}), whole-number={whole}, fills the screen={fills}, '
+              f'window centred={centred} ({off_centre:+.1f} px), '
               f'window, sill and board fully visible above the prompt={window_visible and board_visible}, '
               f'prompt {g["t"][3]:.0f} px tall={one_line}, every visible pixel a clean {scale}x{scale} block={crisp}'
               + (f', console: {pp}' if pp else ''))
@@ -214,7 +220,7 @@ def check_terminal(browser, base, problems):
     help_lines = len(output_lines(page))
     out = '\n'.join(output_lines(page))
     names = ['help', 'clear', 'whoami']
-    gone = ['bird', 'wind', 'sasquatch', 'cig', 'time', 'weather', 'reset', 'badges']   # removed, or hidden from help
+    gone = ['bird', 'wind', 'sasquatch', 'cig', 'time', 'weather', 'reset', 'badges', 'ls', 'rm', 'touch']   # removed, or hidden from help
     check(all(re.search(rf'^{n}\b', out, re.M) for n in names)
           and not any(re.search(rf'^{n}\b', out, re.M) for n in gone),
           f'`help` shows one bubble listing {", ".join(names)} and not {", ".join(gone)}')
@@ -808,6 +814,152 @@ def check_scheduler(browser, base, problems):
     ctx.close()
 
 
+def check_sill(browser, base, problems):
+    """ls, rm and touch: the sill as one list, and the pixels following it."""
+    report.append('\n## The sill: ls, rm, touch (test mode)\n')
+    query = '?test&debug&time=day'
+    board = (slice(BOARD['canvas_y'] - 1, BOARD['canvas_y'] + BOARD['h'] + 1),
+             slice(BOARD['canvas_x'] - 1, BOARD['canvas_x'] + BOARD['w'] + 1))
+
+    def run(page, line):
+        type_command(page, line)
+        return output_lines(page)
+
+    def at(page, tick):
+        page.evaluate(f'cabin.test.advanceTo({tick})')
+        return canvas_pixels(page)[..., :3]
+
+    def same_as_fresh(page, tick, commands=(), skip_board=False):
+        """Differing pixels against a page that ran only `commands`, at the same tick."""
+        mine = at(page, tick)
+        fresh, _ = capture_at(browser, base, query, tick, problems, list(commands))
+        fresh = fresh[..., :3]
+        if skip_board:
+            mine, fresh = mine.copy(), fresh.copy()
+            mine[board] = fresh[board] = 0
+        return diff_box(mine, fresh)
+
+    page, pp = open_page(browser, base, query, problems)
+    start = run(page, 'ls')
+    mug = __import__('json').loads((ROOT / 'anim' / 'manifest.json').read_text())['animations']['mug']
+    mx0, my0 = mug['placement']['x'] - mug['anchor'][0], mug['placement']['y'] - mug['anchor'][1]
+    removed = run(page, 'rm mug')
+    after_rm = run(page, 'ls')
+    gone, box = same_as_fresh(page, 10)
+    in_mug_box = box is not None and mx0 <= box[0] and box[2] < mx0 + mug['frame_w'] and my0 <= box[1] and box[3] < my0 + mug['frame_h']
+    page.mouse.click(*page.evaluate(f"""(() => {{ const r = document.getElementById('scene').getBoundingClientRect();
+        return [r.left + {mug['placement']['x'] - 2} * r.width / 320, r.top + {mug['placement']['y'] - 4} * r.height / 180]; }})()"""))
+    sips = page.evaluate('cabin.app.progressStats().stats.mugClicks || 0')
+    back = run(page, 'touch mug')
+    again = run(page, 'touch mug')
+    restored, _ = same_as_fresh(page, 20)
+    check(start == ['mug', 'put away: folder'] and removed == ['you take the mug off the sill.']
+          and after_rm == ['the sill is empty.', 'put away: mug  folder'] and gone > 0 and in_mug_box and sips == 0
+          and back == ['you put the mug on the sill.'] and again == ['the mug is already on the sill.'] and restored == 0,
+          f'`ls` at the start: {start}; `rm mug`: {removed}, then `ls`: {after_rm}; the cup is gone ({gone} px, all '
+          f'inside the cup: {in_mug_box}) and clicking there sips nothing ({sips}); `touch mug`: {back}, again: {again}; '
+          f'afterwards the scene matches a page that never moved it ({restored} px differ)')
+
+    # In use: a sip in progress, the folder sliding in.
+    page.mouse.click(*page.evaluate(f"""(() => {{ const r = document.getElementById('scene').getBoundingClientRect();
+        return [r.left + {mug['placement']['x'] - 2} * r.width / 320, r.top + {mug['placement']['y'] - 4} * r.height / 180]; }})()"""))
+    mid_sip = run(page, 'rm mug')
+    page.mouse.move(2, 2)
+    at(page, 60)
+    out = run(page, 'whoami')
+    sliding = run(page, 'rm folder')
+    listed = run(page, 'ls')
+    at(page, 90)
+    put_away = run(page, 'rm folder')
+    no_folder, _ = same_as_fresh(page, 100)
+    touched = run(page, 'touch folder')
+    at(page, 130)
+    check(mid_sip == ["rm: cannot remove 'mug': it's in use"] and sliding == ["rm: cannot remove 'folder': it's in use"]
+          and listed == ['mug  folder'] and put_away == ['you take the folder off the sill.'] and no_folder == 0
+          and touched == ['you put the folder on the sill.'] and run(page, 'ls') == ['mug  folder'],
+          f'mid-sip `rm mug`: {mid_sip}; `whoami` then `rm folder` while it slides in: {sliding}; `ls`: {listed}; '
+          f'once it rests, `rm folder`: {put_away} (the scene then matches a page without it: {no_folder} px differ); '
+          f'`touch folder`: {touched}, and it slides back in')
+
+    # Rewards: secret until earned, arrive with the achievement, leave on reset.
+    early_touch = run(page, 'touch trophy')
+    early_rm = run(page, 'rm trophy')
+    unknown = run(page, 'rm sofa')
+    run(page, 'debug unlock woodsman')   # with the twelve others it needs
+    run(page, 'debug unlock all')
+    at(page, 140)
+    earned = run(page, 'ls')
+    run(page, 'rm trophy')
+    run(page, 'rm ashtray')
+    at(page, 150)
+    listed_away = run(page, 'ls')
+    run(page, 'touch trophy')
+    run(page, 'touch ashtray')
+    run(page, 'reset yes')
+    at(page, 151)
+    after_reset = run(page, 'ls')
+    check(early_touch == ["touch: cannot touch 'trophy': you don't have one"]
+          and early_rm == ["rm: cannot remove 'trophy': not on the sill"] and unknown == ["rm: cannot remove 'sofa': not on the sill"]
+          and earned == ['mug  folder  trophy  ashtray'] and listed_away == ['mug  folder', 'put away: trophy  ashtray']
+          and after_reset == ['mug  folder'],
+          f'before Woodsman: `touch trophy` {early_touch}, `rm trophy` {early_rm} (as for `rm sofa`: {unknown}); '
+          f'earning everything: `ls` {earned}; after `rm` of both: {listed_away}; after `reset yes`: {after_reset}')
+    page.context.close()
+
+    # The rewards' pixels: put away, the sill matches a visitor who never earned them.
+    page, pp2 = open_page(browser, base, query, problems)
+    run(page, 'debug unlock smoke_break')
+    run(page, 'debug unlock woodsman')
+    run(page, 'rm trophy')
+    run(page, 'rm ashtray')
+    run(page, 'clear')
+    away, _ = same_as_fresh(page, 40, skip_board=True)   # the board shows their pins either way
+    page.context.close()
+
+    # The pack stays an easter egg: unknown until `cig`, then an ordinary sill item.
+    page, pp3 = open_page(browser, base, query, problems)
+    hidden = run(page, 'touch pack')
+    run(page, 'cig')
+    at(page, 30)
+    with_pack = run(page, 'ls')
+    rm_pack = run(page, 'rm cigarettes')
+    no_pack, _ = same_as_fresh(page, 40)
+    touch_pack = run(page, 'touch cig')
+    at(page, 70)
+    pack_back, _ = same_as_fresh(page, 70, ['cig'])
+    check(away == 0 and hidden == ["touch: cannot touch 'pack': you don't have one"] and with_pack == ['mug  pack', 'put away: folder']
+          and rm_pack == ['you take the pack off the sill.'] and no_pack == 0 and touch_pack == ['you put the pack on the sill.']
+          and pack_back == 0 and not pp and not pp2 and not pp3,
+          f'trophy and ashtray put away: the scene matches a visitor without them ({away} px differ, board aside); '
+          f'the pack before `cig`: {hidden}; after: `ls` {with_pack}; `rm cigarettes`: {rm_pack} (then {no_pack} px differ '
+          f'from a page without it); `touch cig`: {touch_pack}, and it slides back in ({pack_back} px differ from a page that only ran `cig`)')
+    problems.extend(pp + pp2 + pp3)
+    page.context.close()
+
+
+def check_unlock_bubble(browser, base, problems):
+    """An unlock replaces the bubble left by anything earlier; during a command it joins that reply."""
+    report.append('\n## Unlock lines in the bubble (test mode)\n')
+    page, pp = open_page(browser, base, '?test&debug&time=day', problems)
+    mug = __import__('json').loads((ROOT / 'anim' / 'manifest.json').read_text())['animations']['mug']
+    type_command(page, 'debug set mugclicks 24')
+    before = output_lines(page)
+    page.mouse.click(*page.evaluate(f"""(() => {{ const r = document.getElementById('scene').getBoundingClientRect();
+        return [r.left + {mug['placement']['x'] - 2} * r.width / 320, r.top + {mug['placement']['y'] - 4} * r.height / 180]; }})()"""))
+    page.evaluate('cabin.test.advanceTo(2)')
+    after_sip = output_lines(page)
+    type_command(page, 'weather rain')
+    type_command(page, 'weather snow')
+    during = output_lines(page)
+    check(before == ['mugClicks = 24'] and len(after_sip) == 1 and after_sip[0].startswith('achievement unlocked: Caffeinated.')
+          and len(during) == 2 and during[0].startswith('achievement unlocked: Storm Chaser.') and during[1] == 'it starts to snow.'
+          and page.evaluate("document.querySelectorAll('#bubble').length") == 1 and not pp,
+          f'the 25th sip replaces the bubble {before} with {after_sip}; an unlock during `weather snow` shares '
+          f'its reply: {during}')
+    problems.extend(pp)
+    page.context.close()
+
+
 def main():
     SCREENS.mkdir(parents=True, exist_ok=True)
     base, stop = serve_site()
@@ -821,6 +973,8 @@ def main():
         check_folder(browser, base, problems)
         check_folder_popup(browser, base, problems)
         check_cigarette(browser, base, problems)
+        check_sill(browser, base, problems)
+        check_unlock_bubble(browser, base, problems)
         check_scheduler(browser, base, problems)
         browser.close()
     stop()

@@ -4,11 +4,12 @@
 // The prompt keeps focus and recalls earlier commands with up/down arrows.
 // It knows nothing about what commands do; it hands each line to onCommand.
 // Exports: createTerminal(elements, { onCommand, maxHistory })
-//          -> { print, say, clear, focus, setTheme }
+//          -> { print, say, announce, clear, focus, setTheme }
 
 export function createTerminal({ bubble, form, input }, { onCommand, maxHistory }) {
   const history = [];
   let historyIndex = 0;   // history.length means "the line being typed"
+  let running = false;    // a command is running: its reply is being written
 
   // Adds a line to the current bubble, showing it if it was hidden.
   function print(text, kind = 'out') {
@@ -28,6 +29,13 @@ export function createTerminal({ bubble, form, input }, { onCommand, maxHistory 
   function say(text) {
     clear();
     print(text);
+  }
+
+  // Something that happened (an achievement): it replaces whatever bubble is
+  // showing, unless a command is running, whose reply it then joins.
+  function announce(text) {
+    if (running) print(text);
+    else say(text);
   }
 
   // colours: { background, text, dim, cursor }, or null for the wood theme.
@@ -62,7 +70,12 @@ export function createTerminal({ bubble, form, input }, { onCommand, maxHistory 
     input.value = '';
     clear();
     remember(line.trim());
-    onCommand(line);
+    running = true;
+    try {
+      onCommand(line);
+    } finally {
+      running = false;
+    }
   });
 
   input.addEventListener('keydown', (event) => {
@@ -82,5 +95,5 @@ export function createTerminal({ bubble, form, input }, { onCommand, maxHistory 
     if (document.activeElement !== input && !event.ctrlKey && !event.metaKey && !event.altKey) focus();
   });
 
-  return { print, say, clear, focus, setTheme };
+  return { print, say, announce, clear, focus, setTheme };
 }

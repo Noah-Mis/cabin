@@ -53,11 +53,14 @@ async function boot() {
   if (testOptions) useTestSettings(config);
 
   // The window opening down to the bottom of the sill, and the achievement
-  // board on the log beside it (with its hover outline), must always be in view.
+  // board on the log beside it (with its hover outline), must always be in
+  // view. The board's side is mirrored onto the left log, so the area is
+  // centred on the canvas: the picture stays centred instead of sliding
+  // toward the board (a smaller scale wins where both don't fit).
   const { window_opening: opening, sill_band: sill } = assets.manifest;
   const { board } = boardArt.layout;
-  const left = Math.min(opening.x, board.canvas_x - 1);
   const right = Math.max(opening.x + opening.w, board.canvas_x + board.w + 1);
+  const left = Math.min(opening.x, board.canvas_x - 1, canvas.width - right);
   const display = fitCanvasToStage(canvas, document.getElementById('stage'), {
     keepVisible: { x: left, y: opening.y, w: right - left, h: sill.y1 + 1 - opening.y },
     bottomInset: () => document.getElementById('terminal').offsetHeight,
@@ -78,10 +81,14 @@ async function boot() {
     progress,
     universes: { commandsUsed: everyDayCommands() },
     onUnlock(earned) {
-      for (const definition of earned) {
+      // A fresh bubble, replacing the one left by anything earlier (during a
+      // command it joins that command's reply); unlocks that come together share it.
+      earned.forEach((definition, i) => {
         sign.show(definition);
-        terminal.print(`achievement unlocked: ${definition.name}. ${definition.reward}.`);
-      }
+        const line = `achievement unlocked: ${definition.name}. ${definition.reward}.`;
+        if (i === 0) terminal.announce(line);
+        else terminal.print(line);
+      });
       if (boardPopup.isShown()) boardPopup.refresh(earned.at(-1).id);   // the board's pins update themselves
     },
   });

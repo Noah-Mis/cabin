@@ -28,6 +28,7 @@ js/
   scheduler.js        random min/max/chance timers that fire events
   terminal.js         one-line prompt, reply bubble, up/down history
   commands.js         the command table
+  sill.js             what is on the window sill: one ordered list; hidden `ls`, `rm`, `touch` change it
   random.js           small random helpers
   sequence.js         plays a manifest "sequences" entry (play / loop times / while_looping)
   achievements.js     track(stat, value) and isUnlocked(id); one rule tests every achievement
