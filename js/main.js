@@ -38,6 +38,7 @@ async function boot() {
     {
       onCommand: (line) => app && runCommand(line, app),
       maxHistory: config.terminal.maxHistory,
+      compactLandscape: window.matchMedia(config.compactLandscape.query),
     },
   );
   terminal.focus();
