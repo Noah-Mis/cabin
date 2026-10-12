@@ -17,7 +17,8 @@ anim/                 the art: one folder per scene element, plus manifest.json 
   achievements/       achievement sprites, badges, sign, and achievements.json (THE LIST OF ACHIEVEMENTS)
     popup/            the folder pop-up art, popup_layout.json (positions, colours), notes, mockups
   terrarium/          the wall pot and its field journal: sprites, terrarium_manifest.json, the brief
-                      (terrarium_brief.md: every position and rule), mockups/, scripts/ (the art's Python)
+                      (terrarium_brief.md: every position and rule), terrarium_tools_plan.md (the
+                      tools on the Pot tab), mockups/, scripts/ (the art's Python)
   previews/ scripts/  reference previews and the Python that generated the art
 js/
   config.js           every tunable: event timers, speeds, fade, file names, clock hours,
@@ -52,6 +53,7 @@ js/
   terrarium.js        the terrarium's rules and saved state: grow, water, trim, harvest, cross, codex
   terrarium-species.js  the twelve species (names, rarity, blurbs) and the crosses that breed six of them
   terrarium-journal.js  the field journal, drawn on the canvas in its own pixel font; its four tabs
+  terrarium-tools.js  the Pot tab's tools and seed tray: pick up, carry to the pot, a short animation
   folder-sections.js  turns content sections (text, items, bullets, tags, links) into HTML
   testmode.js         ?test: fixed state, tick stepping, reference demo
   scene/
@@ -162,14 +164,17 @@ and `debug stats` work in the terminal. Without `?debug` the command doesn't exi
 The clay pot on the left wall is a slow plant-breeding game; click it (or type
 `terrarium`) for the field journal. One pot: plant a seed, water it now and then,
 and harvest it for seeds about a day later in real time (it grows while the page
-is closed). Crossing two seeds on the journal's bench gives a seed back every
+is closed). It is played by hand: drag a seed from the tray to the empty pot,
+and carry the watering can, shears or basket from the rail to the pot (click a
+tool to pick it up and click the pot, or drag; Tab / Enter / Escape on the
+keyboard). The rail only shows tools that would do something. Crossing two seeds on the journal's bench gives a seed back every
 time, and sometimes a new species; the codex fills up as you go, and Aurora
 Bloom is four crosses deep. `terrarium status`, `water`, `trim`, `harvest`,
 `plant <seed>`, `seeds`, `cross <seed> <seed>` and `codex` work from the
 terminal too (only `terrarium` is in `help`; none count toward Power User).
 
 `anim/terrarium/terrarium_brief.md` is the design: every position, the rules and
-their numbers. The numbers live in `config.terrarium`, the species and crosses
+their numbers; `terrarium_tools_plan.md` replaces its Pot-tab buttons with the tools. The numbers live in `config.terrarium`, the species and crosses
 in `js/terrarium-species.js`. The game saves under its own key
 (`cabin_terrarium`), apart from achievements; `reset yes` clears both. For
 testing, `cabin.app.terrarium.get()` is the live state (set `pot.growth` and

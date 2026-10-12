@@ -36,7 +36,7 @@ All files are in `anim/`, four time-of-day variants each
 |---|---|---|---|
 | `terrarium_potshelf_<t>.png` | 32×36 | 1 | The pot on the wall. **Already approved.** Click target. |
 | `terrarium_journal_<t>.png` | 164×124 | 1 | Panel: paper, ruled lines, margin, binding holes, 4 inactive tabs baked on the right edge |
-| `terrarium_tab_active_<t>.png` | 14×22 | 1 | Overlay drawn on whichever tab is selected |
+| `terrarium_tab_active_<t>.png` | 16×22 | 1 | Overlay drawn on whichever tab is selected. Must match the baked tab width exactly |
 | `terrarium_tabicons_<t>.png` | 40×10 | 4 × 10×10 | Tab glyphs: pot, seed, cross, book |
 | `terrarium_seeds_<t>.png` | 96×8 | 12 × 8×8 | One seed per species, colour-coded by signature colour |
 | `terrarium_codex_<t>.png` | 192×16 | 12 × 16×16 | Mature-plant portrait per species |
@@ -74,10 +74,10 @@ Tab hit-boxes, local to the panel:
 
 | Tab | Index | Local rect | Icon drawn at |
 |---|---|---|---|
-| Pot | 0 | `(150, 10, 14, 22)` | `(151, 16)` |
-| Seeds | 1 | `(150, 36, 14, 22)` | `(151, 42)` |
-| Cross | 2 | `(150, 62, 14, 22)` | `(151, 68)` |
-| Codex | 3 | `(150, 88, 14, 22)` | `(151, 94)` |
+| Pot | 0 | `(148, 10, 16, 22)` | `(151, 16)` |
+| Seeds | 1 | `(148, 36, 16, 22)` | `(151, 42)` |
+| Cross | 2 | `(148, 62, 16, 22)` | `(151, 68)` |
+| Codex | 3 | `(148, 88, 16, 22)` | `(151, 94)` |
 
 Draw order per frame: `journal` → `tab_active` at the selected tab's y →
 4 tab icons → active tab's content → text.
@@ -151,8 +151,8 @@ Button labels are centred on `bx + 20`, baseline `y = 110`.
 
 Seed sprite centres in its slot at `+(4, 4)`. Count badge at `+(12, 10)`.
 Slots for species you own 0 of use the `empty` state and draw no seed.
-Selecting a slot shows name at `(13, 76)` with its rarity stars at `(40, 75)`,
-blurb at `(13, 86)`, and enables the **Plant** button at `(100, 104)`.
+Selecting a slot shows name at `(13, 77)` with its rarity stars at `(40, 76)`,
+blurb at `(13, 87)`, and enables the **Plant** button at `(100, 104)`.
 
 Plant is `disabled` when the pot is occupied.
 
@@ -165,9 +165,9 @@ Plant is `disabled` when the pot is occupied.
 | Parent B slot | `(60, 32)` | `slot_lg`; seed at `+(6, 6)` |
 | ">" glyph | `(90, 39)` | text |
 | Result slot | `(108, 32)` | `slot_lg` (`hover` state = predicted) |
-| Parent labels | centred on `30`, `70`, `118` at `y = 55` | text |
+| Parent labels | centred on `30`, `70`, `118` at `y = 57` | text |
 | Trait row | `(14 + i*22, 66)`, i = 0..5 | `traits` + value text at `+(9, 2)` |
-| Odds line | `(13, 84)` | text, `text_d` |
+| Odds line | `(13, 87)` | text, `text_d` |
 | CROSS button | `(52, 104)` | `btn_lg`, label centred on `76`, `y = 110` |
 
 Tapping a parent slot opens the seed picker (reuse the Tab 1 grid as an overlay).
@@ -223,6 +223,29 @@ const centerText = (s, cx) => cx - ((s.length * 4 - 1) >> 1);
 **The font is uppercase-only.** Lowercase input is upper-cased on draw, so
 "Bluebell" renders as "BLUEBELL". That's the intended look — don't add a
 lowercase set without re-checking every width below.
+
+### Baseline grid — text must not sit on a ruled line
+
+The paper's ruled lines fall at **`y % 10 == 6`** (rows 26, 36, 46 … 106), and a
+glyph is 5 rows tall. So a baseline `y` is safe only when:
+
+```
+y % 10  in  {7, 8, 9, 0, 1}
+```
+
+Anything else puts a rule straight through the letterforms. `y % 10 == 9` is the
+best of them — it centres the text in the band with two clear rows above and
+below. Outside the ruled region (`y > 106`, the button/rail strip) any baseline
+is fine.
+
+Every position in §3 satisfies this. If you add a label, check it:
+
+```js
+const onRule = y => y >= 26 && y <= 106 && [2,3,4,5,6].includes(y % 10);
+```
+
+Sprites are exempt — slots, meters and buttons are opaque and simply cover the
+rule beneath them.
 
 ### Label budget
 
@@ -599,7 +622,7 @@ Errors stay in character: `"the pot's already got a bluebell in it."`
 
 ```js
 // pot on the wall — opens the journal
-{ x: 12, y: 112, w: 32, h: 36, cursor: 'pointer', action: 'terrarium:open' }
+{ x: 5, y: 112, w: 32, h: 36, cursor: 'pointer', action: 'terrarium:open' }
 
 // journal panel origin
 const PX = 78, PY = 28;
@@ -623,7 +646,7 @@ the frame swap is the whole feedback.
   "files": ["terrarium_potshelf_morning.png","terrarium_potshelf_day.png",
             "terrarium_potshelf_afternoon.png","terrarium_potshelf_night.png"],
   "frame_w": 32, "frame_h": 36, "frames": 1, "ms_per_frame": 0, "loop": false,
-  "anchor": [0,0], "placement": { "x": 12, "y": 112 },
+  "anchor": [0,0], "placement": { "x": 5, "y": 112 },
   "draw_layer": "after_cabin_window", "clickable": true,
   "click_action": "terrarium:open",
   "note": "Pot + shelf on the left interior wall. Click target for the journal."
@@ -638,9 +661,9 @@ the frame swap is the whole feedback.
 "terrarium_tab_active": {
   "files": ["terrarium_tab_active_morning.png","terrarium_tab_active_day.png",
             "terrarium_tab_active_afternoon.png","terrarium_tab_active_night.png"],
-  "frame_w": 14, "frame_h": 22, "frames": 1, "ms_per_frame": 0, "loop": false,
+  "frame_w": 16, "frame_h": 22, "frames": 1, "ms_per_frame": 0, "loop": false,
   "anchor": [0,0],
-  "placement": { "relative_to": "terrarium_journal", "x": 150, "y": "[10,36,62,88][activeTab]" },
+  "placement": { "relative_to": "terrarium_journal", "x": 148, "y": "[10,36,62,88][activeTab]" },
   "note": "Drawn over the baked inactive tab for whichever tab is selected."
 },
 "terrarium_tabicons": {

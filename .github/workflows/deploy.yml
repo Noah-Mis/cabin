@@ -1,9 +1,9 @@
 name: Test and deploy
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
 
 permissions:
   contents: read
@@ -16,16 +16,22 @@ concurrency:
 
 jobs:
   test:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
-        with: { python-version: '3.10' }
-      - run: pip install playwright numpy pillow   # harness.py uses the runner's preinstalled Chrome
-      - run: python tests/compare.py        # site pixels vs compose(), every tick
-      - run: python tests/behaviour.py      # layout, commands, terminal, scheduler, folder
+        with:
+          python-version: '3.10'
+
+      - run: pip install playwright numpy pillow
+
+      - run: python tests/compare.py
+      - run: python tests/behaviour.py
       - run: python tests/achievements.py
       - run: python tests/sound.py
+
       - if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -33,15 +39,17 @@ jobs:
           path: tests/results
 
   deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/upload-pages-artifact@v3
-        with: { path: . }                   # the site is the repo root, no build step
+        with:
+          path: .
+
       - id: deployment
         uses: actions/deploy-pages@v4

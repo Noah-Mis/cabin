@@ -22,13 +22,19 @@
         0
       ],
       "placement": {
-        "x": 12,
+        "x": 5,
         "y": 112
       },
       "draw_layer": "after_cabin_window",
       "clickable": true,
       "click_action": "terrarium:open",
-      "note": "Pot + shelf on the left interior wall. Click target for the journal."
+      "note": "Pot + shelf on the left interior wall. Click target for the journal.",
+      "plant": {
+        "x": 8,
+        "y": -12,
+        "rim_rows": 4,
+        "note": "The growing plant, shown in the wall pot: the species' codex portrait (16x16) drawn BEFORE the pot at this offset from its top-left, so its bottom rim_rows rows are behind the rim. It is revealed from the bottom up as the plant grows (nothing at the seed stage, all of it once in bloom)."
+      }
     },
     "terrarium_journal": {
       "files": [
@@ -57,10 +63,11 @@
         62,
         88
       ],
-      "tab_w": 14,
+      "tab_w": 16,
       "tab_h": 22,
       "paper_w": 150,
-      "note": "Tabbed field journal. Composited at runtime with tab_active, tabicons, and the active tab's content. All text is JS-rendered. Paper is local x 0-149; tabs protrude to x 163."
+      "note": "Tabbed field journal. Composited at runtime with tab_active, tabicons, and the active tab's content. All text is JS-rendered. Tabs are baked at local x 148-163; text sits off the ruled lines (y % 10 == 6 between 26 and 106).",
+      "tab_x": 148
     },
     "terrarium_tab_active": {
       "files": [
@@ -69,7 +76,7 @@
         "terrarium_tab_active_afternoon.png",
         "terrarium_tab_active_night.png"
       ],
-      "frame_w": 14,
+      "frame_w": 16,
       "frame_h": 22,
       "frames": 1,
       "ms_per_frame": 0,
@@ -80,7 +87,7 @@
       ],
       "placement": {
         "relative_to": "terrarium_journal",
-        "x": 150,
+        "x": 148,
         "y": "tab_ys[activeTab]"
       },
       "note": "Drawn over the baked inactive tab for whichever tab is selected."
@@ -348,7 +355,9 @@
       "draw_layer": "behind_plant",
       "soil_line": 15,
       "centre_x": 24,
-      "note": "Back half of the zoomed pot: rim far arc plus the elliptical soil bed (rows 10-18, widest x 6-42). Draw BEFORE the plant."
+      "note": "Back half of the zoomed pot: rim far arc plus the elliptical soil bed. VERTICAL sheet of three 48x40 panes by wetness: 0 dry (y 0), 1 moist (y 40), 2 wet (y 80); hydration < 0.33 dry, < 0.66 moist, else wet. Draw BEFORE the plant.",
+      "panes": 3,
+      "stacking": "vertical"
     },
     "terrarium_pot_front": {
       "files": [
@@ -390,6 +399,80 @@
       "charset": " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-_/%!?:+><()*'",
       "advance": 4,
       "note": "3x5 pixel font in 4x6 cells, white: tinted in JS. Uppercase only; glyph index is the position in charset (0 is space). One file for every time of day."
+    },
+    "terrarium_tools": {
+      "files": [
+        "terrarium_tools_morning.png",
+        "terrarium_tools_day.png",
+        "terrarium_tools_afternoon.png",
+        "terrarium_tools_night.png"
+      ],
+      "frame_w": 16,
+      "frame_h": 16,
+      "frames": 3,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "rows": 3,
+      "rail": {
+        "x": [
+          14,
+          40,
+          66,
+          92
+        ],
+        "y": 102
+      },
+      "pour_at": [
+        48,
+        30
+      ],
+      "note": "Pot-tab hand tools (terrarium_tools_plan.md). Row = tool: 0 watering can, 1 shears, 2 basket. Column = state: 0 idle (in a rail slot), 1 held (centred on the pointer), 2 active (pouring / blades open / full of seeds). The pouring can is the idle can turned 90 degrees, spout tip at local (5, 14)."
+    },
+    "terrarium_fx": {
+      "files": [
+        "terrarium_fx_morning.png",
+        "terrarium_fx_day.png",
+        "terrarium_fx_afternoon.png",
+        "terrarium_fx_night.png"
+      ],
+      "frame_w": 16,
+      "frame_h": 16,
+      "frames": 3,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "rows": 3,
+      "note": "Tool effects, 3 frames each. Row: 0 droplets, 1 clippings, 2 collect sparkle."
+    },
+    "terrarium_pot_glow": {
+      "files": [
+        "terrarium_pot_glow_morning.png",
+        "terrarium_pot_glow_day.png",
+        "terrarium_pot_glow_afternoon.png",
+        "terrarium_pot_glow_night.png"
+      ],
+      "frame_w": 48,
+      "frame_h": 40,
+      "frames": 1,
+      "ms_per_frame": 0,
+      "loop": false,
+      "anchor": [
+        0,
+        0
+      ],
+      "placement": {
+        "relative_to": "terrarium_journal",
+        "x": 12,
+        "y": 54
+      },
+      "note": "The pot mouth traced in a warm outline: drawn over pot_back while a tool or seed hovers the pot. Same x/y as pot_back."
     }
   }
 }

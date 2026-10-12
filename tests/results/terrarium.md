@@ -8,7 +8,7 @@
 - PASS: a week away counts as 48 h: thirsty and wilting, not dead, no dry time counted ({'dead': False, 'wilting': True, 'hydration': 0, 'dryMs': 0})
 - PASS: bone dry while visited: alive at 23 h, withered past 24 h (['dead', 'dead']), water refused
 - PASS: a withered plant: harvest becomes Clear, empties the pot, no seeds
-- PASS: harvest: refused before 1.0; 1 seed at vigor 3, 2 at vigor 4; a flowering starter (wildflower) on the first harvest only; codex ['bluebell', 'aurora']
+- PASS: harvest: refused before 1.0; 1 seed at vigor 3, 2 at vigor 4; a flowering starter (wildflower) on the first harvest only; codex ['bluebell', 'aurora'] (the first says it is new, the second not)
 - PASS: a ready bluebell with bloom 2: ['stem_leaves', 'full']
 - PASS: failed crosses raise the chance 5 points each, capped at +25: [0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.4]
 - PASS: a hit gives the hybrid, puts it in the codex and resets the pity
@@ -21,10 +21,15 @@
 - PASS: no seeds and an empty pot on load: the starter set again ({'moss': 3, 'fern': 2, 'clover': 2})
 - PASS: every journal string fits its line (33 characters, 19 beside the pot; bench names 39 px): all fit
 - PASS: the pot is on the left wall as drawn (True), shows a hand (pointer), and a click opens the journal (True)
-- PASS: the journal is drawn over the snow and everything else (1450/1450 margin pixels exact)
-- PASS: tabs switch on a click (seeds: 1); picking moss and Plant plants it (moss) and turns to the pot (0); plain paper keeps the arrow ('')
+- PASS: the journal is drawn over the snow and everything else (1362/1362 margin pixels exact)
+- PASS: tabs switch on a click (seeds: 1); the Seeds tab plants nothing (True); plain paper keeps the arrow ('')
+- PASS: a seed dragged from the tray to the pot is planted (moss); a hand over the pot while carrying (pointer)
+- PASS: the can, clicked then clicked on the pot, waters it on its third droplet frame (0.2 -> 0.45); the soil shows how wet it is ((84, 64, 45) dry, (49, 37, 26) wet)
+- PASS: a drag let go off the pot puts the can back: a later click on the pot does nothing (0.80)
+- PASS: the basket, the third tool on a ripe plant, harvests it ({'pot': None, 'moss': 3, 'codex': ['moss']})
+- PASS: the keyboard plants a seed: Tab, Enter, Tab to the pot, Enter (moss); nothing typed on the prompt ('')
 - PASS: the bench crosses fern x clover: two seeds in, one back (4 -> 3)
 - PASS: `water` with the journal open: the pot is watered (0.75), the tab stays (2)
 - PASS: closes on a click outside (True), on the pot (True), on Escape (True); the Terrarium button opens it (True)
-- PASS: commands answer in character: {'terrarium status': 'aurora bloom: ready. water 100%, growth 100%.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 2  fern 2  clover 1', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, ivy, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
+- PASS: commands answer in character: {'terrarium status': 'aurora bloom: ready. water 100%, growth 100%.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 1  fern 2  clover 1  daisy 1', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, ivy, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
 - PASS: no console problems ([])
