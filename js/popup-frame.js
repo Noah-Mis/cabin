@@ -2,8 +2,10 @@
 // backdrop, a dialog drawn at the canvas's whole-number pixel scale (shrunk
 // if needed to fit above the prompt line, and centred there), a plain
 // single-column fallback when that would be too small to read, the fade in
-// and out, and closing on Escape or a click outside. The folder pop-up and
-// the achievement board fill it with their own art and text.
+// and out, and closing on Escape or a click outside. On a phone held sideways
+// (config.compactLandscape) the art is kept at a smaller scale, over the
+// prompt line too, and the dialog is marked is-compact for its smaller text.
+// The folder pop-up and the achievement board fill it with their own art and text.
 // Exports: createPopupFrame(canvas, options)
 //            options: { bottomInset(), className, w, h, label, backdrop, fadeMs, minCssPxPerArtPx }
 //            -> { backdrop, popup, art, show(onRequestClose), hide(), isShown(), requestClose() }
@@ -11,6 +13,10 @@
 //   there. Text goes on the dialog itself, sized with --u (one art pixel in
 //   CSS pixels). onRequestClose() is called on Escape or a click outside;
 //   the caller decides when to actually hide().
+
+import { config } from './config.js';
+
+const compactLandscape = window.matchMedia(config.compactLandscape.query);
 
 export function createPopupFrame(canvas, { bottomInset, className, w, h, label, backdrop: backdropColour, fadeMs, minCssPxPerArtPx }) {
   const backdrop = el('div', `popup-backdrop ${className}-backdrop`);
@@ -41,20 +47,26 @@ export function createPopupFrame(canvas, { bottomInset, className, w, h, label, 
     if (shown && event.key === 'Escape') requestClose();
   });
   window.addEventListener('resize', () => { if (shown) place(); });
+  compactLandscape.addEventListener('change', () => { if (shown) place(); });   // turning the phone
 
   // Same whole-number scale as the canvas (device pixels per art pixel),
-  // shrunk if needed to fit above the prompt line, and centred there.
+  // shrunk if needed to fit above the prompt line, and centred there. A
+  // sideways phone is short, so there the pop-up may cover the prompt line.
   function place() {
+    const compact = compactLandscape.matches;
+    const inset = compact ? 0 : bottomInset();
     const dpr = window.devicePixelRatio || 1;
     const canvasScale = Math.round(canvas.getBoundingClientRect().width * dpr / canvas.width);
     const availW = window.innerWidth * dpr;
-    const availH = (window.innerHeight - bottomInset()) * dpr;
+    const availH = (window.innerHeight - inset) * dpr;
     const scale = Math.min(canvasScale, Math.floor(availW / w), Math.floor(availH / h));
     const cssPerArtPx = scale / dpr;
-    const plain = scale < 1 || cssPerArtPx < minCssPxPerArtPx;
+    const smallest = compact ? config.compactLandscape.minCssPxPerArtPx : minCssPxPerArtPx;
+    const plain = scale < 1 || cssPerArtPx < smallest;
 
     popup.classList.toggle('is-plain', plain);
-    backdrop.style.setProperty('--prompt-h', `${bottomInset()}px`);
+    popup.classList.toggle('is-compact', compact && !plain);
+    backdrop.style.setProperty('--prompt-h', `${inset}px`);
     if (plain) {
       popup.style.transform = '';
       return;

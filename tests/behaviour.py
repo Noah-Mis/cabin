@@ -22,7 +22,11 @@
    from content/folder_content.json shown as written, tabs, scrolling, the
    resume download, closing (X, Escape, outside click), and the plain
    single-column panel on a phone.
-8. No console errors or warnings, no failed requests, anywhere above.
+8. A phone held sideways: both pop-ups drawn as art (not the plain panel)
+   with no text spilling out of its region, turning the phone with one open,
+   the keyboard coming up only from the prompt and going away after a
+   command, and a desktop window of the same size left exactly as it was.
+9. No console errors or warnings, no failed requests, anywhere above.
 
 Writes tests/results/behaviour.md and tests/results/screens/.
 Run:  python tests/behaviour.py
@@ -99,6 +103,10 @@ SIZES = [
                                 is_mobile=True, has_touch=True)),
     ('phone_landscape_844x390_dpr3', dict(viewport={'width': 844, 'height': 390}, device_scale_factor=3,
                                           is_mobile=True, has_touch=True)),
+    ('phone_landscape_667x320_dpr2', dict(viewport={'width': 667, 'height': 320}, device_scale_factor=2,
+                                          is_mobile=True, has_touch=True)),
+    ('phone_landscape_915x360_dpr2.625', dict(viewport={'width': 915, 'height': 360}, device_scale_factor=2.625,
+                                              is_mobile=True, has_touch=True)),
 ]
 
 
@@ -543,6 +551,129 @@ def check_folder_popup(browser, base, problems):
     problems.extend(pp)
     page.context.close()
 
+
+# ── 5c. a phone held sideways ─────────────────────────────────────────────
+LANDSCAPE_PHONES = [
+    ('667x320_dpr2', dict(viewport={'width': 667, 'height': 320}, device_scale_factor=2)),
+    ('844x340_dpr3', dict(viewport={'width': 844, 'height': 340}, device_scale_factor=3)),
+    ('844x390_dpr3', dict(viewport={'width': 844, 'height': 390}, device_scale_factor=3)),
+    ('915x360_dpr2.625', dict(viewport={'width': 915, 'height': 360}, device_scale_factor=2.625)),
+]
+
+
+def check_landscape_phone(browser, base, problems):
+    report.append('\n## Phone held sideways\n')
+    layout = json.loads((ROOT / 'anim' / 'folder' / 'popup' / 'popup_layout.json').read_text())
+
+    def art_point(page, x, y):
+        r = page.evaluate("(() => { const r = document.getElementById('scene').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+        return r[0] + x * r[2] / 320, r[1] + y * r[3] / 180
+
+    def wait_shown(page, cls):
+        page.wait_for_selector(f'.{cls}-backdrop.is-visible')
+        page.wait_for_timeout(300)
+
+    def close(page, cls, tick):
+        page.keyboard.press('Escape')
+        page.evaluate(f'cabin.test.advanceTo({tick})')
+        page.wait_for_selector(f'.{cls}-backdrop', state='hidden')
+
+    # Every piece of text that sits on the art, and whether it fits its box.
+    spills = """sel => [...document.querySelectorAll(sel)]
+        .filter(e => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1)
+        .map(e => e.className + ': ' + e.textContent.slice(0, 30))"""
+    on_folder = '.fp-card-name, .fp-card-line, .fp-sticky-links li, .fp-sticky, .fp-stamp, .fp-card'
+    on_board = '.ab-name, .ab-how, .ab-reward, .ab-progress'
+    input_focused = "document.activeElement === document.getElementById('input')"
+
+    for name, ctx in LANDSCAPE_PHONES:
+        page, pp = open_page(browser, base, '?test&debug&time=day', problems, is_mobile=True, has_touch=True, **ctx)
+        font = page.evaluate("getComputedStyle(document.getElementById('terminal')).fontSize")
+
+        # The keyboard: a tap on the scene leaves it down, a tap on the prompt brings it up,
+        # and sending a command puts it away again with the reply showing.
+        page.evaluate("document.getElementById('input').blur()")
+        page.touchscreen.tap(*art_point(page, 160, 60))
+        scene_tap_up = page.evaluate(input_focused)
+        t = page.evaluate("(() => { const r = document.getElementById('terminal').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()")
+        page.touchscreen.tap(*t)
+        prompt_tap_up = page.evaluate(input_focused)
+        type_command(page, 'whoami')
+        down_after = not page.evaluate(input_focused)
+        replied = bubble_visible(page)
+        check(font == '16px' and not scene_tap_up and prompt_tap_up and down_after and replied,
+              f'{name}: prompt at 16px so the page does not zoom ({font}); a tap on the scene leaves the keyboard down '
+              f'({not scene_tap_up}), a tap on the prompt brings it up ({prompt_tap_up}), sending a command puts it away '
+              f'({down_after}) with the reply showing ({replied})')
+
+        # The folder pop-up: the desktop art, not the plain panel, with every line inside its box.
+        page.evaluate('cabin.test.advanceTo(40)')
+        page.touchscreen.tap(*art_point(page, 160.5, 140.5))
+        page.evaluate('cabin.test.advanceTo(60)')
+        wait_shown(page, 'fp')
+        classes = page.evaluate("document.querySelector('.fp').className")
+        dpr = page.evaluate('devicePixelRatio')
+        g = page.evaluate("""(() => { const r = document.querySelector('.fp-art').getBoundingClientRect();
+                                       return [r.left, r.top, r.right, r.bottom, innerWidth, innerHeight]; })()""")
+        scale = (g[2] - g[0]) * dpr / layout['popup']['w']
+        on_screen = g[0] >= -0.01 and g[1] >= -0.01 and g[2] <= g[4] + 0.01 and g[3] <= g[5] + 0.01
+        folder_spills = page.evaluate(spills, on_folder)
+        gpa = page.evaluate("[...document.querySelectorAll('.fp-card-line')].some(e => e.textContent.includes('GPA') && e.scrollWidth <= e.clientWidth)")
+        page.screenshot(path=str(SCREENS / f'landscape_{name}_folder.png'))
+        check('is-compact' in classes and 'is-plain' not in classes and abs(scale - round(scale)) < 1e-6 and on_screen
+              and not folder_spills and gpa,
+              f'{name}: folder pop-up drawn as art ({classes}) at a whole-number scale ({scale:g} device px per art px), '
+              f'fully on screen ({on_screen}), no text spilling out ({folder_spills or "none"}), the GPA line whole ({gpa})')
+
+        # Turning the phone with it open: plain panel upright, the art again sideways.
+        w, h = ctx['viewport']['width'], ctx['viewport']['height']
+        page.set_viewport_size({'width': h, 'height': w})
+        page.wait_for_timeout(100)
+        upright = page.evaluate("document.querySelector('.fp').className")
+        page.set_viewport_size({'width': w, 'height': h})
+        page.wait_for_timeout(100)
+        sideways = page.evaluate("document.querySelector('.fp').className")
+        check('is-plain' in upright and 'is-compact' not in upright and 'is-compact' in sideways and 'is-plain' not in sideways,
+              f'{name}: turning the phone with the folder open swaps to the plain panel ({upright}) and back to the art ({sideways})')
+        close(page, 'fp', 100)
+
+        # The board pop-up, every achievement earned so each one's longest words show.
+        page.evaluate("cabin.run('debug unlock all')")
+        page.touchscreen.tap(*art_point(page, BOARD['canvas_x'] + BOARD['w'] / 2, BOARD['canvas_y'] + BOARD['h'] / 2))
+        wait_shown(page, 'ab')
+        classes = page.evaluate("document.querySelector('.ab').className")
+        board_spills = []
+        for i in range(page.evaluate("document.querySelectorAll('.ab-slot').length")):
+            page.evaluate(f"document.querySelectorAll('.ab-slot')[{i}].click()")
+            board_spills += page.evaluate(spills, on_board)
+        page.screenshot(path=str(SCREENS / f'landscape_{name}_board.png'))
+        check('is-compact' in classes and 'is-plain' not in classes and not board_spills,
+              f"{name}: achievement board drawn as art ({classes}), every achievement's text inside its box "
+              f'({sorted(set(board_spills)) or "none"})')
+        close(page, 'ab', 140)
+        check(not pp, f'{name}: no console problems ({pp})')
+        problems.extend(pp)
+        page.context.close()
+
+    # A desktop window the same size is not a phone: plain panels, and a click
+    # anywhere still puts the cursor back in the prompt.
+    page, pp = open_page(browser, base, '?test&time=day', problems, viewport={'width': 844, 'height': 390})
+    page.focus('#input')
+    type_command(page, 'whoami')
+    page.evaluate('cabin.test.advanceTo(40)')
+    page.evaluate("document.getElementById('input').blur()")
+    page.mouse.click(*art_point(page, 160, 60))
+    refocused = page.evaluate(input_focused)
+    page.mouse.click(*art_point(page, 160.5, 140.5))
+    page.evaluate('cabin.test.advanceTo(60)')
+    wait_shown(page, 'fp')
+    classes = page.evaluate("document.querySelector('.fp').className")
+    font = page.evaluate("getComputedStyle(document.getElementById('terminal')).fontSize")
+    check('is-plain' in classes and 'is-compact' not in classes and refocused and font == '14px' and not pp,
+          f'desktop window 844x390: unchanged: plain panel ({classes}), a click on the scene refocuses the prompt '
+          f'({refocused}), prompt at 14px ({font})')
+    problems.extend(pp)
+    page.context.close()
 
 
 # ── 5d. the coffee mug ───────────────────────────────────────────────────
@@ -1072,6 +1203,7 @@ def main():
         check_mug(browser, base, problems)
         check_folder(browser, base, problems)
         check_folder_popup(browser, base, problems)
+        check_landscape_phone(browser, base, problems)
         check_cigarette(browser, base, problems)
         check_sill(browser, base, problems)
         check_unlock_bubble(browser, base, problems)

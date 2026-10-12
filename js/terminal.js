@@ -3,10 +3,15 @@
 // replaces the previous bubble; a command that prints nothing leaves none.
 // The prompt keeps focus and recalls earlier commands with up/down arrows.
 // It knows nothing about what commands do; it hands each line to onCommand.
-// Exports: createTerminal(elements, { onCommand, maxHistory })
+// On a phone held sideways (compactLandscape matches) the keyboard covers
+// nearly everything, so there it comes up only when the prompt is tapped,
+// goes away after each command, and the prompt rides just above it.
+// Exports: createTerminal(elements, { onCommand, maxHistory, compactLandscape })
+//            compactLandscape: a MediaQueryList (config.compactLandscape.query)
 //          -> { print, say, announce, clear, focus, setTheme }
 
-export function createTerminal({ bubble, form, input }, { onCommand, maxHistory }) {
+export function createTerminal({ bubble, form, input }, { onCommand, maxHistory, compactLandscape }) {
+  const terminal = form.parentElement;
   const history = [];
   let historyIndex = 0;   // history.length means "the line being typed"
   let running = false;    // a command is running: its reply is being written
@@ -40,7 +45,6 @@ export function createTerminal({ bubble, form, input }, { onCommand, maxHistory 
 
   // colours: { background, text, dim, cursor }, or null for the wood theme.
   function setTheme(colours) {
-    const terminal = form.parentElement;
     const vars = { '--terminal-bg': 'background', '--text': 'text', '--prompt': 'dim', '--rule': 'dim', '--caret': 'cursor' };
     for (const [cssVar, key] of Object.entries(vars)) {
       if (colours) terminal.style.setProperty(cssVar, colours[key]);
@@ -76,6 +80,7 @@ export function createTerminal({ bubble, form, input }, { onCommand, maxHistory 
     } finally {
       running = false;
     }
+    if (compactLandscape.matches) input.blur();   // put the keyboard away to show what happened
   });
 
   input.addEventListener('keydown', (event) => {
@@ -87,12 +92,31 @@ export function createTerminal({ bubble, form, input }, { onCommand, maxHistory 
   // elsewhere on the page sends focus back to the input. Anything marked
   // data-keep-focus (like the folder pop-up) is left alone.
   const elsewhere = (node) => node instanceof Element && node.closest('[data-keep-focus]');
+  // On a sideways phone only a tap on the prompt itself does: focus brings
+  // up the keyboard, and a tap on the scene is meant for the scene.
   document.addEventListener('pointerup', (event) => {
+    if (compactLandscape.matches && !terminal.contains(event.target)) return;
     if (!elsewhere(event.target) && !window.getSelection()?.toString()) focus();
   });
   document.addEventListener('keydown', (event) => {
     if (elsewhere(document.activeElement) || elsewhere(event.target)) return;
     if (document.activeElement !== input && !event.ctrlKey && !event.metaKey && !event.altKey) focus();
+  });
+
+  // Sideways phone: while the keyboard is up, keep the prompt (and its
+  // bubble) on the bottom edge of what is still visible, and when it goes
+  // away undo any scrolling the browser did to show the input.
+  const viewport = window.visualViewport;
+  function rideAboveKeyboard() {
+    const covered = compactLandscape.matches && viewport
+      ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop) : 0;
+    terminal.style.transform = covered ? `translateY(${-covered}px)` : '';
+  }
+  viewport?.addEventListener('resize', rideAboveKeyboard);
+  viewport?.addEventListener('scroll', rideAboveKeyboard);
+  compactLandscape.addEventListener('change', rideAboveKeyboard);
+  input.addEventListener('blur', () => {
+    if (compactLandscape.matches) window.scrollTo(0, 0);
   });
 
   return { print, say, announce, clear, focus, setTheme };

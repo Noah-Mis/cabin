@@ -8,7 +8,9 @@
 - PASS: hidpi_1440x900_dpr2: scale 9 (filling needs 10), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 9x9 block=True
 - PASS: odd_1000x700_dpr1.25: scale 4 (filling needs 5), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 4x4 block=True
 - PASS: phone_390x844_dpr3: scale 3 (filling needs 15), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 34 px tall=True, every visible pixel a clean 3x3 block=True
-- PASS: phone_landscape_844x390_dpr3: scale 8 (filling needs 8), whole-number=True, fills the screen=True, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 32 px tall=True, every visible pixel a clean 8x8 block=True
+- PASS: phone_landscape_844x390_dpr3: scale 8 (filling needs 8), whole-number=True, fills the screen=True, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 28 px tall=True, every visible pixel a clean 8x8 block=True
+- PASS: phone_landscape_667x320_dpr2: scale 4 (filling needs 5), whole-number=True, fills the screen=False, window centred=True (+0.0 px), window, sill and board fully visible above the prompt=True, prompt 28 px tall=True, every visible pixel a clean 4x4 block=True
+- PASS: phone_landscape_915x360_dpr2.625: scale 6 (filling needs 8), whole-number=True, fills the screen=False, window centred=True (-0.4 px), window, sill and board fully visible above the prompt=True, prompt 28 px tall=True, every visible pixel a clean 6x6 block=True
 
 ## Commands (typed into the terminal, test mode, compared with a page that did not run them)
 
@@ -100,6 +102,30 @@
 - PASS: 1440x900_dpr2: no console problems ([])
 - PASS: phone 390x844: plain single-column panel (True), all content shown (missing: none), fits the width (True), Escape closes it (True)
 
+## Phone held sideways
+
+- PASS: 667x320_dpr2: prompt at 16px so the page does not zoom (16px); a tap on the scene leaves the keyboard down (True), a tap on the prompt brings it up (True), sending a command puts it away (True) with the reply showing (True)
+- PASS: 667x320_dpr2: folder pop-up drawn as art (popup fp is-compact) at a whole-number scale (3 device px per art px), fully on screen (True), no text spilling out (none), the GPA line whole (True)
+- PASS: 667x320_dpr2: turning the phone with the folder open swaps to the plain panel (popup fp is-plain) and back to the art (popup fp is-compact)
+- PASS: 667x320_dpr2: achievement board drawn as art (popup ab is-compact), every achievement's text inside its box (none)
+- PASS: 667x320_dpr2: no console problems ([])
+- PASS: 844x340_dpr3: prompt at 16px so the page does not zoom (16px); a tap on the scene leaves the keyboard down (True), a tap on the prompt brings it up (True), sending a command puts it away (True) with the reply showing (True)
+- PASS: 844x340_dpr3: folder pop-up drawn as art (popup fp is-compact) at a whole-number scale (6 device px per art px), fully on screen (True), no text spilling out (none), the GPA line whole (True)
+- PASS: 844x340_dpr3: turning the phone with the folder open swaps to the plain panel (popup fp is-plain) and back to the art (popup fp is-compact)
+- PASS: 844x340_dpr3: achievement board drawn as art (popup ab is-compact), every achievement's text inside its box (none)
+- PASS: 844x340_dpr3: no console problems ([])
+- PASS: 844x390_dpr3: prompt at 16px so the page does not zoom (16px); a tap on the scene leaves the keyboard down (True), a tap on the prompt brings it up (True), sending a command puts it away (True) with the reply showing (True)
+- PASS: 844x390_dpr3: folder pop-up drawn as art (popup fp is-compact) at a whole-number scale (7 device px per art px), fully on screen (True), no text spilling out (none), the GPA line whole (True)
+- PASS: 844x390_dpr3: turning the phone with the folder open swaps to the plain panel (popup fp is-plain) and back to the art (popup fp is-compact)
+- PASS: 844x390_dpr3: achievement board drawn as art (popup ab is-compact), every achievement's text inside its box (none)
+- PASS: 844x390_dpr3: no console problems ([])
+- PASS: 915x360_dpr2.625: prompt at 16px so the page does not zoom (16px); a tap on the scene leaves the keyboard down (True), a tap on the prompt brings it up (True), sending a command puts it away (True) with the reply showing (True)
+- PASS: 915x360_dpr2.625: folder pop-up drawn as art (popup fp is-compact) at a whole-number scale (5 device px per art px), fully on screen (True), no text spilling out (none), the GPA line whole (True)
+- PASS: 915x360_dpr2.625: turning the phone with the folder open swaps to the plain panel (popup fp is-plain) and back to the art (popup fp is-compact)
+- PASS: 915x360_dpr2.625: achievement board drawn as art (popup ab is-compact), every achievement's text inside its box (none)
+- PASS: 915x360_dpr2.625: no console problems ([])
+- PASS: desktop window 844x390: unchanged: plain panel (popup fp is-plain), a click on the scene refocuses the prompt (True), prompt at 14px (14px)
+
 ## Cigarette easter egg (test mode)
 
 - PASS: day: `cig` slides the pack in (181 pixels changing at 0.5 s), then only the pack remains (181 pixels, inside the pack box: True); bubble "you set your pack down on the sill."
@@ -139,14 +165,14 @@
 
 ## Scheduler (real clock, config.js served with short timers)
 
-- PASS: bird fired by itself 23 times in 10 s (8 actually started)
-- PASS: farbird fired by itself 22 times in 10 s (3 actually started)
+- PASS: bird fired by itself 22 times in 10 s (8 actually started)
+- PASS: farbird fired by itself 24 times in 10 s (3 actually started)
 - PASS: wind fired by itself 23 times in 10 s (23 actually started)
-- PASS: sasquatch fired by itself 7 times in 10 s (2 actually started)
-- PASS: weather fired by itself 8 times in 10 s (1 actually started)
-  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 7
+- PASS: sasquatch fired by itself 6 times in 10 s (3 actually started)
+- PASS: weather fired by itself 13 times in 10 s (1 actually started)
+  sasquatch chance check: about 22 rolls at chance 0.3, expected about 7 fires, got 6
 - PASS: no console problems on the live (non-test) page: []
-- PASS: front trees: 50 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.3-14.8 s (config [7, 15])
+- PASS: front trees: 48 sways in 10 minutes (they used to sway non-stop), each a full cycle ['0123'], rests 7.0-14.7 s (config [7, 15])
 - PASS: sasquatch timer over 20,000 seeded rolls: fired 30.6% of the time (config 30%), waits between 181 s and 600 s (config 180-600 s)
 
 ## Console
