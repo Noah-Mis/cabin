@@ -11,7 +11,6 @@ anim/                 the art: one folder per scene element, plus manifest.json 
   scene/              background, near forest, window frame, sky mask (the static layers)
   waterfall/ stars/ clouds/ rain/ snow/ treetops/ birds/ sasquatch/ mug/ wind/
   tree_snow/          snow settling on the trees in four stages (weather_overlays in manifest.json), and its brief
-  smoke/              the smoke pack with its own smoke_manifest.json (listed in config.assetPacks)
   folder/             the folder pack with its own folder_manifest.json
   board/              the achievement board and its pop-up: art, board_layout.json (every position), mockups, brief
   achievements/       achievement sprites, badges, sign, and achievements.json (THE LIST OF ACHIEVEMENTS)
@@ -57,7 +56,6 @@ js/
     board.js          the achievement board on the right-hand log: a pin per achievement; click to open
     aurora.js  shootingstars.js  rainbow.js  deer.js  trophy.js   achievement rewards
     sparkles.js       one-shot twinkles (bird trail, clicked stars, trophy)
-    cigarette.js      hidden `cig` easter egg
 sounds/               waterfall.mp3 (loops), bird_flap.wav, wind.wav
 content/
   folder_content.json EVERY WORD IN THE FOLDER POP-UP: card, stamp, sticky note, each tab
@@ -103,7 +101,7 @@ The sun goes in the marked **SUN SLOT** at the top of the sky group in
 
 To make an element clickable, give it
 `pointer: { contains(x, y), setHovered(on), click() }` (art pixels); see
-`js/scene/cigarette.js`. A command with `hidden: true` works but is left out of `help`.
+`js/scene/folder.js`. A command with `hidden: true` works but is left out of `help`.
 
 ## Add a command
 
