@@ -45,6 +45,13 @@ TAB_W, TAB_H = 16, 22    # 16 = PANEL_W - (PAPER_W - 2); the active
                          # overlay must match the baked tab exactly or the
                          # inactive tab shows through on the right
 TAB_YS = [10, 36, 62, 88]          # four tab top-edges
+
+# Notebook rule grid. Every rule sits at y % 10 == 6, which is what the text
+# baseline rule in the brief keys off. RULE_FIRST is the top rule; the run is
+# evenly spaced all the way down to RULE_LAST, and DIV_Y (the section break
+# above the button/rail strip) is the next grid step after it.
+RULE_FIRST, RULE_LAST = 16, 86
+DIV_Y = 96
 PANEL_X, PANEL_Y = 78, 28          # centered on canvas
 
 POTPANEL_W, POTPANEL_H = 48, 40
@@ -214,8 +221,11 @@ def draw_journal(t):
     for cx, cy in [(0,0),(1,0),(0,1),(0,PANEL_H-1),(1,PANEL_H-1),(0,PANEL_H-2)]:
         c.put(cx, cy, (0,0,0,0))
 
-    # Ruled lines + red margin
-    for ly in range(26, PANEL_H - 12, 10):
+    # Ruled lines + red margin.
+    # One evenly spaced run, every 10px, all at y % 10 == 6 so the text
+    # baseline rule holds. The run stops at RULE_LAST; the divider below it
+    # sits on the same grid rather than crowding the last rule.
+    for ly in range(RULE_FIRST, RULE_LAST + 1, 10):
         for x in range(12, PAPER_W - 6):
             if (x + ly) % 4 != 0:
                 c.put(x, ly, p['line'])
@@ -232,15 +242,14 @@ def draw_journal(t):
                 if d <= 4:
                     c.put(5 + dx, hy + dy, (0,0,0,0) if d <= 2 else p['border_d'])
 
-    # Header rule under the title zone
-    for x in range(12, 92):
-        if (x + 17) % 3 != 0:
-            c.put(x, 17, p['line'])
-
-    # Footer divider above the action row
-    for x in range(6, PAPER_W - 6):
-        if (x + 100) % 3 != 0:
-            c.put(x, 100, p['line'])
+    # Footer divider above the action row. On the grid (DIV_Y % 10 == 6) and
+    # one full step below the last rule, so it never reads as a stray line
+    # crowding its neighbour. Solid rather than dashed so it still reads as a
+    # section break and not just another rule.
+    # There is deliberately no separate header rule: the old one spanned only
+    # half the page and stopped mid-air.
+    for x in range(12, PAPER_W - 6):
+        c.put(x, DIV_Y, p['line'])
 
     return c.save(f"anim/terrarium_journal_{t}.png")
 

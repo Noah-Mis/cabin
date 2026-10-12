@@ -66,7 +66,7 @@
       "tab_w": 16,
       "tab_h": 22,
       "paper_w": 150,
-      "note": "Tabbed field journal. Composited at runtime with tab_active, tabicons, and the active tab's content. All text is JS-rendered. Tabs are baked at local x 148-163; text sits off the ruled lines (y % 10 == 6 between 26 and 106).",
+      "note": "Tabbed field journal. Composited at runtime with tab_active, tabicons, and the active tab's content. All text is JS-rendered. Tabs are baked at local x 148-163. Ruled lines at y 16, 26 ... 86 and a solid divider at y 96 (all y % 10 == 6, x 12-143); clean paper below the divider. Text baselines must not have y % 10 in 2-6 between y 16 and 96.",
       "tab_x": 148
     },
     "terrarium_tab_active": {
@@ -424,13 +424,21 @@
           66,
           92
         ],
-        "y": 102
+        "y": 100,
+        "slot": "terrarium_slot_lg",
+        "note": "Tools sit in the 20x20 slots (a 16px tool overruns a 16px slot's border), each centred by its opaque pixels; 2px higher than the tray so the slot clears the paper's bottom edge."
       },
       "pour_at": [
         48,
         30
       ],
-      "note": "Pot-tab hand tools (terrarium_tools_plan.md). Row = tool: 0 watering can, 1 shears, 2 basket. Column = state: 0 idle (in a rail slot), 1 held (centred on the pointer), 2 active (pouring / blades open / full of seeds). The pouring can is the idle can turned 90 degrees, spout tip at local (5, 14)."
+      "note": "Pot-tab hand tools (terrarium_tools_plan.md). Row = tool: 0 watering can, 1 shears, 2 basket. Column = state: 0 idle (in a rail slot), 1 held (centred on the pointer), 2 active (pouring / blades open / full of seeds). The pouring can is the idle can turned 90 degrees, spout tip at local (5, 14).",
+      "tray": {
+        "x": 14,
+        "step": 22,
+        "y": 102,
+        "slot": "terrarium_slot_sm"
+      }
     },
     "terrarium_fx": {
       "files": [

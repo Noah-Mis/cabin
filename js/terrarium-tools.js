@@ -42,8 +42,29 @@ const DOING = { [CAN]: 'Watering...', [SHEARS]: 'Trimming...', [BASKET]: 'Harves
 
 export function createTools({ art, terrarium, draw: helpers }) {
   const toolsInfo = art.tools.info;
-  const railX = toolsInfo.rail.x;
-  const railY = toolsInfo.rail.y;
+  const { rail, tray } = toolsInfo;
+  const railSize = art.slot_lg.info.frame_w;
+  // Each tool's offset in its rail slot that centres its opaque pixels.
+  const centring = (() => {
+    const { frame_w: w, frame_h: h } = toolsInfo;
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const cx = c.getContext('2d', { willReadFrequently: true });
+    return [CAN, SHEARS, BASKET].map((tool) => {
+      cx.clearRect(0, 0, w, h);
+      cx.drawImage(art.tools.imageFor('day'), IDLE * w, tool * h, w, h, 0, 0, w, h);
+      const alpha = cx.getImageData(0, 0, w, h).data;
+      let x0 = w, x1 = -1, y0 = h, y1 = -1;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (!alpha[(y * w + x) * 4 + 3]) continue;
+          x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+        }
+      }
+      return { x: Math.floor((railSize - (x1 - x0 + 1)) / 2) - x0, y: Math.floor((railSize - (y1 - y0 + 1)) / 2) - y0 };
+    });
+  })();
   const [pourX, pourY] = toolsInfo.pour_at;
 
   let held = null;     // { kind: 'tool', tool } | { kind: 'seed', id }
@@ -70,7 +91,9 @@ export function createTools({ art, terrarium, draw: helpers }) {
   function slots() {
     const pot = terrarium.get().pot;
     if (pot) {
-      return enabledTools(pot).map((tool, i) => ({ key: `tool${tool}`, rect: slotRect(railX[i]), item: { kind: 'tool', tool } }));
+      return enabledTools(pot).map((tool, i) => ({
+        key: `tool${tool}`, rect: { x: rail.x[i], y: rail.y, w: railSize, h: railSize }, item: { kind: 'tool', tool },
+      }));
     }
     // The tray: the seeds you own, in species order (as on the Seeds tab).
     const owned = SPECIES.filter((s) => terrarium.count(s.id) > 0).map((s) => s.id);
@@ -78,11 +101,11 @@ export function createTools({ art, terrarium, draw: helpers }) {
     const pages = Math.max(1, Math.ceil(owned.length / perPage));
     page %= pages;
     const shown = owned.slice(page * perPage, page * perPage + perPage);
-    const list = shown.map((id, i) => ({ key: `seed:${id}`, rect: slotRect(14 + i * 22), item: { kind: 'seed', id } }));
-    if (pages > 1) list.push({ key: 'pager', rect: slotRect(14 + perPage * 22), item: { kind: 'pager' } });
+    const list = shown.map((id, i) => ({ key: `seed:${id}`, rect: slotRect(tray.x + i * tray.step), item: { kind: 'seed', id } }));
+    if (pages > 1) list.push({ key: 'pager', rect: slotRect(tray.x + perPage * tray.step), item: { kind: 'pager' } });
     return list;
   }
-  const slotRect = (x) => ({ x, y: railY, w: 16, h: 16 });
+  const slotRect = (x) => ({ x, y: tray.y, w: 16, h: 16 });   // a tray slot
   const keyOf = (item) => (item.kind === 'tool' ? `tool${item.tool}` : `seed:${item.id}`);
 
   // Keyboard targets: the slots, then the pot.
@@ -263,13 +286,15 @@ export function createTools({ art, terrarium, draw: helpers }) {
   function drawStrip(ctx, time, colours) {
     for (const slot of slots()) {
       const lit = !using && ((mouse && inRect(mouse.x, mouse.y, slot.rect)) || focus === slot.key);
-      helpers.frame(ctx, time, 'slot_sm', lit ? SLOT_HOVER : SLOT_REST, slot.rect.x, slot.rect.y);
+      const isTool = slot.item.kind === 'tool';
+      helpers.frame(ctx, time, isTool ? 'slot_lg' : 'slot_sm', lit ? SLOT_HOVER : SLOT_REST, slot.rect.x, slot.rect.y);
       const { item, rect } = slot;
       const away = (held && keyOf(held) === slot.key) || (using && keyOf(using.item) === slot.key);
       if (item.kind === 'pager') {
         helpers.text(ctx, '>', rect.x + 7, rect.y + 5, colours.text);
       } else if (item.kind === 'tool') {
-        if (!away) toolFrame(ctx, using ? using.time ?? time : time, item.tool, IDLE, rect.x, rect.y);
+        const at = centring[item.tool];
+        if (!away) toolFrame(ctx, using ? using.time ?? time : time, item.tool, IDLE, rect.x + at.x, rect.y + at.y);
       } else {
         const n = terrarium.count(item.id) - (away ? 1 : 0);
         if (n > 0) {

@@ -1,9 +1,10 @@
 # Terrarium checks
 - PASS: a fresh start: 3 moss, 2 fern, 2 clover, hue 3, empty codex and pot ({'moss': 3, 'fern': 2, 'clover': 2})
-- PASS: 10 hours at vigor 3 / hardiness 3: growth 0.3850 (expect 0.3850), water 0.2381 (expect 0.2381), stage young ['stem_leaves', 'crown']
-- PASS: 20 hours: grew only the 11.8 h the soil stayed above 10% (0.4548), dry and wilting at health 0.5, wilt tiles ['wilt', 'crown']
+- PASS: 2 hours, a daisy at vigor 3 / hardiness 3: growth 0.4444 (expect 0.4444), water 0.8476 (expect 0.8476), stage young ['stem_leaves', 'crown']
+- PASS: 10 more hours from 20% water: grew only the 1.31 h the soil stayed above 10% (0.7361), dry and wilting at health 0.5, wilt tiles ['wilt', 'wilt', 'crown']
+- PASS: growth time scales with rarity: the slowest moss is ready at 4 h, the slowest aurora bloom at 10 h, not before ({'moss': {'hours': 4, 'before': 0.975, 'after': 1}, 'aurora': {'hours': 10, 'before': 0.9900000000000001, 'after': 1}})
 - PASS: watering clears wilting at once, +25% each, a second within 500 ms is ignored ({'ok': False, 'reason': 'wait'}); health waits for a trim
-- PASS: watering past full: capped at 100%, "Saturated!" for a moment, then "Growing..."
+- PASS: watering past full: capped at 100%, "Saturated!" for a moment, then "Filling out."
 - PASS: trim: -0.05 growth (0.050), health back to 1
 - PASS: a week away counts as 48 h: thirsty and wilting, not dead, no dry time counted ({'dead': False, 'wilting': True, 'hydration': 0, 'dryMs': 0})
 - PASS: bone dry while visited: alive at 23 h, withered past 24 h (['dead', 'dead']), water refused
@@ -15,7 +16,7 @@
 - PASS: a pair with no hybrid still crosses and gives a parent back (daisy)
 - PASS: the same species twice needs two seeds, and gives that species back (a non-flowering one keeps bloom 0)
 - PASS: a flowering hybrid gets a bloom gene even from bloom-0 parents (aurora bloom 1)
-- PASS: tile stacks by stage, always ending in a crown or bloom: bluebell ['seed', 'sprout', 'stem_leaves crown', 'stem_leaves stem_leaves crown', 'stem_leaves bud', 'stem_leaves opening', 'stem_leaves full']; fern ends 'stem_leaves stem_leaves crown'; the same every redraw
+- PASS: tile stacks by stage, always ending in a crown or bloom: bluebell ['seed', 'sprout', 'stem_leaves crown', 'stem_leaves stem_leaf_l crown', 'stem_leaves bud', 'stem_leaves opening', 'stem_leaves full']; fern ends 'stem_leaves stem_leaf_l crown'; the same every redraw
 - PASS: a new page reads the same state back
 - PASS: unreadable data, another version, or a malformed seed: a fresh start with the starter seeds
 - PASS: no seeds and an empty pot on load: the starter set again ({'moss': 3, 'fern': 2, 'clover': 2})
@@ -31,5 +32,5 @@
 - PASS: the bench crosses fern x clover: two seeds in, one back (4 -> 3)
 - PASS: `water` with the journal open: the pot is watered (0.75), the tab stays (2)
 - PASS: closes on a click outside (True), on the pot (True), on Escape (True); the Terrarium button opens it (True)
-- PASS: commands answer in character: {'terrarium status': 'aurora bloom: ready. water 100%, growth 100%.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 1  fern 2  clover 1  daisy 1', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, ivy, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
+- PASS: commands answer in character: {'terrarium status': 'aurora bloom: ready. water 100%, growth 100%.', 'plant fern': "the pot's already got an aurora bloom in it.", 'seeds': 'moss 1  fern 2  clover 1  mushroom 1', 'codex': 'missing: fern, clover, daisy, wildflower, mushroom, bluebell, suncap, ivy, thistle, moonflower', 'cross moss aurora bloom': 'you need an aurora bloom seed for that.'}
 - PASS: no console problems ([])

@@ -157,8 +157,10 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
   function evapPerHour(genome) {
     return settings.evapPerHour / (0.6 + genome.hardiness * 0.15);
   }
-  function growthPerHour(genome) {
-    return settings.growthPerHour * (0.8 + genome.vigor * 0.1);
+  // Rarer species take longer; vigor speeds any of them up.
+  function growthPerHour(pot) {
+    const hours = settings.growHoursByRarity[SPECIES[speciesIndex(pot.species)].rarity - 1];
+    return (1 / hours) * (0.8 + pot.genome.vigor * 0.1) / 0.9;
   }
 
   // Catches the pot up to now. Growth only counts the hours the soil stayed
@@ -173,7 +175,7 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
       const evap = evapPerHour(pot.genome);
       const start = pot.hydration;
       const wetHours = start > settings.wiltBelow ? Math.min(hours, (start - settings.wiltBelow) / evap) : 0;
-      pot.growth = Math.min(1, pot.growth + wetHours * growthPerHour(pot.genome) * pot.health);
+      pot.growth = Math.min(1, pot.growth + wetHours * growthPerHour(pot) * pot.health);
       pot.hydration = Math.max(0, start - hours * evap);
       if (pot.hydration <= settings.wiltBelow && !pot.wilting) {
         pot.wilting = true;
