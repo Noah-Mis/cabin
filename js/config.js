@@ -99,6 +99,15 @@ export const config = {
   // Clickable sill items (the folder, the cigarette pack) get this outline on hover.
   hoverOutlineColour: '#000000',
 
+  // A phone held sideways: a touch screen, wider than tall, and short. It
+  // gets the desktop pop-ups (art, not the plain panel) and a prompt that
+  // brings the keyboard up only when tapped. A desktop window (fine pointer)
+  // never matches. style.css repeats this query.
+  compactLandscape: {
+    query: '(orientation: landscape) and (pointer: coarse) and (max-height: 500px)',
+    minCssPxPerArtPx: 1.5,   // pop-ups keep their art down to this scale
+  },
+
   // The pop-up that opens from the folder. Positions, sizes and most colours
   // are in the layout file; every word is in the content file.
   folderPopup: {
