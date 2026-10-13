@@ -69,7 +69,7 @@ export const config = {
     bird:      { minWaitSec: 20,  maxWaitSec: 60,  chance: 1.0 },
     farbird:   { minWaitSec: 30,  maxWaitSec: 90,  chance: 1.0 },
     wind:      { minWaitSec: 40,  maxWaitSec: 120, chance: 1.0 },
-    sasquatch: { minWaitSec: 180, maxWaitSec: 600, chance: 0.3, skipWhile: ['deer'] },   // they share the forest
+    sasquatch: { minWaitSec: 180, maxWaitSec: 300, chance: 0.3, skipWhile: ['deer'] },   // they share the forest
     // Achievement rewards: these only do anything once earned (and, for
     // shooting stars, at night).
     shootingstar: { minWaitSec: 30, maxWaitSec: 90, chance: 1.0 },
@@ -80,7 +80,7 @@ export const config = {
 
   // ── Moving things ────────────────────────────────────────────────────
   bird: {
-    speedPxPerSec: 50,          // manifest suggests 4-6 px per 100 ms frame
+    speedPxPerSec: 50,
     flightHeightPx: [40, 80],   // range of y (anchor) values in the sky
     bobAmplitudePx: 4,
     bobRadPerSec: 3,
@@ -105,7 +105,7 @@ export const config = {
     { sprite: 'cloud_d', x: 236, y: 70, speedPxPerSec: 2.5 },
   ],
 
-  // Clickable sill items (the folder, the cigarette pack) get this outline on hover.
+  // Clickable sill items get this outline on hover.
   hoverOutlineColour: '#000000',
 
   // A phone held sideways: a touch screen, wider than tall, and short. It
@@ -219,24 +219,29 @@ export const config = {
     // so vigor 5 takes about 70% as long. Wilting halves it until trimmed.
     growHoursByRarity: [4, 5.5, 7, 8.5, 10],
     wiltBelow: 0.10,              // at or under this hydration: no growth, wilting
-    wiltHealth: 0.5,              // growth rate once it has wilted, until trimmed
+    wiltHealth: 0.5,              // growth rate once it has wilted, until trimmed (the shears show only then)
     deadAfterDryHours: 24,        // bone dry this long, while visited
     plantHydration: 0.5,          // a freshly planted seed's soil
     waterAmount: 0.25,
     waterDebounceMs: 500,
     saturatedShowSec: 4,          // "Saturated!" after watering past full
-    trimFrom: 0.35,               // Trim is disabled below this growth
     trimGrowth: 0.05,             // what a trim costs
     pityStep: 0.05,               // each failed try on a pair adds this to its chance
     pityCap: 0.25,
+    // A new player's seeds. These three are the only starters: every other
+    // species is bred. A starter never runs out: the last one of each can
+    // always be planted (it stays), and only the ones above it can be crossed.
     starterSeeds: { moss: 3, fern: 2, clover: 2 },
-    firstHarvestGift: ['daisy', 'wildflower', 'mushroom'],   // one of these, once
-    // Text colours on the paper, per time of day (the font is white).
+    // Seeds a harvest gives, [fewest, most] by rarity (1 to 5 stars), all of
+    // the plant's own species. Vigor 4+ rolls twice and keeps the better.
+    harvestSeedsByRarity: [[2, 4], [2, 3], [2, 3], [2, 3], [2, 2]],
+    // Colours on the paper, per time of day: text (the font is white), and
+    // `target`, the gold outline round the pot while a tool or seed is carried.
     colours: {
-      morning:   { text: '#382A20', text_d: '#645040', accent: '#90542C' },
-      day:       { text: '#342C22', text_d: '#605444', accent: '#8C5830' },
-      afternoon: { text: '#362E20', text_d: '#625642', accent: '#925C2E' },
-      night:     { text: '#A09888', text_d: '#645E56', accent: '#584834' },
+      morning:   { text: '#382A20', text_d: '#645040', accent: '#90542C', target: '#E7A84F' },
+      day:       { text: '#342C22', text_d: '#605444', accent: '#8C5830', target: '#E2B244' },
+      afternoon: { text: '#362E20', text_d: '#625642', accent: '#925C2E', target: '#F1B03C' },
+      night:     { text: '#A09888', text_d: '#645E56', accent: '#584834', target: '#B08A3A' },
     },
     words: {
       label: 'Terrarium',

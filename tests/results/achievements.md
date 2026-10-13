@@ -3,9 +3,9 @@
 ## Each achievement, earned from a reset state, then reloaded
 
 - PASS: **Something in the Trees** (`first_sighting`): clicked the real sasquatch twice in one appearance: sasquatchClicks = 1. Earned: True; sign shown 1x, terminal line 1x; reward: next appearance uses sasquatch_wave (31/31 visible px match); after reload: still earned True, reward True, no new sign True
-- PASS: **Bird Watcher** (`bird_watcher`): 3 real bird clicks counted (3), set to 49, the 50th clicked for real. Earned: True; sign shown 1x, terminal line 1x; reward: birds use bird_flap_shiny (exact: True); after reload: still earned True, reward True, no new sign True
-- PASS: **Cryptid Hunter** (`cryptid_hunter`): sasquatchClicks 9 -> 10 by clicking the real sasquatch. Earned: True; sign shown 1x, terminal line 1x; reward: next appearance uses yeti_wave (31/31 visible px match); after reload: still earned True, reward True, no new sign True
-- PASS: **Caffeinated** (`caffeinated`): 25 real sips from the cup (25); a click mid-sip did not count (1). Earned: True; sign shown 1x, terminal line 1x; reward: mug_camp drawn pixel-exact at its JSON placement; after reload: still earned True, reward True, no new sign True
+- PASS: **Bird Watcher** (`bird_watcher`): 3 real bird clicks counted (3), set to 14, the 15th clicked for real. Earned: True; sign shown 1x, terminal line 1x; reward: birds use bird_flap_shiny (exact: True); after reload: still earned True, reward True, no new sign True
+- PASS: **Cryptid Hunter** (`cryptid_hunter`): sasquatchClicks 4 -> 5 by clicking the real sasquatch. Earned: True; sign shown 1x, terminal line 1x; reward: next appearance uses yeti_wave (31/31 visible px match); after reload: still earned True, reward True, no new sign True
+- PASS: **Caffeinated** (`caffeinated`): 10 real sips from the cup (10); a click mid-sip did not count (1). Earned: True; sign shown 1x, terminal line 1x; reward: mug_camp drawn pixel-exact at its JSON placement; after reload: still earned True, reward True, no new sign True
 - PASS: **Smoke Break** (`smoke_break`): cig, clicked the pack, let all 58.1 s play (not earned half-way: True). Earned: True; sign shown 1x, terminal line 1x; reward: ashtray drawn pixel-exact at its JSON placement; after reload: still earned True, reward True, no new sign True
 - PASS: **Case Closed** (`case_closed`): opened the folder and clicked the other three tabs: tabsSeen = ['about', 'resume', 'projects', 'contact']. Earned: True; sign shown 1x, terminal line 1x; reward: gold-seal folder at rest / opening / closing pixel-exact: [True, True, True]; after reload: still earned True, reward True, no new sign True
 - PASS: **Night Owl** (`night_owl`): `time night`: not earned mid-fade (True), earned once night is shown. Earned: True; sign shown 1x, terminal line 1x; reward: shooting stars fire at night (shootingstar: fired.); after reload: still earned True, reward True, no new sign True
@@ -39,14 +39,14 @@
 
 ## Edges
 
-- PASS: two unlocks at once: terminal lines ['achievement unlocked: Storm Chaser. A rainbow shows over the falls after rain.', 'achievement unlocked: Woodsman. A gold trophy on the sill.']; signs shown one after the other (['Storm Chaser', 'Woodsman']), 4904 ms apart (each takes 4900 ms)
+- PASS: two unlocks at once: terminal lines ['achievement unlocked: Storm Chaser. A rainbow shows over the falls after rain.', 'achievement unlocked: Woodsman. A gold trophy on the sill.']; signs shown one after the other (['Storm Chaser', 'Woodsman']), 4905 ms apart (each takes 4900 ms)
 - PASS: clicking where the bird was 0.6 s ago, or on empty sky: 0 counted; on the bird now: 1
 - PASS: stars by day: 0 counted; the same star on two different nights: 2 (once per night)
 - PASS: `reset` asks first (this erases every achievement and all pr...; still 13 earned); `reset yes`: 0 earned, stats {'timesSeen': ['day']}; the scene matches a first visit (0 px differ); earning again shows its sign: ['Something in the Trees']
 - PASS: storage throws: achievements still work in the visit (True), saved=False, gone after reload (True), console clean ([])
 - PASS: saved data "not JSON": starts cleanly (unlocked [], stats {'timesSeen': ['day']}), console clean
 - PASS: saved data "older version": starts cleanly (unlocked [], stats {'timesSeen': ['day']}), console clean
-- PASS: saved data "wrong types": starts cleanly (unlocked [], stats {'mugClicks': 24, 'timesSeen': ['day']}), console clean
+- PASS: saved data "wrong types": starts cleanly (unlocked [], stats {'mugClicks': 9, 'timesSeen': ['day']}), console clean
 - PASS: saved data "a number": starts cleanly (unlocked [], stats {'timesSeen': ['day']}), console clean
 - PASS: visible time: 3 s counted in ~3 s; 0 s while the tab was hidden; 5 s after a reload (adds up across visits); 597 s + 3 real seconds earns Cabin Fever: True
 
@@ -55,9 +55,9 @@
 - PASS: the pond bank is drawn for a visitor without Cabin Fever at all four times of day, and stays put while the waterfall runs (all four)
 - PASS: with no visit, drawing the far-trees cover changes nothing on screen ([0, 0, 0, 0] px at morning, day, afternoon, night)
 - PASS: no deer before Cabin Fever (False) or in rain (False)
-- PASS: day: one visit, 43.3 s: clifftopOut -> clifftopPause -> clifftopBack -> intermission -> approach -> pause -> approach -> drink -> leave -> hidden; the deer at the pool covers at most x 151 and y 123 (water and bank from y 124; nothing from x 152); on the clifftop at most x 151; visible px on the first and last frame of each act: {'act one': (0, 0), 'act two': (0, 0)}; both deer drawn at once on 0 frames
-- PASS: night: one visit, 43.4 s: clifftopOut -> clifftopPause -> clifftopBack -> intermission -> approach -> pause -> approach -> drink -> leave -> hidden; the deer at the pool covers at most x 151 and y 123 (water and bank from y 124; nothing from x 152); on the clifftop at most x 151; visible px on the first and last frame of each act: {'act one': (0, 0), 'act two': (0, 0)}; both deer drawn at once on 0 frames
-- PASS: stages against deer_route_check.png, deer pixels only: tile 0: 18 px, 0 misplaced, 0 recoloured; tile 1: never happens; tile 2: 1 px, 0 misplaced, 0 recoloured; tile 4: never happens; tile 5: 29 px, 0 misplaced, 0 recoloured; tile 6: 32 px, 0 misplaced, 0 recoloured (tile 1 has it at x 149, past x 151, so here it stops one step sooner; tile 4's exact pose happens only on some visits since the start moved from x 100 to 97)
+- PASS: day: one visit, 41.9 s: clifftopOut -> clifftopPause -> clifftopBack -> intermission -> approach -> pause -> approach -> drink -> leave -> hidden; the deer at the pool covers at most x 151 and y 123 (water and bank from y 124; nothing from x 152); on the clifftop at most x 151; visible px on the first and last frame of each act: {'act one': (0, 0), 'act two': (0, 0)}; both deer drawn at once on 0 frames
+- PASS: night: one visit, 46.3 s: clifftopOut -> clifftopPause -> clifftopBack -> intermission -> approach -> pause -> approach -> drink -> leave -> hidden; the deer at the pool covers at most x 151 and y 123 (water and bank from y 124; nothing from x 152); on the clifftop at most x 151; visible px on the first and last frame of each act: {'act one': (0, 0), 'act two': (0, 0)}; both deer drawn at once on 0 frames
+- PASS: stages against deer_route_check.png, deer pixels only: tile 0: 18 px, 0 misplaced, 0 recoloured; tile 1: never happens; tile 2: 1 px, 0 misplaced, 0 recoloured; tile 4: 19 px, 0 misplaced, 0 recoloured; tile 5: 29 px, 0 misplaced, 0 recoloured; tile 6: 32 px, 0 misplaced, 0 recoloured (tile 1 has it at x 149, past x 151, so here it stops one step sooner; tile 4's exact pose happens only on some visits since the start moved from x 100 to 97)
 - PASS: rain during act one: it finishes the act and the visit ends there (True); snow during act two: it finishes drinking and leaves (True); night falling mid-visit swaps its colours without restarting (True); clicked on the clifftop (clifftopPause), it turns back into the trees and the visit ends (26 ticks, stages ['clifftopBack', 'hidden'])
 - PASS: sasquatch and deer never overlap: over 100 minutes with a deer out the whole time, the sasquatch came 0 times; with the sasquatch out, the deer came 0 times
 
@@ -67,7 +67,7 @@
 - PASS: board at night matches the mockup (0 px off)
 - PASS: each of the 13 achievements lights its own pin or the star, and nothing else (all in place); each new pin sparkles (12 sparkles for 12 unlocks, Woodsman arriving with the twelfth); `reset` empties the board at once
 - PASS: pop-up art at 4x matches the mockup with the same six earned and the second selected: slots, badges, selection frame, big badge and progress fill line up (0 px off, words not compared; 65 px are the mockup's second light row on the fill, which the brief makes one pixel); it opened on the latest earned (slot 8)
-- PASS: nothing earned: slot 0, "??? | HOW | Not yet discovered. | REWARD | ???", 0 of 13 earned, fill 0px; 17 of 50 birds: "??? | HOW | Click 50 birds | 17 / 50 | REWARD | ???"; the 50th while open: slot 1, "Bird Watcher | HOW | Click 50 birds | RE...", 1 of 13 earned, fill 10px, pin lit True (no reopening)
+- PASS: nothing earned: slot 0, "??? | HOW | Not yet discovered. | REWARD | ???", 0 of 13 earned, fill 0px; 5 of 15 birds: "??? | HOW | Click 15 birds | 5 / 15 | REWARD | ???"; the 15th while open: slot 1, "Bird Watcher | HOW | Click 15 birds | RE...", 1 of 13 earned, fill 10px, pin lit True (no reopening)
 - PASS: everything earned: opens on Woodsman (slot 12), 13 of 13 earned, fill 141px
 - PASS: arrow keys from Woodsman (left, up, up, right, down, down, Home, End): slots [11, 7, 2, 3, 8, 12, 0, 12]; the X closes it (True), so does a click outside (True)
 - PASS: keyboard only: Tab from the terminal reaches "Achievements", Enter opens the board, Escape closes it, and typing goes back to the input; `badges` now says ['your achievements are on the board by the window now. click it to see them.']; `help` no longer lists it

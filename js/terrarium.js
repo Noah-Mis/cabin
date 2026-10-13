@@ -5,22 +5,30 @@
 // Time is real time (Date.now): tick() catches up on whatever passed since the
 // last one, capped at config.terrarium.offlineCapHours. A plant can only die
 // of thirst while the page is open (ticks closer together than watchedGapSec);
-// time away just dries it out. Wilting slows it to wiltHealth until trimmed.
+// time away just dries it out. Wilting slows it to wiltHealth until trimmed:
+// that is the only time a plant needs trimming (needsTrim), and the only time
+// the journal offers the shears.
 //
 // Saved under its own localStorage key (config.terrarium.storageKey), apart
 // from the achievements in js/progress.js, as one object:
 //   { version, pot, seeds: { id: [genome] }, codex: [ids], pity: { pairKey: n },
-//     gifted, lastTick, lastWater, tab }
+//     lastTick, lastWater, tab, hints: [ids of the journal's hints already learned] }
 //   pot: null or { species, genome, hydration, growth, health, wilting, dead,
 //                  dryMs, plantedAt, stack }
 //   genome: { height 1-5, bloom 0-2, vigor 1-5, hue 1-5, hardiness 1-5 }
 // Missing, malformed or other-version data starts fresh. Storage that can't
 // be written (private windows) lasts for the visit.
 // "Discovered" in the codex means harvested, or bred by a cross.
+// Seeds: a harvest gives only the plant's own species, 2-4 by rarity
+// (config.terrarium.harvestSeedsByRarity). The starters (moss, fern, clover)
+// never drop below one: planting the last one keeps it, and crossing may only
+// use the spare ones above it. Every other species comes from crossing.
 //
 // Exports: createTerrarium(settings, { now, random }) -> {
 //   get(), tick(), water(), trim(), harvest(), plant(id), cross(a, b), predict(a, b),
-//   count(id), stage(pot), status(pot), find(word), setTab(i), reset() }
+//   count(id), spare(id) (how many may be crossed), isStarter(id), needsTrim(pot),
+//   stage(pot), status(pot), find(word), setTab(i), reset(),
+//   hintSeen(id), learnHint(id) }   the journal's one-time hints
 //   Actions return { ok, ... } with a reason when not ok; see each one.
 //   stage(pot) -> 'seed' | 'sprout' | 'young' | 'mature' | 'flowering' | 'ready'
 //   STAGES: growth thresholds; TRAITS: genome keys in trait-icon order.
@@ -43,7 +51,7 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
   let state = read();
   let persistent = canWrite();
   let saturatedAt = -Infinity;   // watered past full: "Saturated!" for a moment
-  restock();
+  keepStarters();
   tick();
 
   // ── storage ──
@@ -72,9 +80,12 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     }
   }
 
+  // A new player: the starter seeds and nothing else.
   function fresh() {
-    return { version: settings.storageVersion, pot: null, seeds: {}, codex: [], pity: {}, gifted: false,
-      lastTick: now(), lastWater: 0, tab: 0 };
+    const seeds = {};
+    for (const [id, n] of Object.entries(settings.starterSeeds)) seeds[id] = Array.from({ length: n }, () => starterGenome(id));
+    return { version: settings.storageVersion, pot: null, seeds, codex: [], pity: {},
+      lastTick: now(), lastWater: 0, tab: 0, hints: [] };
   }
 
   // Keeps stored data only if every part is well-formed; otherwise null.
@@ -99,20 +110,20 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     const pity = {};
     for (const [key, n] of Object.entries(data.pity ?? {})) if (Number.isInteger(n) && n > 0) pity[key] = n;
     const time = (v) => (Number.isFinite(v) ? v : 0);
-    return { version: settings.storageVersion, pot, seeds, codex, pity, gifted: !!data.gifted,
+    return { version: settings.storageVersion, pot, seeds, codex, pity,
       lastTick: Math.min(time(data.lastTick) || now(), now()), lastWater: time(data.lastWater),
-      tab: Number.isInteger(data.tab) && data.tab >= 0 && data.tab < 4 ? data.tab : 0 };
+      tab: Number.isInteger(data.tab) && data.tab >= 0 && data.tab < 4 ? data.tab : 0,
+      hints: Array.isArray(data.hints) ? [...new Set(data.hints.filter((h) => typeof h === 'string'))] : [] };
   }
 
-  // Out of seeds with nothing growing: the starter set again, so nobody
-  // breeds themselves into a corner. Checked on every load.
-  function restock() {
-    const total = Object.values(state.seeds).reduce((sum, list) => sum + list.length, 0);
-    if (total > 0 || (state.pot && !state.pot.dead)) return;
-    for (const [id, n] of Object.entries(settings.starterSeeds)) {
-      for (let i = 0; i < n; i++) addSeed(id, starterGenome(id));
-    }
+  // At least one of every starter, always (a save from before this rule may
+  // have none), so nobody can breed themselves into a corner.
+  function keepStarters() {
+    for (const id of Object.keys(settings.starterSeeds)) if (!count(id)) addSeed(id, starterGenome(id));
     save();
+  }
+  function isStarter(id) {
+    return Object.hasOwn(settings.starterSeeds, id);
   }
 
   // ── genetics ──
@@ -139,9 +150,11 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
   function addSeed(id, genome) {
     (state.seeds[id] ??= []).push(genome);
   }
-  // The oldest seed of a kind is the one planted or crossed.
+  // The oldest seed of a kind is the one planted or crossed. A starter's last
+  // seed is never used up: what is taken is a copy of it.
   function takeSeed(id) {
     const list = state.seeds[id];
+    if (isStarter(id) && list?.length === 1) return { ...list[0] };
     const genome = list?.shift() ?? null;
     if (list && !list.length) delete state.seeds[id];
     return genome;
@@ -217,7 +230,13 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     if (pot.dead) return 'Withered.';
     if (now() - saturatedAt < settings.saturatedShowSec * 1000) return 'Saturated!';
     if (pot.wilting) return 'Thirsty. Water me!';
+    if (needsTrim(pot)) return 'Overgrown. Trim it.';
     return STAGES.find((s) => s.name === stage(pot)).status;
+  }
+
+  // Wilted and not yet trimmed: growing at wiltHealth.
+  function needsTrim(pot) {
+    return !!pot && !pot.dead && pot.health < 1;
   }
 
   // ── actions ──
@@ -241,13 +260,14 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     return { ok: true, species: pot.species, saturated };
   }
 
-  // -> { ok, reason: 'empty' | 'dead' | 'small' }
+  // Only a plant that has wilted needs it: back to full health, for a little growth.
+  // -> { ok, reason: 'empty' | 'dead' | 'healthy' }
   function trim() {
     tick();
     const pot = state.pot;
     if (!pot) return { ok: false, reason: 'empty' };
     if (pot.dead) return { ok: false, reason: 'dead', species: pot.species };
-    if (pot.growth < settings.trimFrom) return { ok: false, reason: 'small', species: pot.species };
+    if (!needsTrim(pot)) return { ok: false, reason: 'healthy', species: pot.species };
     pot.growth = Math.max(0, pot.growth - settings.trimGrowth);
     pot.health = 1;
     pot.stack = stackFor(pot);
@@ -255,35 +275,29 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
     return { ok: true, species: pot.species };
   }
 
-  // Ready: 1-2 seeds (2 at vigor 4+), each a slight variation of the plant,
-  // and the species goes in the codex. The very first harvest also turns up
-  // one of the flowering starters. Dead: clears the pot, no seeds.
-  // Either way, an empty pot and no seeds left brings the starter set back.
-  // -> { ok, species, seeds, gift, cleared, discovered } or { ok: false, reason: 'empty' | 'unripe', growth }
+  // Ready: 2-4 seeds of the plant's own species, fewer the rarer it is (a
+  // legendary always gives 2), each a slight variation of the plant; vigor 4+
+  // rolls twice and keeps the better. The species goes in the codex.
+  // Dead: clears the pot, no seeds.
+  // -> { ok, species, seeds, cleared, discovered } or { ok: false, reason: 'empty' | 'unripe', growth }
   function harvest() {
     tick();
     const pot = state.pot;
     if (!pot) return { ok: false, reason: 'empty' };
     if (pot.dead) {
       state.pot = null;
-      restock();
       save();
       return { ok: true, species: pot.species, seeds: 0, cleared: true, discovered: false };
     }
     if (pot.growth < 1) return { ok: false, reason: 'unripe', species: pot.species, growth: pot.growth };
-    const seeds = pot.genome.vigor >= 4 ? 2 : 1;
+    const [fewest, most] = settings.harvestSeedsByRarity[SPECIES[speciesIndex(pot.species)].rarity - 1];
+    const roll = () => randInt(fewest, most);
+    const seeds = pot.genome.vigor >= 4 ? Math.max(roll(), roll()) : roll();
     for (let i = 0; i < seeds; i++) addSeed(pot.species, crossGenome(pot.genome, pot.genome, pot.species));
     const discovered = discover(pot.species);
-    let gift = null;
-    if (!state.gifted) {
-      const choices = settings.firstHarvestGift;
-      gift = choices[Math.floor(random() * choices.length)];
-      addSeed(gift, starterGenome(gift));
-      state.gifted = true;
-    }
     state.pot = null;
     save();
-    return { ok: true, species: pot.species, seeds, gift, cleared: false, discovered };
+    return { ok: true, species: pot.species, seeds, cleared: false, discovered };
   }
 
   // -> { ok, species } or { ok: false, reason: 'occupied' | 'none', species }
@@ -313,11 +327,13 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
 
   // Both seeds are used up and there is always a seed back: the hybrid on a
   // hit, otherwise one of the parents. Misses on a pair raise its chance.
-  // -> { ok, species, hit, hybrid, chance, discovered } or { ok: false, reason: 'missing', species }
+  // A starter's last seed can't be crossed ('last'), only the spares above it.
+  // -> { ok, species, hit, hybrid, chance, discovered } or { ok: false, reason: 'missing' | 'last', species }
   function cross(a, b) {
     tick();
     for (const id of new Set([a, b])) {
-      if (count(id) < (a === b ? 2 : 1)) return { ok: false, reason: 'missing', species: id };
+      const need = a === b ? 2 : 1;
+      if (spare(id) < need) return { ok: false, reason: count(id) >= need ? 'last' : 'missing', species: id };
     }
     const { hybrid, chance } = predict(a, b);
     const ga = takeSeed(a);
@@ -336,6 +352,11 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
   function count(id) {
     return state.seeds[id]?.length ?? 0;
   }
+  // How many of a kind can go on the crossing bench: all of them, except a
+  // starter's last one.
+  function spare(id) {
+    return Math.max(0, count(id) - (isStarter(id) ? 1 : 0));
+  }
 
   // A species from what someone typed: its id, name, or short name.
   function find(word) {
@@ -345,12 +366,17 @@ export function createTerrarium(settings, { now = Date.now, random = Math.random
 
   return {
     get: () => state,   // read-only by agreement: change it through the actions
-    tick, water, trim, harvest, plant, cross, predict, count, stage, status, find,
+    tick, water, trim, harvest, plant, cross, predict, count, spare, isStarter, needsTrim, stage, status, find,
     setTab(i) { state.tab = i; save(); },
+    hintSeen: (id) => state.hints.includes(id),
+    learnHint(id) {
+      if (state.hints.includes(id)) return;
+      state.hints.push(id);
+      save();
+    },
     reset() {
       state = fresh();
       saturatedAt = -Infinity;
-      restock();
       save();
     },
   };

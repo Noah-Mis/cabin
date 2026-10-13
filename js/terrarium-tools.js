@@ -15,13 +15,20 @@
 //           meter), then a status line shows for a moment.
 // Keyboard: Tab cycles the slots and the pot, Enter or Space picks up or
 // uses, Escape puts down. The held thing parks over the focused target.
+// The hint line teaches each step once (terrarium.learnHint): "pick up a
+// tool" until something is first picked up, "drag to the pot / let go to
+// water" until something is first used on the pot. After that it is blank
+// unless there is news (no seeds left); the outline keeps showing the way.
 // Every position is panel-local, as in the plan.
 // Exports: createTools({ art, terrarium, draw }) -> {
-//   drawStrip / drawUsing / drawHeld(ctx, time[, colours]), glowing(), hideBloom(),
+//   drawStrip / drawUsing / drawHeld(ctx, time[, colours]), target() -> null | 'held' | 'over',
+//   pulse() -> 0..1 (for the pot's outline while something is carried),
+//   hideTop() (the picked bloom or crown is off the stem), shownPot() (the pot
+//   to draw: during a harvest, the picked plant until the animation ends),
 //   status() (a line to show instead of the plant's, or null), hint(), update(dtMs),
-//   down / move / up(x, y), leave(), cursor(x, y) -> boolean, key(event) -> handled,
+//   down / move / up(x, y), leave(), cursor(x, y) -> CSS cursor, key(event) -> handled,
 //   drop(), reset(), busy(), holding(), onDiscover(fn) }
-//   draw: the journal's helpers { frame, text, plantTop(pot) }
+//   draw: the journal's helpers { frame, text, plantTop(pot), plantCrown(pot) }
 
 import { config } from './config.js';
 import { inRect } from './geometry.js';
@@ -37,7 +44,12 @@ const FX_MS = 120;              // per effect frame
 const FLASH_MS = 2000;          // a status line after an action
 const TRAY_SLOTS = 6;
 const POT_RECT = { x: 12, y: 54, w: 48, h: 40 };
-const HINTS = { [CAN]: 'Water the soil', [SHEARS]: 'Trim the growth', [BASKET]: 'Collect seeds' };
+const VERBS = { [CAN]: 'water', [SHEARS]: 'trim', [BASKET]: 'harvest' };
+const PULSE_MS = 900;           // one beat of the pot's outline while something is carried
+// The harvest (terrarium_tools_plan.md §5): the basket waits under the bloom,
+// the bloom comes off and falls into it as the species' own token, which then
+// sits behind the rim. Phase ends, in ms from the start.
+const PICK = { settle: 500, fall: 760, land: 920, sparkle: 1320, end: 2020 };
 const DOING = { [CAN]: 'Watering...', [SHEARS]: 'Trimming...', [BASKET]: 'Harvesting...' };
 
 export function createTools({ art, terrarium, draw: helpers }) {
@@ -75,6 +87,7 @@ export function createTools({ art, terrarium, draw: helpers }) {
   let page = 0;        // the tray's page, once there are more than six kinds
   let flashes = [];    // [{ text, ms }] shown one after another
   let wasDead = false;
+  let clockMs = 0;     // for the pulse
   let discovered = () => {};
 
   // ── what's on the strip ──
@@ -82,7 +95,7 @@ export function createTools({ art, terrarium, draw: helpers }) {
     if (!pot) return [];
     const list = [];
     if (!pot.dead) list.push(CAN);
-    if (!pot.dead && pot.growth >= settings.trimFrom) list.push(SHEARS);
+    if (terrarium.needsTrim(pot)) list.push(SHEARS);   // only once it has wilted: see terrarium.js
     if (pot.dead || pot.growth >= 1) list.push(BASKET);
     return list;
   }
@@ -120,6 +133,7 @@ export function createTools({ art, terrarium, draw: helpers }) {
       return;
     }
     held = held && keyOf(held) === keyOf(item) ? null : item;   // the same slot again puts it back
+    if (held) terrarium.learnHint('pot-pickup');
   }
 
   function drop() {
@@ -136,6 +150,9 @@ export function createTools({ art, terrarium, draw: helpers }) {
     if (held.kind === 'tool' && !enabledTools(pot).includes(held.tool)) return drop();
     const top = pot ? helpers.plantTop(pot) : POT_RECT.y;
     using = { item: held, ms: 0, applied: false, time: null, top, height: POT_RECT.y + 15 - top };
+    if (held.kind === 'tool' && held.tool === BASKET) using.pick = pickPlan(pot);
+    terrarium.learnHint('pot-use');
+    if (held.kind === 'seed') terrarium.learnHint('seeds-plant');   // the Seeds tab's pointer here
     held = null;
     press = null;
     focus = null;
@@ -145,10 +162,29 @@ export function createTools({ art, terrarium, draw: helpers }) {
   const TIMELINE = {
     [CAN]: { total: 600, apply: 120 + 2 * FX_MS },          // the third droplet frame
     [SHEARS]: { total: 500, apply: 100 + 3 * FX_MS },       // once the clippings have fallen
-    [BASKET]: { total: 700, apply: 700 },                   // the pot empties at the end
+    [BASKET]: { total: PICK.end, apply: PICK.land },        // the seeds count once it lands; the stem clears at the end
+    clear: { total: 700, apply: 700 },                      // a withered plant: the basket, then an empty pot
     seed: { total: 520, apply: 150 },                       // the seed lands, then a sparkle
   };
-  const timeline = (item) => TIMELINE[item.kind === 'seed' ? 'seed' : item.tool];
+  const timeline = (item, pick) => TIMELINE[item.kind === 'seed' ? 'seed' : item.tool === BASKET && !pick?.token ? 'clear' : item.tool];
+
+  // Where a harvest happens: the basket on the stem just under the bloom (or
+  // crown), and the token's fall from the bloom's centre into the basket.
+  // A withered plant has no token: the basket just clears it.
+  function pickPlan(pot) {
+    const crown = helpers.plantCrown(pot);
+    const basket = { x: crown.stemTileX, y: crown.y + crown.h + 2 };
+    const [ax, ay] = art.harvest.info.basket_anchor;
+    const half = art.harvest.info.frame_w / 2;
+    return {
+      pot: structuredClone(pot),   // drawn until the end, so the stem stays while the flower falls
+      basket,
+      token: pot.dead ? null : speciesIndex(pot.species),
+      from: { x: crown.x + crown.w / 2 - half, y: crown.y + crown.h / 2 - half },
+      to: { x: basket.x + ax, y: basket.y + ay },
+      bloom: { x: crown.x + crown.w / 2 - 8, y: crown.y + crown.h / 2 - 8 },   // the sparkle on it
+    };
+  }
 
   function apply(item) {
     const flash = (...lines) => { flashes = lines.filter(Boolean).map((text) => ({ text, ms: FLASH_MS })); };
@@ -161,6 +197,7 @@ export function createTools({ art, terrarium, draw: helpers }) {
       const result = terrarium.water();
       if (result.ok) flash(result.saturated ? 'Saturated!' : 'Watered');
     } else if (item.tool === SHEARS) {
+      terrarium.learnHint('pot-trim');
       if (terrarium.trim().ok) flash('Trimmed');
     } else {
       const result = terrarium.harvest();
@@ -168,12 +205,12 @@ export function createTools({ art, terrarium, draw: helpers }) {
       if (result.cleared) return flash('Pot cleared');
       if (result.discovered) discovered();
       flash(fit((name) => `+${result.seeds} ${name} seed${result.seeds > 1 ? 's' : ''}`, result.species),
-        result.discovered && 'New species found!',
-        result.gift && fit((name) => `+1 ${name} seed`, result.gift));
+        result.discovered && 'New species found!');
     }
   }
 
   function update(dtMs) {
+    clockMs += dtMs;
     const pot = terrarium.get().pot;
     // A plant that withers while you hold something: put it down, say so.
     const dead = !!pot?.dead;
@@ -188,7 +225,7 @@ export function createTools({ art, terrarium, draw: helpers }) {
 
     if (using) {
       using.ms += dtMs;
-      const { total, apply: at } = timeline(using.item);
+      const { total, apply: at } = timeline(using.item, using.pick);
       if (!using.applied && using.ms >= at) {
         using.applied = true;
         apply(using.item);
@@ -219,7 +256,7 @@ export function createTools({ art, terrarium, draw: helpers }) {
     const gesture = press;
     press = null;
     if (!held || using) return;
-    if (inRect(x, y, POT_RECT)) return use();
+    if (overDrop(x, y)) return use();
     if (gesture.moved) drop();   // a drag let go off the pot: back to the rail
   }
 
@@ -230,9 +267,21 @@ export function createTools({ art, terrarium, draw: helpers }) {
     press = null;
   }
 
+  // Where a carried thing can be let go: the pot, and the plant above it.
+  function dropRect() {
+    const pot = terrarium.get().pot;
+    const top = pot ? Math.min(POT_RECT.y, helpers.plantTop(pot)) : POT_RECT.y;
+    return { x: POT_RECT.x, y: top, w: POT_RECT.w, h: POT_RECT.y + POT_RECT.h - top };
+  }
+  const overDrop = (x, y) => inRect(x, y, dropRect());
+
+  // A closed hand while dragging, a hand over the pot when a click would use
+  // what is held, an open hand over something to pick up.
   function cursor(x, y) {
-    if (using) return false;
-    return slots().some((s) => inRect(x, y, s.rect)) || (!!held && inRect(x, y, POT_RECT));
+    if (using) return '';
+    if (held && press) return 'grabbing';
+    if (held && overDrop(x, y)) return 'pointer';
+    return slots().some((s) => inRect(x, y, s.rect)) ? 'grab' : '';
   }
 
   // ── keyboard ──
@@ -271,16 +320,24 @@ export function createTools({ art, terrarium, draw: helpers }) {
   }
   const fxAt = (ms, from) => Math.max(0, Math.min(2, Math.floor((ms - from) / FX_MS)));
 
-  // Under the plant: true while a held thing hovers (or is focused on) the pot.
-  function glowing() {
-    if (!held || using) return false;
-    if (focus) return focus === 'pot';   // the keyboard's target wins over where the mouse was left
-    return !!mouse && inRect(mouse.x, mouse.y, POT_RECT);
+  // The pot as a target: null with nothing in hand, 'held' while something
+  // is carried (the pot's outline pulses: bring it here), 'over' once it is
+  // over the pot or the plant (solid outline and the glow: let go here).
+  function target() {
+    if (!held || using) return null;
+    if (focus) return focus === 'pot' ? 'over' : 'held';   // the keyboard's target wins over where the mouse was left
+    return mouse && overDrop(mouse.x, mouse.y) ? 'over' : 'held';
   }
+  const pulse = () => 0.5 - 0.5 * Math.cos((clockMs % PULSE_MS) / PULSE_MS * 2 * Math.PI);
 
-  // The basket takes the bloom off once its sparkle has played.
-  function hideBloom() {
-    return !!using && using.item.kind === 'tool' && using.item.tool === BASKET && using.ms >= 150 + 3 * FX_MS;
+  // The picked bloom (or crown) is off the stem once it starts to fall.
+  function hideTop() {
+    return !!using?.pick && using.pick.token !== null && using.ms >= PICK.settle;
+  }
+  // During a harvest the plant stays in the pot until the animation ends,
+  // though the state has already emptied it.
+  function shownPot() {
+    return using?.pick?.token != null ? using.pick.pot : terrarium.get().pot;
   }
 
   function drawStrip(ctx, time, colours) {
@@ -325,9 +382,37 @@ export function createTools({ art, terrarium, draw: helpers }) {
       toolFrame(ctx, t, SHEARS, ACTIVE, 40, y);
       if (ms >= 100) fxFrame(ctx, t, FX.clippings, fxAt(ms, 100), 30, y + 4);
     } else {
-      const done = hideBloom();
-      toolFrame(ctx, t, BASKET, done ? ACTIVE : HELD, 44, top + 6);
-      if (ms >= 150 && !done) fxFrame(ctx, t, FX.sparkle, fxAt(ms, 150), 28, top + 2);
+      drawPick(ctx, t, ms, using.pick);
+    }
+  }
+
+  // The harvest, phase by phase (PICK). The token falls in front of the
+  // basket, then lands BEHIND it, so the rim hides its stem and only the head
+  // shows in the opening: that is what makes it read as in the basket.
+  function drawPick(ctx, t, ms, pick) {
+    const { basket } = pick;
+    if (pick.token === null) {   // a withered plant: just the basket
+      toolFrame(ctx, t, BASKET, HELD, basket.x, basket.y);
+      return;
+    }
+    const landed = ms >= PICK.fall;
+    const settled = ms >= PICK.sparkle ? 1 : 0;   // the basket sinks 1px as it rests
+    const token = (x, y) => {
+      const { frame_w: w, frame_h: h } = art.harvest.info;
+      ctx.drawImage(art.harvest.imageFor(t), pick.token * w, 0, w, h, Math.round(x), Math.round(y), w, h);
+    };
+    if (ms < PICK.settle) {
+      toolFrame(ctx, t, BASKET, HELD, basket.x, basket.y);
+      fxFrame(ctx, t, FX.sparkle, 0, pick.bloom.x, pick.bloom.y);   // a shimmer on the ripe flower
+    } else if (!landed) {
+      const f = (ms - PICK.settle) / (PICK.fall - PICK.settle);
+      const e = f * f;   // falling: it speeds up
+      toolFrame(ctx, t, BASKET, HELD, basket.x, basket.y);
+      token(pick.from.x + (pick.to.x - pick.from.x) * e, pick.from.y + (pick.to.y - pick.from.y) * e);
+    } else {
+      token(pick.to.x, pick.to.y + settled);
+      toolFrame(ctx, t, BASKET, ACTIVE, basket.x, basket.y + settled);
+      if (ms < PICK.sparkle) fxFrame(ctx, t, FX.sparkle, ms < PICK.land ? 1 : 2, basket.x, basket.y - 6);
     }
   }
 
@@ -350,21 +435,36 @@ export function createTools({ art, terrarium, draw: helpers }) {
   }
 
   function status() {
-    if (using) return using.item.kind === 'seed' ? 'Planting...' : using.item.tool === BASKET && terrarium.get().pot?.dead ? 'Clearing...' : DOING[using.item.tool];
+    if (using?.pick) {
+      if (using.pick.token === null) return 'Clearing...';
+      if (using.ms < PICK.settle) return 'Ready to pick';
+      if (!using.applied) return 'Picking...';
+      return flashes[0]?.text ?? null;   // "+2 Bluebell seeds", while it settles
+    }
+    if (using) return using.item.kind === 'seed' ? 'Planting...' : DOING[using.item.tool];
     return flashes[0]?.text ?? null;
   }
 
+  // What to do next, in words: bring it to the pot, then let go (or click,
+  // or press Enter, whichever way it is being carried). Each step only until
+  // it has been done once.
   function hint() {
-    const item = using?.item ?? held;
     const pot = terrarium.get().pot;
-    if (item?.kind === 'seed') return 'Drop it in the pot';
-    if (item?.kind === 'tool') return item.tool === BASKET && pot?.dead ? 'Clear the pot' : HINTS[item.tool];
-    if (!pot) return Object.keys(terrarium.get().seeds).length ? 'Pick a seed' : 'No seeds left';
-    return 'Pick up a tool';
+    const once = (id, text) => (terrarium.hintSeen(id) ? '' : text);
+    if (using) return '';   // the status line is saying what is happening
+    if (held) {
+      const verb = held.kind === 'seed' ? 'plant' : held.tool === BASKET && pot?.dead ? 'clear' : VERBS[held.tool];
+      if (focus) return once('pot-use', target() === 'over' ? `Enter to ${verb}` : 'Tab to the pot');
+      if (press) return once('pot-use', target() === 'over' ? `Let go to ${verb}` : 'Drag to the pot');
+      return once('pot-use', target() === 'over' ? `Click to ${verb}` : 'Click the pot');
+    }
+    if (!pot && !Object.keys(terrarium.get().seeds).length) return 'No seeds left';
+    if (terrarium.needsTrim(pot) && terrarium.hintSeen('pot-pickup')) return once('pot-trim', 'Trim it with shears');
+    return once('pot-pickup', pot ? 'Pick up a tool' : 'Pick up a seed');
   }
 
   return {
-    glowing, hideBloom, drawStrip, drawUsing, drawHeld, status, hint, update,
+    target, pulse, hideTop, shownPot, drawStrip, drawUsing, drawHeld, status, hint, update,
     down, move, up, leave, cursor, key, drop, busy: () => !!using,
     holding: () => !!held,
     reset() { drop(); using = null; flashes = []; focus = null; },

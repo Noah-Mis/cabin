@@ -3,8 +3,11 @@
 1. The rules, through js/terrarium.js with a fake clock and fixed dice, under
    a test storage key: the starter set, growth over real hours, the 48-hour
    offline cap (thirsty, never dead), dying only of thirst while visited,
-   watering (debounce, saturation, wilting cleared), trimming, harvesting
-   (seeds by vigor, the one-time gift, the codex), crossing (odds, pity +5
+   watering (debounce, saturation, wilting cleared), trimming (only a plant
+   that has wilted needs it), harvesting
+   (only the plant's own seeds, 2-4 by rarity, a legendary always 2; the
+   codex), starters that never run out (the last one plants but can't be
+   crossed), the bred-only species and their first crosses, crossing (odds, pity +5
    up to +25, a seed back on a miss, same-species crosses), the stack of
    tiles per stage, saving, and bad saved data starting fresh.
 2. Every string the journal draws fits its line (33 characters from x 12).
@@ -17,6 +20,8 @@
    harvests, and the keyboard plays it too; the Seeds tab has no Plant
    button; the crossing bench; terminal commands change an open journal
    without switching its tab; every time of day; closing; the console.
+   The journal's hints show on a first visit and each goes once its step
+   has been done, for good (they are saved).
 
 Writes tests/results/terrarium.md and screens/terrarium_*.png.
 Run:  python tests/terrarium.py
@@ -49,8 +54,9 @@ RULES = """async () => {
   const HOUR = 3600 * 1000;
   const settings = { ...config.terrarium, storageKey: 'terrarium-test' };
   const clock = { t: 1e12 };
-  const dice = { queue: [], rest: 0.5 };
-  const make = () => createTerrarium(settings, { now: () => clock.t, random: () => (dice.queue.length ? dice.queue.shift() : dice.rest) });
+  const dice = { queue: [], rest: 0.5, real: false };   // real: Math.random, for rolls checked over many tries
+  const make = () => createTerrarium(settings, { now: () => clock.t,
+    random: () => (dice.queue.length ? dice.queue.shift() : dice.real ? Math.random() : dice.rest) });
   const genome = (g) => ({ height: 3, bloom: 2, vigor: 3, hue: 3, hardiness: 3, ...g });
   const out = {};
   localStorage.removeItem('terrarium-test');
@@ -77,7 +83,8 @@ RULES = """async () => {
   const w2 = t.water();
   clock.t += 600;
   const w3 = t.water();
-  out.water = { w1, w2, w3, wilting: s().pot.wilting, health: s().pot.health, hydration: s().pot.hydration };
+  out.water = { w1, w2, w3, wilting: s().pot.wilting, health: s().pot.health, hydration: s().pot.hydration,
+    status: t.status(s().pot), needsTrim: t.needsTrim(s().pot) };
   // Saturation: past full the extra drains, and the status says so.
   s().pot.hydration = 0.9;
   clock.t += 600;
@@ -85,9 +92,10 @@ RULES = """async () => {
   out.saturated = { w4, hydration: s().pot.hydration, status: t.status(s().pot) };
   clock.t += config.terrarium.saturatedShowSec * 1000 + 1;
   out.saturatedLater = t.status(s().pot);
-  // Trim: needs growth 0.35, costs 0.05, restores health.
+  // Trim: only for a plant that has wilted; costs 0.05, restores health.
   const g0 = s().pot.growth;
-  out.trim = { result: t.trim(), drop: g0 - s().pot.growth, health: s().pot.health };
+  out.trim = { result: t.trim(), drop: g0 - s().pot.growth, health: s().pot.health,
+    again: t.trim(), needsTrim: t.needsTrim(s().pot), status: t.status(s().pot) };
 
   // A week away: clamped to 48 h; thirsty, not dead.
   s().pot.hydration = 1;
@@ -103,7 +111,7 @@ RULES = """async () => {
   const before = t.count('daisy');
   out.clear = { result: t.harvest(), pot: s().pot, seeds: t.count('daisy') - before };
 
-  // Harvest: 1 seed at vigor 3, 2 at vigor 4; the first harvest's gift, once.
+  // Harvest: its own seeds only; a bluebell (3 stars) gives 2-3.
   s().seeds.bluebell = [genome({ vigor: 3 }), genome({ vigor: 4 })];
   t.plant('bluebell');
   out.unripe = t.harvest();
@@ -115,7 +123,39 @@ RULES = """async () => {
   t.plant('bluebell');
   s().pot.growth = 1;
   const h2 = t.harvest();
-  out.harvest = { h1, h2, codex: s().codex, bluebells: t.count('bluebell'), gifted: s().gifted };
+  out.harvest = { h1, h2, codex: s().codex, bluebells: t.count('bluebell'), kinds: Object.keys(s().seeds).sort() };
+  // Seeds per harvest by rarity, over many tries, at vigor 3 and 5.
+  dice.real = true;
+  const yields = {};
+  for (const id of ['moss', 'daisy', 'bluebell', 'thistle', 'aurora']) {
+    for (const vigor of [3, 5]) {
+      const got = [];
+      for (let i = 0; i < 80; i++) {
+        s().pot = null;
+        s().seeds[id] = [genome({ vigor }), genome({ vigor })];
+        t.plant(id);
+        s().pot.growth = 1;
+        got.push(t.harvest().seeds);
+      }
+      yields[`${id}@${vigor}`] = { min: Math.min(...got), max: Math.max(...got), mean: got.reduce((a, b) => a + b) / got.length };
+    }
+  }
+  dice.real = false;
+  out.yields = yields;
+
+  // Starters never run out: the last moss plants and stays; it can't be crossed.
+  s().pot = null;
+  s().seeds.moss = [genome({ bloom: 0 })];
+  const plantLast = t.plant('moss');
+  const afterPlant = t.count('moss');
+  s().pot = null;
+  const crossLast = t.cross('moss', 'fern');
+  s().seeds.moss.push(genome({ bloom: 0 }));
+  const spareBefore = t.spare('moss');
+  dice.queue = [0];
+  const firstCross = t.cross('moss', 'clover');
+  out.starters = { plantLast, afterPlant, crossLast, spareBefore, firstCross, mossAfter: t.count('moss'),
+    nonStarterLast: (() => { s().seeds.ivy = [genome({ bloom: 0 })]; return t.spare('ivy'); })() };
 
   // Crossing: no hit (dice 0.99), pity rises 5 points a miss up to +25,
   // a parent comes back; then a hit resets it.
@@ -130,6 +170,7 @@ RULES = """async () => {
   const hit = t.cross('wildflower', 'daisy');
   out.hit = { hit, pityAfter: s().pity['daisy|wildflower'] ?? 0, codex: s().codex.includes('bluebell') };
   // No hybrid for the pair; the same species twice needs two.
+  s().seeds.moss.push(genome({ bloom: 0 }));   // a spare: a starter's last seed can't be crossed
   out.noHybrid = { predict: t.predict('moss', 'daisy'), result: t.cross('moss', 'daisy') };
   s().seeds.ivy = [genome({ bloom: 0 })];
   out.sameOne = t.cross('ivy', 'ivy');
@@ -178,8 +219,8 @@ RULES = """async () => {
     const fresh = make().get();
     out[name] = { codex: fresh.codex.length, moss: fresh.seeds.moss?.length ?? 0, pot: fresh.pot };
   }
-  // Zero seeds and an empty pot on load: the starter set again.
-  localStorage.setItem('terrarium-test', JSON.stringify({ ...JSON.parse(saved), pot: null, seeds: {} }));
+  // A save with no starter seeds: one of each, at least, on load.
+  localStorage.setItem('terrarium-test', JSON.stringify({ ...JSON.parse(saved), pot: null, seeds: { ivy: [genome({ bloom: 0 })] } }));
   out.restock = Object.fromEntries(Object.entries(make().get().seeds).map(([k, v]) => [k, v.length]));
   localStorage.removeItem('terrarium-test');
   return out;
@@ -226,8 +267,11 @@ def check_rules(page):
     check(sat['w4']['saturated'] and sat['hydration'] == 1 and sat['status'] == 'Saturated!' and r['saturatedLater'] != 'Saturated!',
           f"watering past full: capped at 100%, \"{sat['status']}\" for a moment, then \"{r['saturatedLater']}\"")
     tr = r['trim']
-    check(tr['result']['ok'] and approx(tr['drop'], 0.05, 1e-3) and tr['health'] == 1,
-          f"trim: -0.05 growth ({tr['drop']:.3f}), health back to 1")
+    w = r['water']
+    check(w['needsTrim'] and w['status'] == 'Overgrown. Trim it.' and tr['result']['ok'] and approx(tr['drop'], 0.05, 1e-3)
+          and tr['health'] == 1 and tr['again']['reason'] == 'healthy' and not tr['needsTrim'] and tr['status'] != 'Overgrown. Trim it.',
+          f"a watered plant that had wilted needs trimming (\"{w['status']}\"); a trim costs {tr['drop']:.3f} growth and restores "
+          f"full health; a healthy plant can't be trimmed ({tr['again']['reason']})")
     wk = r['week']
     check(not wk['dead'] and wk['wilting'] and wk['hydration'] == 0 and wk['dryMs'] == 0,
           f"a week away counts as 48 h: thirsty and wilting, not dead, no dry time counted ({wk})")
@@ -239,10 +283,26 @@ def check_rules(page):
     check(c['result']['cleared'] and c['pot'] is None and c['seeds'] == 0,
           'a withered plant: harvest becomes Clear, empties the pot, no seeds')
     h = r['harvest']
-    check(r['unripe']['reason'] == 'unripe' and h['h1']['seeds'] == 1 and h['h2']['seeds'] == 2 and h['h1']['gift'] in ('daisy', 'wildflower', 'mushroom')
-          and h['h2']['gift'] is None and h['h1']['discovered'] and not h['h2']['discovered'] and h['codex'][:1] == ['bluebell'] and h['bluebells'] == 3 and h['gifted'],
-          f"harvest: refused before 1.0; 1 seed at vigor 3, 2 at vigor 4; a flowering starter ({h['h1']['gift']}) on the first harvest "
-          f"only; codex {h['codex']} (the first says it is new, the second not)")
+    check(r['unripe']['reason'] == 'unripe' and h['h1']['seeds'] in (2, 3) and h['h2']['seeds'] in (2, 3) and 'gift' not in h['h1']
+          and h['h1']['discovered'] and not h['h2']['discovered'] and h['codex'][:1] == ['bluebell']
+          and h['bluebells'] == h['h1']['seeds'] + h['h2']['seeds'] and h['kinds'] == ['bluebell', 'clover', 'fern', 'moss'],
+          f"harvest: refused before 1.0; a bluebell gives {h['h1']['seeds']} then {h['h2']['seeds']} bluebell seeds and nothing else "
+          f"(kinds now {h['kinds']}); codex {h['codex']} (the first says it is new, the second not)")
+    y = r['yields']
+    expect = {'moss': (2, 4), 'daisy': (2, 3), 'bluebell': (2, 3), 'thistle': (2, 3), 'aurora': (2, 2)}
+    in_range = all(expect[k.split('@')[0]][0] <= v['min'] and v['max'] <= expect[k.split('@')[0]][1] for k, v in y.items())
+    reaches = y['moss@3']['max'] == 4 and y['daisy@3']['max'] == 3 and y['aurora@5'] == {'min': 2, 'max': 2, 'mean': 2}
+    vigor_helps = all(y[f'{k}@5']['mean'] > y[f'{k}@3']['mean'] for k in ('moss', 'bluebell'))
+    check(in_range and reaches and vigor_helps,
+          'seeds per harvest scale down with rarity: ' + ', '.join(f"{k} {v['min']}-{v['max']}" for k, v in y.items())
+          + f'; vigor 5 averages more ({vigor_helps}); a legendary always 2')
+    st = r['starters']
+    check(st['plantLast']['ok'] and st['afterPlant'] == 1 and st['crossLast'] == {'ok': False, 'reason': 'last', 'species': 'moss'}
+          and st['spareBefore'] == 1 and st['firstCross']['ok'] and st['firstCross']['species'] == 'daisy' and st['mossAfter'] == 1
+          and st['nonStarterLast'] == 1,
+          f"starters never run out: the last moss plants and is still there ({st['afterPlant']}), can't be crossed "
+          f"({st['crossLast']['reason']}), a spare one can (moss x clover -> {st['firstCross']['species']}, moss left {st['mossAfter']}); "
+          f"a bred species' last seed can be crossed ({st['nonStarterLast']})")
     check(r['readyStack'] == ['stem_leaves', 'full'], f"a ready bluebell with bloom 2: {r['readyStack']}")
     p = r['pity']
     expect = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.40]
@@ -270,7 +330,7 @@ def check_rules(page):
     check(r['reload'], 'a new page reads the same state back')
     check(all(r[k]['codex'] == 0 and r[k]['moss'] == 3 and r[k]['pot'] is None for k in ('garbage', 'version', 'badGenome')),
           'unreadable data, another version, or a malformed seed: a fresh start with the starter seeds')
-    check(r['restock'] == {'moss': 3, 'fern': 2, 'clover': 2}, f"no seeds and an empty pot on load: the starter set again ({r['restock']})")
+    check(r['restock'] == {'ivy': 1, 'moss': 1, 'fern': 1, 'clover': 1}, f"a save without starters gets one of each on load, keeping the rest ({r['restock']})")
 
 
 def check_strings(page):
@@ -365,7 +425,12 @@ def check_page(browser, base):
 
     # The Pot tab, empty: the strip is a tray of your seeds; drag one to the pot.
     click(PX + tab_x, PY + tabs[0] + 11)
-    capture(page, 'tray')
+    tray = capture(page, 'tray')
+    # The hint line under the meters (panel x 66-145, y 88-92): blank is the paper's own pixels.
+    paper = Image.open(ROOT / 'anim' / 'terrarium' / 'terrarium_journal_day.png').convert('RGBA')
+    hint_line = lambda img: img.crop((PX + 66, PY + 88, PX + 146, PY + 93)).tobytes()
+    hint_blank = lambda img: hint_line(img) == paper.crop((66, 88, 146, 93)).tobytes()
+    first_hint = not hint_blank(tray)
     rail = MANIFEST['terrarium_tools']['rail']
     slot = lambda i: (PX + rail['x'][i] + 8, PY + rail['y'] + 8)
     pot_at = (PX + 36, PY + 72)
@@ -382,7 +447,14 @@ def check_page(browser, base):
     for _ in range(7):
         advance()
     planted = page.evaluate(f'{T}.get().pot && {T}.get().pot.species')
-    check(planted == 'moss' and glow_on == 'pointer', f'a seed dragged from the tray to the pot is planted ({planted}); a hand over the pot while carrying ({glow_on})')
+    check(planted == 'moss' and glow_on == 'grabbing', f'a seed dragged from the tray to the pot is planted ({planted}); a closed hand while dragging ({glow_on})')
+    for _ in range(25):   # past the "Planted" status line
+        advance()
+    after_hint = capture(page, 'hint_gone')
+    learned = page.evaluate(f'{T}.get().hints')
+    check(first_hint and hint_blank(after_hint) and {'pot-pickup', 'pot-use', 'seeds-pick', 'seeds-plant'} <= set(learned),
+          f'hints teach each step once: the Pot tab says what to do on a first visit ({first_hint}), and is quiet once a seed '
+          f'has been picked up and planted ({hint_blank(after_hint)}); learned: {sorted(learned)}')
 
     # The rail: only tools that do something. A seedling: just the can.
     def soil_pane():
@@ -425,17 +497,33 @@ def check_page(browser, base):
     unchanged = page.evaluate(f'{T}.get().pot.hydration')
     check(abs(unchanged - 0.8) < 0.01, f'a drag let go off the pot puts the can back: a later click on the pot does nothing ({unchanged:.2f})')
 
-    # Ripe: can, shears, basket; the basket harvests and the tray comes back.
+    # The shears only once the plant has wilted: then they sit between the can and the basket.
     page.evaluate(f'(() => {{ const p = {T}.get().pot; p.growth = 1; {T}.tick(); }})()')
     advance()
     capture(page, 'ripe')
-    click(*slot(2))
+    healthy_rail = page.evaluate('cabin.app.terrarium.needsTrim(cabin.app.terrarium.get().pot)')
+    page.evaluate(f'(() => {{ const p = {T}.get().pot; p.health = 0.5; }})()')
+    advance()
+    capture(page, 'ripe_wilted')
+    click(*slot(1))                          # the shears
+    click(*pot_at)
+    for _ in range(8):
+        advance()
+    trimmed = page.evaluate(f'{T}.get().pot.health')
+    page.evaluate(f'(() => {{ const p = {T}.get().pot; p.growth = 1; {T}.tick(); }})()')
+    advance()
+    check(not healthy_rail and trimmed == 1,
+          f'a healthy ripe plant gets no shears ({not healthy_rail}); once it has wilted they appear, and trimming with them '
+          f'restores its health ({trimmed})')
+
+    # Ripe and healthy: the can and the basket; the basket harvests and the tray comes back.
+    click(*slot(1))
     click(*pot_at)
     for _ in range(9):
         advance()
     harvested = page.evaluate(f'({{ pot: {T}.get().pot, moss: {T}.count("moss"), codex: {T}.get().codex }})')
     check(harvested['pot'] is None and 'moss' in harvested['codex'],
-          f'the basket, the third tool on a ripe plant, harvests it ({harvested})')
+          f'the basket, beside the can on a healthy ripe plant, harvests it ({harvested})')
 
     # The keyboard: Tab to the first tray seed, Enter, Tab round to the pot, Enter.
     page.focus('#input')
@@ -469,6 +557,13 @@ def check_page(browser, base):
     after = page.evaluate(f'({T}.count("fern") + {T}.count("clover") + {T}.count("ivy"))')
     capture(page, 'crossed')
     check(before - after == 1, f'the bench crosses fern x clover: two seeds in, one back ({before} -> {after})')
+    page.reload()
+    page.wait_for_function('window.cabin && window.cabin.test')
+    kept = page.evaluate(f'{T}.get().hints')
+    page.evaluate('cabin.app.journal.open(2)')
+    advance()
+    check({'cross-pick', 'cross-cancel', 'cross-go'} <= set(kept) and set(learned) <= set(kept),
+          f'the crossing bench hints are learned by using it, and every learned hint stays learned after a reload ({sorted(kept)})')
 
     # The terminal changes the open journal without switching its tab.
     page.wait_for_timeout(600)   # watering is debounced 500 ms in real time; the can was used moments ago
@@ -504,15 +599,25 @@ def check_page(browser, base):
     page.keyboard.press('Escape')
     advance()
     escaped = not is_open()
+    # The red X at the top right, on every tab.
+    close = MANIFEST['terrarium_close']['placement']
+    by_x = []
+    for t in range(4):
+        page.evaluate(f'cabin.app.journal.open({t})')
+        advance()
+        cursor_x = hover(PX + close['x'] + 5, PY + close['y'] + 5)
+        click(PX + close['x'] + 5, PY + close['y'] + 5)
+        by_x.append(not is_open() and cursor_x == 'pointer')
+    check(all(by_x), f'the close button at the top right shows a hand and closes the journal on every tab ({by_x})')
     check(outside and pot_again and by_key and escaped,
           f'closes on a click outside ({outside}), on the pot ({pot_again}), on Escape ({escaped}); the Terrarium button opens it ({by_key})')
 
     # Commands print in character.
     replies = {}
-    for line in ('terrarium status', 'plant fern', 'seeds', 'codex', 'cross moss aurora bloom'):
+    for line in ('terrarium', 'plant fern', 'seeds', 'codex', 'cross moss aurora bloom'):
         page.evaluate(f'cabin.run({line!r})')
         replies[line] = page.inner_text('#bubble').strip().splitlines()[-1]
-    check(replies['plant fern'] == "the pot's already got an aurora bloom in it."
+    check(replies['terrarium'].startswith('no such command') and replies['plant fern'] == "the pot's already got an aurora bloom in it."
           and replies['cross moss aurora bloom'] == 'you need an aurora bloom seed for that.',
           f'commands answer in character: {replies}')
     check(not problems, f'no console problems ({problems})')

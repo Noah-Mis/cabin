@@ -37,7 +37,12 @@ export const SPECIES = [
 ];
 
 // Pairs are unordered. A miss (or a pair with no entry) gives one of the parents.
+// Only moss, fern and clover are starters (config.terrarium.starterSeeds);
+// every other species is bred, beginning with these first three.
 export const CROSSES = [
+  { a: 'moss',       b: 'clover',     out: 'daisy',      chance: 0.25 },
+  { a: 'moss',       b: 'fern',       out: 'mushroom',   chance: 0.25 },
+  { a: 'daisy',      b: 'clover',     out: 'wildflower', chance: 0.25 },
   { a: 'daisy',      b: 'wildflower', out: 'bluebell',   chance: 0.15 },
   { a: 'mushroom',   b: 'daisy',      out: 'suncap',     chance: 0.15 },
   { a: 'fern',       b: 'clover',     out: 'ivy',        chance: 0.20 },

@@ -161,18 +161,26 @@ and `debug stats` work in the terminal. Without `?debug` the command doesn't exi
 
 ## Terrarium
 
-The clay pot on the left wall is a slow plant-breeding game; click it (or type
-`terrarium`) for the field journal. One pot: plant a seed, water it now and then,
+The clay pot on the left wall is a slow plant-breeding game; click it for the
+field journal. One pot: plant a seed, water it now and then,
 and harvest it for seeds a few hours later in real time: 4 hours for a common
 plant up to 10 for Aurora Bloom, quicker with more vigor (it grows while the
 page is closed). It is played by hand: drag a seed from the tray to the empty pot,
 and carry the watering can, shears or basket from the rail to the pot (click a
 tool to pick it up and click the pot, or drag; Tab / Enter / Escape on the
-keyboard). The rail only shows tools that would do something. Crossing two seeds on the journal's bench gives a seed back every
-time, and sometimes a new species; the codex fills up as you go, and Aurora
-Bloom is four crosses deep. `terrarium status`, `water`, `trim`, `harvest`,
-`plant <seed>`, `seeds`, `cross <seed> <seed>` and `codex` work from the
-terminal too (only `terrarium` is in `help`; none count toward Power User).
+keyboard). The rail only shows tools that would do something: the shears only
+appear once a plant has wilted (it then grows at half speed until trimmed). Harvesting
+with the basket picks the plant's own flower (or a cutting, for a plant that
+doesn't flower): it falls into the basket, from `terrarium_harvest_<t>.png`. Close it with the red X
+at its top right (like the folder's), Escape, or a click outside it. Moss, fern and clover are the only starters, and they never run out:
+the last one of each can always be planted, though only spares can be crossed.
+Every other species is bred: crossing two seeds on the journal's bench gives a
+seed back every time, and sometimes a new species; the codex fills up as you
+go, and Aurora Bloom is five crosses deep. A harvest gives only the plant's own
+seeds, 2-4 for a common one down to always 2 for Aurora Bloom. `water`, `trim`,
+`harvest`, `plant <seed>`, `seeds`, `cross <seed> <seed>` and `codex` work from
+the terminal too, as a way to play without a pointer (they are hidden from
+`help` and don't count toward Power User).
 
 `anim/terrarium/terrarium_brief.md` is the design: every position, the rules and
 their numbers; `terrarium_tools_plan.md` replaces its Pot-tab buttons with the tools. The numbers live in `config.terrarium`, the species and crosses
@@ -184,8 +192,10 @@ call `cabin.app.terrarium.tick()`).
 Where this differs from the brief: growing takes hours, not a day and a half,
 and rarer species take longer (`growHoursByRarity`); a plant only dies of thirst while the page is
 open (time away dries it out, never kills it, per its edge cases); wilting halves
-growth until the next trim, which is what Trim is for; harvested and bred
-species fill the codex; dead tiles overlap 4px so the withered stalk has no gaps.
+growth until the next trim, the only time the shears appear; harvested and bred
+species fill the codex; dead tiles overlap 4px so the withered stalk has no gaps;
+daisy, wildflower and mushroom are bred too (moss x clover, daisy x clover, moss x
+fern), there is no first-harvest gift, and harvests give 2-4 seeds by rarity.
 
 ## Sound
 

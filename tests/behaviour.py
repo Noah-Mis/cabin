@@ -1376,7 +1376,9 @@ def check_unlock_bubble(browser, base, problems):
     report.append('\n## Unlock lines in the bubble (test mode)\n')
     page, pp = open_page(browser, base, '?test&debug&time=day', problems)
     mug = __import__('json').loads((ROOT / 'anim' / 'manifest.json').read_text())['animations']['mug']
-    type_command(page, 'debug set mugclicks 24')
+    goal = next(a['goal'] for a in __import__('json').loads((ROOT / 'anim' / 'achievements' / 'achievements.json').read_text())['achievements']
+                if a['id'] == 'caffeinated')
+    type_command(page, f'debug set mugclicks {goal - 1}')
     before = output_lines(page)
     page.mouse.click(*page.evaluate(f"""(() => {{ const r = document.getElementById('scene').getBoundingClientRect();
         return [r.left + {mug['placement']['x'] - 2} * r.width / 320, r.top + {mug['placement']['y'] - 4} * r.height / 180]; }})()"""))
@@ -1385,10 +1387,10 @@ def check_unlock_bubble(browser, base, problems):
     type_command(page, 'weather rain')
     type_command(page, 'weather snow')
     during = output_lines(page)
-    check(before == ['mugClicks = 24'] and len(after_sip) == 1 and after_sip[0].startswith('achievement unlocked: Caffeinated.')
+    check(before == [f'mugClicks = {goal - 1}'] and len(after_sip) == 1 and after_sip[0].startswith('achievement unlocked: Caffeinated.')
           and len(during) == 2 and during[0].startswith('achievement unlocked: Storm Chaser.') and during[1] == 'it starts to snow.'
           and page.evaluate("document.querySelectorAll('#bubble').length") == 1 and not pp,
-          f'the 25th sip replaces the bubble {before} with {after_sip}; an unlock during `weather snow` shares '
+          f'the sip that earns Caffeinated (number {goal}) replaces the bubble {before} with {after_sip}; an unlock during `weather snow` shares '
           f'its reply: {during}')
     problems.extend(pp)
     page.context.close()
