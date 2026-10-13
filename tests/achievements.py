@@ -1195,6 +1195,17 @@ def check_board(browser, base):
     want = art('board_mockup_popup.png')
     m = want.shape[1] // 320
     want = want[::m, ::m][pp['canvas_y']:pp['canvas_y'] + pp['h'], pp['canvas_x']:pp['canvas_x'] + pp['w']]
+    # The badges as they are now, over the mockup's: this checks where they go and
+    # which show, not the badge art itself (some icons were re-centred since the mockup).
+    want = Image.fromarray(want.copy())
+    sheet = Image.open(ACH_DIR / ACH['badges']['file']).convert('RGBA')
+    bw, locked = ACH['badges']['frame_w'], ACH['badges']['locked_frame']
+    frame_of = lambda i: sheet.crop((i * bw, 0, (i + 1) * bw, bw))
+    for i, slot in enumerate(pp['slots']):
+        want.paste(frame_of(i if i in (0, 1, 3, 5, 6, 8) else locked), (slot['badge_x'], slot['badge_y']))
+    big = pp['regions']['detail_badge_2x']
+    want.paste(frame_of(1).resize((bw * 2, bw * 2), Image.NEAREST), (big['x'], big['y']))   # the second, selected
+    want = np.asarray(want)
     words = np.zeros(site.shape[:2], bool)
     for k in ('detail_name', 'detail_description', 'detail_reward', 'progress_text'):
         g = pp['regions'][k]

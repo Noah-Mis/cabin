@@ -276,8 +276,10 @@ def plaque(locked=False):
     if not locked:
         for x,y in ((1,1),(14,1),(1,14),(14,14)): im.putpixel((x,y),GOLD+(255,))
     return im
-def badge(icon):
+def badge(icon,trim=False):
+    if trim: icon=icon.crop(icon.getbbox())   # centre what is drawn, not the canvas it was drawn on (blank columns pushed these off-centre)
     p=plaque(); p.alpha_composite(icon,((16-icon.width)//2,(16-icon.height)//2)); return p
+TRIM={'smoke','storm','deer'}   # smoke_break, storm_chaser, cabin_fever: centred by what is drawn
 ICN={}
 ICN['sasquatch']=art(fig('c')[:7],SQ)
 ICN['bird']=bird('u',(1,1,1)).crop((2,1,14,9))
@@ -295,7 +297,7 @@ ICN['trophy']=art(tro,TR)
 ORDER=[('first_sighting','sasquatch'),('bird_watcher','bird'),('cryptid_hunter','yeti'),('caffeinated','mug'),('smoke_break','smoke'),('case_closed','folder'),
        ('night_owl','moon'),('around_the_clock','clock'),('storm_chaser','storm'),('stargazer','star'),('power_user','terminal'),('cabin_fever','deer'),('woodsman','trophy')]
 lock=plaque(True); art([".HHH.","H...H","...H.","..H..",".....","..H.."],{'H':(120,84,48)},im=lock,x0=5,y0=5)
-strip([badge(ICN[i]) for _,i in ORDER]+[lock]).save(f'{OUT}/badges.png')
+strip([badge(ICN[i],i in TRIM) for _,i in ORDER]+[lock]).save(f'{OUT}/badges.png')
 sign=Image.new('RGBA',(132,24),(0,0,0,0))
 for y in range(24):
     for x in range(132):
