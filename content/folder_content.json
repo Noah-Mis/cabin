@@ -5,7 +5,7 @@
     "lines": [
       "B.S. Computer Science",
       "Missouri S&T, Rolla MO",
-      "Expected May 2028 · GPA 3.52"
+      "Expected May 2028 · GPA 3.57"
     ]
   },
   "stamp": "CLASS OF 2028",
@@ -77,7 +77,7 @@
             "title": "Missouri University of Science & Technology",
             "meta": "Expected May 2028",
             "points": [
-              "B.S. Computer Science · GPA 3.52/4.0",
+              "B.S. Computer Science · GPA 3.57/4.0",
               "Coursework: Algorithms, Database Systems, Operating Systems, Data Structures, Discrete Mathematics"
             ]
           }
@@ -172,6 +172,22 @@
             "meta": "Team lead",
             "points": [
               "Led a team engineering nonpathogenic E. coli to take up cadmium from water supplies; inspected and coded nucleic acids to create a fusion protein"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "On my own",
+        "items": [
+          {
+            "title": "Cabin TV",
+            "meta": "Personal project · JavaScript, Python, Kotlin, Linux, Android TV",
+            "points": [
+              "Designed and built a full TV operating front end from scratch to replace commercial streaming boxes (Roku, Onn), running on Raspberry Pi and Android TV",
+              "Developed a JavaScript launcher with an animated pixel-art interface driven by real-time clock and live weather API data",
+              "Built a Python backend that manages Bluetooth, audio, Wi-Fi and system updates on Linux, with a privilege-separated root helper and schema-validated settings",
+              "Wrote a Chromium extension for remote-control navigation, an on-screen keyboard and pop-up blocking, deployed through a one-command install script",
+              "Ported the app to Android TV in Kotlin, handing playback to native apps for hardware-accelerated 4K video, and added HDMI-CEC control and OLED burn-in protection"
             ]
           }
         ]
